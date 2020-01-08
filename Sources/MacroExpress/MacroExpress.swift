@@ -7,6 +7,7 @@
 //
 
 @_exported import MacroCore
+@_exported import connect
 @_exported import express
 
 @_exported import func     MacroCore.nextTick
