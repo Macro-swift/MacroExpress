@@ -2,7 +2,7 @@
 //  MacroExpress.swift
 //  MacroExpress
 //
-//  Created by Helge Hess.
+//  Created by Helge Heß.
 //  Copyright © 2020 ZeeZide GmbH. All rights reserved.
 //
 

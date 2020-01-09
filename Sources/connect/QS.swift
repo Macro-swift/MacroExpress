@@ -2,7 +2,7 @@
 //  QS.swift
 //  Noze.io / ExExpress / Macro
 //
-//  Created by Helge Hess on 02.05.17.
+//  Created by Helge Heß on 02.05.17.
 //  Copyright © 2017-2020 ZeeZide GmbH. All rights reserved.
 //
 

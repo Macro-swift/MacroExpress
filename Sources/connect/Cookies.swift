@@ -2,7 +2,7 @@
 //  Cookies.swift
 //  Noze.io / Macro
 //
-//  Created by Helge Hess on 10/06/16.
+//  Created by Helge Heß on 10/06/16.
 //  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
 //
 

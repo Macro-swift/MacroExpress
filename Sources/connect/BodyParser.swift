@@ -2,7 +2,7 @@
 //  BodyParser.swift
 //  Noze.io / MacroExpress
 //
-//  Created by Helge Hess on 30/05/16.
+//  Created by Helge Heß on 30/05/16.
 //  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
 //
 

@@ -2,7 +2,7 @@
 //  Logger.swift
 //  Noze.io / MacroCore
 //
-//  Created by Helge Hess on 31/05/16.
+//  Created by Helge Heß on 31/05/16.
 //  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
 //
 

@@ -2,7 +2,7 @@
 //  Pause.swift
 //  Noze.io / Macro
 //
-//  Created by Helge Hess on 21/07/16.
+//  Created by Helge Heß on 21/07/16.
 //  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
 //
 
