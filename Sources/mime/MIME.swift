@@ -48,35 +48,53 @@ public extension MIMEModule {
   }
 
   static let types : [ String : String ] = [
-    "html":     "text/html",
-    "js":       "application/javascript",
-    "ico":      "image/x-icon",
-    "svg":      "image/svg+xml",
-    "eot":      "application/vnd.ms-fontobject",
-    "woff":     "application/x-font-woff",
-    "woff2":    "application/x-font-woff",
-    "ttf":      "application/x-font-ttf",
-    "markdown": "text/x-markdown",
-    "json":     "application/json"
+    "html"     : "text/html",
+    "js"       : "application/javascript",
+    "ico"      : "image/x-icon",
+    "svg"      : "image/svg+xml",
+    "eot"      : "application/vnd.ms-fontobject",
+    "woff"     : "application/x-font-woff",
+    "woff2"    : "application/x-font-woff",
+    "ttf"      : "application/x-font-ttf",
+    "markdown" : "text/x-markdown",
+    "md"       : "text/x-markdown",
+    "json"     : "application/json",
+    "vcf"      : "text/vcard",
+    "ics"      : "text/calendar",
+    "xml"      : "text/xml"
   ]
   
   static let extensions : [ String : [ String ] ] = [
-    "text/html":                     [ "html"          ],
-    "application/javascript":        [ "js"            ],
-    "image/x-icon":                  [ "ico"           ],
-    "image/svg+xml":                 [ "svg"           ],
-    "application/vnd.ms-fontobject": [ "eot"           ],
-    "application/x-font-woff":       [ "woff", "woff2" ],
-    "application/x-font-ttf":        [ "ttf"           ],
-    "text/x-markdown":               [ "markdown"      ],
-    "application/json":              [ "json"          ]
+    "text/html"                     : [ "html"           ],
+    "application/javascript"        : [ "js"             ],
+    "image/x-icon"                  : [ "ico"            ],
+    "image/svg+xml"                 : [ "svg"            ],
+    "application/vnd.ms-fontobject" : [ "eot"            ],
+    "application/x-font-woff"       : [ "woff", "woff2"  ],
+    "application/x-font-ttf"        : [ "ttf"            ],
+    "text/x-markdown"               : [ "markdown", "md" ],
+    "application/json"              : [ "json"           ],
+    "text/vcard"                    : [ "vcf"            ],
+    "text/calendar"                 : [ "ics"            ],
+    "text/xml"                      : [ "xml"            ]
   ]
 
   static let defaultCharsets : [ String : String ] = [
-    "text/html":              "UTF-8",
-    "application/javascript": "UTF-8",
-    "image/svg+xml":          "UTF-8",
-    "text/x-markdown":        "UTF-8",
-    "application/json":       "UTF-8"
+    "text/html"              : "UTF-8",
+    "application/javascript" : "UTF-8",
+    "image/svg+xml"          : "UTF-8",
+    "text/x-markdown"        : "UTF-8",
+    "application/json"       : "UTF-8",
+    "text/vcard"             : "UTF-8",
+    "text/calendar"          : "UTF-8",
+    "text/xml"               : "UTF-8"
+  ]
+
+  static let typePrefixMap = [
+    ( "<!DOCTYPE html",  "text/html; charset=utf-8"     ),
+    ( "<html",           "text/html; charset=utf-8"     ),
+    ( "<?xml",           "text/xml;  charset=utf-8"     ),
+    ( "BEGIN:VCALENDAR", "text/calendar; charset=utf-8" ),
+    ( "BEGIN:VCARD",     "text/vcard; charset=utf-8"    )
   ]
 }
