@@ -6,7 +6,6 @@
 //  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
 //
 
-import struct NIO.ByteBuffer
 import MacroCore
 import http
 
@@ -28,7 +27,7 @@ public enum BodyParserBody {
   
   case json(Any)
   
-  case raw(ByteBuffer)
+  case raw(Buffer)
   case text(String)
   
   public subscript(dynamicMember k: String) -> Any? {
@@ -111,7 +110,7 @@ public struct bodyParser {
 public enum BodyParserError : Error {
   
   case extraStoreInconsistency
-  case couldNotDecodeString
+  case couldNotDecodeString(Swift.Error)
 }
 
 
@@ -177,7 +176,7 @@ public extension bodyParser {
 
 private func concatError(request : IncomingMessage,
                          next    : @escaping Next,
-                         handler : @escaping ( ByteBuffer ) -> Swift.Error?)
+                         handler : @escaping ( Buffer ) -> Swift.Error?)
 {
   var didCallNext = false
   
@@ -215,15 +214,14 @@ public extension bodyParser {
       guard typeIs(req, [ "text" ]) != nil else { next(); return }
       
       concatError(request: req, next: next) { bytes in
-        guard let s = bytes.getString(at: bytes.readerIndex,
-                                      length: bytes.readableBytes) else
-        {
-          let error = BodyParserError.couldNotDecodeString
-          req.body = .error(error)
+        do {
+          req.body = .text(try bytes.toString())
+          return nil
+        }
+        catch {
+          req.body = .error(BodyParserError.couldNotDecodeString(error))
           return error
         }
-        req.body = .text(s)
-        return nil
       }
     }
   }
@@ -243,16 +241,16 @@ public extension bodyParser {
       
       // TBD: `extended` option. (maps to our zopeFormats?)
       concatError(request: req, next: next) { bytes in
-        guard let s = bytes.getString(at: bytes.readerIndex,
-                                      length: bytes.readableBytes) else
-        {
-          let error = BodyParserError.couldNotDecodeString
-          req.body = .error(error)
+        do {
+          let s = try bytes.toString()
+          let qp = opts.extended ? qs.parse(s) : querystring.parse(s)
+          req.body = .urlEncoded(qp)
+          return nil
+        }
+        catch {
+          req.body = .error(BodyParserError.couldNotDecodeString(error))
           return error
         }
-        let qp = opts.extended ? qs.parse(s) : querystring.parse(s)
-        req.body = .urlEncoded(qp)
-        return nil
       }
     }
   }
