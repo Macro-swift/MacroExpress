@@ -1,13 +1,12 @@
 //
 //  ServerResponse.swift
-//  Noze.io
+//  Noze.io / Macro
 //
 //  Created by Helge Heß on 6/2/16.
-//  Copyright © 2016 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
 //
 
-import http
-import Freddy
+import class http.ServerResponse
 
 public extension ServerResponse {
   // TODO: Would be cool: send(stream: GReadableStream), then stream.pipe(self)
@@ -22,6 +21,7 @@ public extension ServerResponse {
   ///     res.status(404).send("didn't find it")
   ///
   @discardableResult
+  @inlinable
   func status(_ code: Int) -> Self {
     statusCode = code
     return self
@@ -29,6 +29,7 @@ public extension ServerResponse {
   
   /// Set the HTTP status code and send the status description as the body.
   ///
+  @inlinable
   func sendStatus(_ code: Int) {
     let status = HTTPStatus(code)
     statusCode = code
@@ -38,6 +39,7 @@ public extension ServerResponse {
   
   // MARK: - Sending Content
  
+  @inlinable
   func send(_ string: String) {
     if canAssignContentType {
       var ctype = string.hasPrefix("<html") ? "text/html" : "text/plain"
@@ -48,7 +50,8 @@ public extension ServerResponse {
     self.end(string)
   }
   
-  func send(_ data: [UInt8]) {
+  @inlinable
+  func send(_ data: [ UInt8 ]) {
     if canAssignContentType {
       setHeader("Content-Type", "application/octet-stream")
     }
@@ -56,13 +59,15 @@ public extension ServerResponse {
     self.end(data)
   }
   
-  func send(_ object: JSON)          { json(object) }
-  func send(_ object: JSONEncodable) { json(object) }
+  @inlinable
+  func send<T: Encodable>(_ object: T) { json(object) }
   
+  @inlinable
   var canAssignContentType : Bool {
     return !headersSent && getHeader("Content-Type") == nil
   }
   
+  @inlinable
   func format(handlers: [ String : () -> () ]) {
     var defaultHandler : (() -> ())? = nil
     
@@ -88,9 +93,11 @@ public extension ServerResponse {
   
   // MARK: - Header Accessor Renames
   
+  @inlinable
   func get(_ header: String) -> Any? {
     return getHeader(header)
   }
+  @inlinable
   func set(_ header: String, _ value: Any?) {
     if let v = value {
       setHeader(header, v)

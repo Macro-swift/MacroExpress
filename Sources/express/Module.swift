@@ -1,12 +1,12 @@
 //
 //  Module.swift
-//  Noze.io / MacroExpress
+//  Noze.io / Macro
 //
 //  Created by Helge Heß on 4/3/16.
-//  Copyright © 2016 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
 //
 
-import core
+import MacroCore
 @_exported import connect
 
 public enum ExpressModule {}
@@ -14,9 +14,9 @@ public enum ExpressModule {}
 public extension ExpressModule {
   
   @inlinable
-  public func express(middleware: Middleware...) -> Express {
+  static func express(middleware: Middleware...) -> Express {
     let app = Express()
-    middleware.forEach(app.use)
+    middleware.forEach { app.use($0) }
     return app
   }
 }
@@ -24,6 +24,6 @@ public extension ExpressModule {
 @inlinable
 public func express(middleware: Middleware...) -> Express {
   let app = Express()
-  middleware.forEach(app.use)
+  middleware.forEach { app.use($0) }
   return app
 }

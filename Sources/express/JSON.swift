@@ -1,13 +1,13 @@
 //
 //  JSON.swift
-//  Noze.io
+//  Noze.io / Macro
 //
 //  Created by Helge Heß on 6/3/16.
-//  Copyright © 2016 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
 //
 
 import MacroCore
-import http
+import class http.ServerResponse
 
 public extension ServerResponse {
   // TODO: add jsonp

@@ -1,15 +1,16 @@
 //
 //  Router.swift
-//  Noze.io
+//  Noze.io / Macro
 //
 //  Created by Helge Heß on 6/2/16.
-//  Copyright © 2016 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
 //
 
-import http
-import connect
+import class     http.IncomingMessage
+import class     http.ServerResponse
+import typealias connect.Next
 
-open class Router: MiddlewareObject {
+open class Router: MiddlewareObject, RouteKeeper {
   
   var routes = ContiguousArray<Route>()
   
@@ -20,13 +21,14 @@ open class Router: MiddlewareObject {
   
   // MARK: MiddlewareObject
   
-  public func handle(request  req     : IncomingMessage,
-                     response res     : ServerResponse,
+  public func handle(request      req : IncomingMessage,
+                     response     res : ServerResponse,
                      next     endNext : @escaping Next)
   {
     guard !self.routes.isEmpty else { return endNext() }
     
     final class State {
+      
       var stack    : ArraySlice<Route>
       let request  : IncomingMessage
       let response : ServerResponse
@@ -57,5 +59,4 @@ open class Router: MiddlewareObject {
                       req, res, endNext)
     state.step()
   }
-  
 }

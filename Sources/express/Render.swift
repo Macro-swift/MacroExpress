@@ -1,15 +1,15 @@
 //
 //  Render.swift
-//  Noze.io
+//  Noze.io / Macro
 //
 //  Created by Helge Heß on 6/2/16.
-//  Copyright © 2016 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
 //
 
+import enum  MacroCore.process
+import class http.ServerResponse
+import enum  MacroCore.console
 import fs
-import process
-import http
-import console
 
 public extension ServerResponse {
   
@@ -103,6 +103,3 @@ private func lookupTemplate(views p: String, template t: String,
     cb(fsPath)
   }
 }
-
-// Some protocol is implemented in Foundation, requiring this.
-import Foundation

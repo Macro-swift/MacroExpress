@@ -1,13 +1,15 @@
 //
 //  Mustache.swift
-//  Noze.io
+//  Noze.io / Macro
 //
 //  Created by Helge Hess on 02/06/16.
-//  Copyright © 2016 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
 //
 
-import fs
-import console
+import func fs.readFile
+import func fs.readFileSync
+import enum fs.path
+import enum MacroCore.console
 import mustache
 
 let mustacheExpress : ExpressEngine = { path, options, done in
@@ -55,5 +57,4 @@ class ExpressMustacheContext : MustacheDefaultRenderingContext {
     let tree   = parser.parse(string: template)
     return tree
   }
-  
 }

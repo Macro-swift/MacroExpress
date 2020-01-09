@@ -86,10 +86,8 @@ public typealias ExpressEngine = (
 
 public extension IncomingMessage {
   
-  @inlinable
   var app : Express? { return extra[appKey] as? Express }
   
-  @inlinable
   var params : [ String : String ] {
     set { extra[paramsKey] = newValue }
     get {
@@ -101,10 +99,8 @@ public extension IncomingMessage {
 
 public extension ServerResponse {
   
-  @inlinable
   var app : Express? { return extra[appKey] as? Express }
   
-  @inlinable
   var request : IncomingMessage? {
     return extra[reqKey] as? IncomingMessage
   }
@@ -126,7 +122,7 @@ public extension Express {
   @inlinable
   @discardableResult
   func listen(_ port: Int? = nil, backlog: Int = 512,
-              onListening cb : (( net.Server ) -> Void)? = nil) -> Self
+              onListening cb : (( http.Server ) -> Void)? = nil) -> Self
   {
     let server = http.createServer(onRequest: requestHandler)
     _ = server.listen(port, backlog: backlog, onListening: cb)

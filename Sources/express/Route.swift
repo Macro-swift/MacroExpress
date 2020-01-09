@@ -6,8 +6,10 @@
 //  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
 //
 
-import http
-import connect
+import enum      NIOHTTP1.HTTPMethod
+import class     http.IncomingMessage
+import class     http.ServerResponse
+import typealias connect.Next
 
 private let patternMarker : UInt8 = 58 // ':'
 private let debugMatcher  = false
@@ -44,9 +46,9 @@ public struct Route: MiddlewareObject {
   let middleware      : ContiguousArray<Middleware>
   let errorMiddleware : ContiguousArray<ErrorMiddleware>
   
-  let methods    : ContiguousArray<HTTPMethod>?
+  let methods         : ContiguousArray<HTTPMethod>?
   
-  let urlPattern : [ Pattern ]?
+  let urlPattern      : [ Pattern ]?
     // FIXME: all this works a little different in Express.js. Exact matches,
     //        non-path-component matches, regex support etc.
   
