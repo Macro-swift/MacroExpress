@@ -124,7 +124,7 @@ public extension Express {
   func listen(_ port: Int? = nil, backlog: Int = 512,
               onListening cb : (( http.Server ) -> Void)? = nil) -> Self
   {
-    let server = http.createServer(onRequest: requestHandler)
+    let server = http.createServer(handler: requestHandler)
     _ = server.listen(port, backlog: backlog, onListening: cb)
     return self
   }

@@ -6,6 +6,7 @@
 //  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
 //
 
+import enum  NIOHTTP1.HTTPResponseStatus
 import class http.ServerResponse
 
 public extension ServerResponse {
@@ -31,9 +32,9 @@ public extension ServerResponse {
   ///
   @inlinable
   func sendStatus(_ code: Int) {
-    let status = HTTPStatus(code)
+    let status = HTTPResponseStatus(statusCode: code)
     statusCode = code
-    send(status.statusText)
+    send(status.reasonPhrase)
   }
   
   
@@ -47,7 +48,8 @@ public extension ServerResponse {
       setHeader("Content-Type", ctype)
     }
     
-    self.end(string)
+    write(string)
+    end()
   }
   
   @inlinable
@@ -56,7 +58,8 @@ public extension ServerResponse {
       setHeader("Content-Type", "application/octet-stream")
     }
     
-    self.end(data)
+    write(data)
+    end()
   }
   
   @inlinable
@@ -99,11 +102,7 @@ public extension ServerResponse {
   }
   @inlinable
   func set(_ header: String, _ value: Any?) {
-    if let v = value {
-      setHeader(header, v)
-    }
-    else {
-      removeHeader(header)
-    }
+    if let v = value { setHeader(header, v) }
+    else             { removeHeader(header) }
   }
 }

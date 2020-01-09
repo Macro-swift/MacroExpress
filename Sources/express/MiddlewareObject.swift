@@ -11,13 +11,31 @@ import connect
 import enum MacroCore.console
 
 /**
- * An object representation of a `Middleware` closure.
+ * MiddlewareObject is the 'object variant' of a Middleware callback.
+ *
+ * All MiddlewareObject's provide a `handle(request:response:next:)` method.
+ *
+ * And you can generate a Middleware function for a MiddlewareObject by using
+ * the `.middleware` property. Like so:
+ *
+ *     app.use(otherApp.middleware)
+ *
+ * Finally, you can also use the as a http-module request handler. Same thing:
+ *
+ *     http.createServer(onRequest: app.requestHandler)
+ *
  */
 public protocol MiddlewareObject {
   
   func handle(request  req: IncomingMessage,
               response res: ServerResponse,
               next     cb:  @escaping Next)
+  
+}
+
+public protocol MountableMiddlewareObject : MiddlewareObject {
+  
+  func mount(at: String, parent: Express)
   
 }
 
@@ -46,6 +64,22 @@ public extension MiddlewareObject {
           res.writeHead(500)
           res.end()
         }
+        else if req.method == "OPTIONS" {
+          // This assumes option headers have been set via cors middleware or
+          // sth similar.
+          // Just respond with OK and we are done, right?
+          
+          if res.getHeader("Allow") == nil {
+            res.setHeader("Allow",
+                          allowedDefaultMethods.joined(separator: ", "))
+          }
+          if res.getHeader("Server") == nil {
+            res.setHeader("Server", "Macro/1.33.7")
+          }
+          
+          res.writeHead(200)
+          res.end()
+        }
         else {
           // essentially the final handler
           console.warn("No middleware called end:",
@@ -57,3 +91,7 @@ public extension MiddlewareObject {
     }
   }
 }
+
+fileprivate let allowedDefaultMethods = [
+  "GET", "HEAD", "POST", "OPTIONS", "DELETE", "PUT", "PATCH"
+]

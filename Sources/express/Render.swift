@@ -1,6 +1,6 @@
 //
 //  Render.swift
-//  Noze.io / Macro
+//  Noze.io / Macro / ExExpress
 //
 //  Created by Helge Heß on 6/2/16.
 //  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.

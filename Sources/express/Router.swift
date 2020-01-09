@@ -12,9 +12,10 @@ import typealias connect.Next
 
 open class Router: MiddlewareObject, RouteKeeper {
   
-  var routes = ContiguousArray<Route>()
-  
-  func add(route e: Route) {
+  var routes        = ContiguousArray<Route>()
+  var errorHandlers = ContiguousArray<ErrorMiddleware>()
+
+  open func add(route e: Route) {
     routes.append(e)
   }
   
@@ -26,37 +27,9 @@ open class Router: MiddlewareObject, RouteKeeper {
                      next     endNext : @escaping Next)
   {
     guard !self.routes.isEmpty else { return endNext() }
-    
-    final class State {
-      
-      var stack    : ArraySlice<Route>
-      let request  : IncomingMessage
-      let response : ServerResponse
-      var next     : Next?
-      
-      init(_ stack    : ArraySlice<Route>,
-           _ request  : IncomingMessage,
-           _ response : ServerResponse,
-           _ next     : @escaping Next)
-      {
-        self.stack    = stack
-        self.request  = request
-        self.response = response
-        self.next     = next
-      }
-      
-      func step(_ args : Any...) {
-        if let route = stack.popFirst() {
-          route.handle(request: request, response: response, next: self.step)
-        }
-        else {
-          next?(); next = nil
-        }
-      }
-    }
-    
-    let state = State(routes[routes.indices],
-                      req, res, endNext)
+        
+    let state = MiddlewareWalker(routes[routes.indices],
+                                 req, res, endNext)
     state.step()
   }
 }

@@ -7,57 +7,76 @@
 //
 
 import enum      NIOHTTP1.HTTPMethod
+import enum      MacroCore.console
 import class     http.IncomingMessage
 import class     http.ServerResponse
 import typealias connect.Next
+import struct    Foundation.URL
 
 private let patternMarker : UInt8 = 58 // ':'
 private let debugMatcher  = false
+private let debug         = false
 
 public typealias ErrorMiddleware =
                    ( Swift.Error,
                      IncomingMessage, ServerResponse, @escaping Next ) -> Void
 
-public struct Route: MiddlewareObject {
+/**
+ * A Route is a middleware which wraps another middleware and guards it by a
+ * condition. For example:
+ *
+ *     app.get("/index") { req, res, next in ... }
+ *
+ * This creates a Route wrapping the closure given. It only runs the
+ * embedded closure if:
+ * - the method of the request is 'GET'
+ * - the request path is equal to "/index"
+ * In all other cases it immediately calls the `next` handler.
+ *
+ * ## Path Patterns
+ *
+ * The Route accepts a pattern for the path:
+ * - the "*" string is considered a match-all.
+ * - otherwise the string is split into path components (on '/')
+ * - if it starts with a "/", the pattern will start with a Root symbol
+ * - "*" (like in `/users/ * / view`) matches any component (spaces added)
+ * - if the component starts with `:`, it is considered a variable.
+ *   Example: `/users/:id/view`
+ * - "text*", "*text*", "*text" creates hasPrefix/hasSuffix/contains patterns
+ * - otherwise the text is matched AS IS
+ *
+ * Variables can be extracted using:
+ *
+ *     req.params[int: "id"]
+ *
+ * and companions.
+ */
+open class Route: MiddlewareObject, RouteKeeper {
   
-  public enum Pattern {
-    case root
-    case text    (String)
-    case variable(String)
-    case wildcard
-    case prefix  (String)
-    case suffix  (String)
-    case contains(String)
-    
-    @inlinable
-    public func match<S: StringProtocol>(string s: S) -> Bool {
-      switch self {
-        case .root:            return s == ""
-        case .text(let v):     return s == v
-        case .wildcard:        return true
-        case .variable:        return true // allow anything, like .Wildcard
-        case .prefix(let v):   return s.hasPrefix(v)
-        case .suffix(let v):   return s.hasSuffix(v)
-        case .contains(let v): return s.contains(v)
-      }
-    }
+  public var middleware      : ContiguousArray<Middleware>
+  public var errorMiddleware : ContiguousArray<ErrorMiddleware>
+  
+  var id             : String?
+  let methods        : ContiguousArray<HTTPMethod>?
+
+  @inlinable
+  public var isEmpty : Bool {
+    return middleware.isEmpty && errorMiddleware.isEmpty
   }
-  
-  let middleware      : ContiguousArray<Middleware>
-  let errorMiddleware : ContiguousArray<ErrorMiddleware>
-  
-  let methods         : ContiguousArray<HTTPMethod>?
-  
-  let urlPattern      : [ Pattern ]?
+  @inlinable
+  public var count   : Int  { return middleware.count + errorMiddleware.count }
+
+  let urlPattern      : [ RoutePattern ]?
     // FIXME: all this works a little different in Express.js. Exact matches,
     //        non-path-component matches, regex support etc.
   
-  init(pattern         : String?,
+  init(id              : String? = nil,
+       pattern         : String?,
        method          : HTTPMethod?,
        middleware      : ContiguousArray<Middleware>,
-       errorMiddleware : ContiguousArray<ErrorMiddleware>)
+       errorMiddleware : ContiguousArray<ErrorMiddleware> = [])
   {
-    // FIXME: urlPrefix should be url or sth
+    self.id = id
     
     if let m = method { self.methods = [ m ] }
     else { self.methods = nil }
@@ -65,66 +84,31 @@ public struct Route: MiddlewareObject {
     self.middleware      = middleware
     self.errorMiddleware = errorMiddleware
 
-    self.urlPattern = pattern != nil ? parseURLPattern(url: pattern!) : nil
+    self.urlPattern = pattern != nil ? RoutePattern.parse(pattern!) : nil
+      
+    if debug {
+      if isEmpty {
+        console.log("\(logPrefix) setup route w/o middleware: \(self)")
+      }
+      else {
+        console.log("\(logPrefix) setup route: \(self)")
+      }
+    }
   }
   
-  
+  public func add(route: Route) {
+    self.middleware.append(route.middleware)
+  }
+
   // MARK: MiddlewareObject
   
   public func handle(request  req       : IncomingMessage,
                      response res       : ServerResponse,
                      next     upperNext : @escaping Next)
   {
+    // FIXME: this needs to be adjusted for the ExExpress variant
     guard matches(request: req)    else { return upperNext() }
     guard !self.middleware.isEmpty else { return upperNext() }
-    
-    final class State {
-      var stack      : ArraySlice<Middleware>
-      var errorStack : ArraySlice<Middleware>
-      let request    : IncomingMessage
-      let response   : ServerResponse
-      var endNext    : Next?
-      var error      : Swift.Error?
-      
-      init(_ stack      : ArraySlice<Middleware>,
-           _ errorStack : ArraySlice<Middleware>,
-           _ request    : IncomingMessage,
-           _ response   : ServerResponse,
-           _ endNext    : @escaping Next)
-      {
-        self.stack      = stack
-        self.errorStack = errorStack
-        self.request    = request
-        self.response   = response
-        self.endNext    = endNext
-      }
-      
-      func step(_ args: Any...) {
-        if args.first == "route" || args.first == "router" {
-          endNext?(); endNext = nil
-          return
-        }
-        
-        if let error = (args.first as? Error) ?? self.error {
-          self.error = error
-          if let middleware = errorStack.popFirst() {
-            middleware(error, request, response, self.step)
-          }
-          else {
-            endNext?(error); endNext = nil
-          }
-          return
-        }
-        
-        if let middleware = stack.popFirst() {
-          middleware(request, response, self.step)
-        }
-        else {
-          assert(error == nil)
-          endNext?(); endNext = nil
-        }
-      }
-    }
     
     // push route state
     let oldParams = req.params
@@ -132,9 +116,9 @@ public struct Route: MiddlewareObject {
     req.params = extractPatternVariables(request: req)
     req.route  = self
     
-    let state = State(middleware[...], errorMiddleware[...],
-                      req, res)
-    {
+    let state = MiddlewareWalker(middleware[...], errorMiddleware[...],
+                                 req, res)
+    { args in
       // restore route state (only if none matched, i.e. did not call next)
       req.params = oldParams
       req.route  = oldRoute
@@ -156,8 +140,8 @@ public struct Route: MiddlewareObject {
     // match methods
     
     if let methods = self.methods {
-      let reqMethod = HTTPMethod(string: req.method)!
-      guard methods.contains(reqMethod) else { return false }
+      guard case .request(let head) = req.head else { return false }
+      guard methods.contains(head.method) else { return false }
     }
     
     // match URLs
@@ -173,9 +157,9 @@ public struct Route: MiddlewareObject {
       
       // this is to support matching "/" against the "/*" ("", "*") pattern
       if escapedPathComponents.count + 1 == pattern.count {
-        if case .Wildcard = pattern.last! {
+        if case .wildcard = pattern.last! {
           let endIdx = pattern.count - 1
-          pattern = Array<Pattern>(pattern[0..<endIdx])
+          pattern = Array<RoutePattern>(pattern[0..<endIdx])
         }
       }
       
@@ -196,7 +180,7 @@ public struct Route: MiddlewareObject {
         
         // Special case, last component is a wildcard. Like /* or /todos/*. In
         // this case we ignore extra URL path stuff.
-        if case .Wildcard = patternComponent {
+        if case .wildcard = patternComponent {
           let isLast = i + 1 == pattern.count
           if isLast { lastWasWildcard = true }
         }
@@ -210,10 +194,28 @@ public struct Route: MiddlewareObject {
     return true
   }
   
-  private func split(urlPath s: String) -> [ String ] {
-    var url  = URL()
-    url.path = s
-    return url.escapedPathComponents!
+  private func split(urlPath: String) -> [ String ] {
+    guard !urlPath.isEmpty else { return [] }
+    
+    let isAbsolute = urlPath.hasPrefix("/")
+    let pathComps  = urlPath.split(separator: "/",
+                                   omittingEmptySubsequences: false)
+                            .map(String.init)
+    /* Note: we cannot just return a leading slash for absolute pathes as we
+     *       wouldn't be able to distinguish between an absolute path and a
+     *       relative path starting with an escaped slash.
+     *   So: Absolute pathes instead start with an empty string.
+     */
+    var gotAbsolute = isAbsolute ? false : true
+    return pathComps.filter {
+      if $0 != "" || !gotAbsolute {
+        if !gotAbsolute { gotAbsolute = true }
+        return true
+      }
+      else {
+        return false
+      }
+    }
   }
   
   func extractPatternVariables(request rq: IncomingMessage)
@@ -237,7 +239,7 @@ public struct Route: MiddlewareObject {
       let matchComponent   = matchComponents[i]
       
       switch patternComponent {
-        case .Variable(let s): vars[s] = matchComponent
+        case .variable(let s): vars[s] = matchComponent
         default:               continue
       }
     }
@@ -247,61 +249,53 @@ public struct Route: MiddlewareObject {
   
 }
 
-func parseURLPattern(url s: String) -> [ Route.Pattern ]? {
-  if s == "*" { return nil } // match-all
+extension Route: CustomStringConvertible {
   
-  var url = URL()
-  url.path = s
-  let comps = url.escapedPathComponents!
+  // MARK: - Description
   
-  var isFirst = false
+  private var logPrefix : String = {
+    let logPrefixPad = 20
+    let id = self.id ?? ObjectIdentifier(self).debugDescription
+    let p  = id
+    let ids = p.count < logPrefixPad
+      ? p + String(repeating: " ", count: logPrefixPad - p.count)
+      : p
+    return "[\(ids)]:"
+  }()
   
-  var pattern : [ Route.Pattern ] = []
-  for c in comps {
-    if isFirst {
-      isFirst = false
-      if c == "" { // root
-        pattern.append(.Root)
-        continue
-      }
+  public var description : String {
+    var ms = "<Route:"
+    
+    if let id = id {
+      ms += " [\(id)]"
     }
     
-    if c == "*" {
-      pattern.append(.Wildcard)
-      continue
+    var hadLimit = false
+    if let methods = methods, !methods.isEmpty {
+      ms += " "
+      ms += methods.map({ $0.rawValue }).joined(separator: ",")
+      hadLimit = true
+    }
+    if let pattern = urlPattern {
+      ms += " "
+      ms += pattern.map({$0.description}).joined(separator: "/")
+      hadLimit = true
+    }
+    if !hadLimit { ms += " *" }
+    
+    if isEmpty {
+      ms += " NO-middleware"
+    }
+    else if count > 1 {
+      ms += " #middleware=\(middleware.count)"
+    }
+    else {
+      ms += " 1-middleware"
     }
     
-    if c.hasPrefix(":") {
-      let vIdx = c.index(after: c.startIndex)
-      pattern.append(.Variable(String(c[vIdx..<c.endIndex])))
-      continue
-    }
-    
-    if c.hasPrefix("*") {
-      let vIdx = c.index(after: c.startIndex)
-      let characters = c
-      if c == "**" {
-        pattern.append(.Wildcard)
-      }
-      else if c.hasSuffix("*") && characters.count > 1 {
-        let eIdx = c.index(before: c.endIndex)
-        pattern.append(.Contains(String(c[vIdx..<eIdx])))
-      }
-      else {
-        pattern.append(.Prefix(String(c[vIdx..<c.endIndex])))
-      }
-      continue
-    }
-    if c.hasSuffix("*") {
-      let eIdx = c.index(before: c.endIndex)
-      pattern.append(.Suffix(String(c[c.startIndex..<eIdx])))
-      continue
-    }
-
-    pattern.append(.Text(c))
+    ms += ">"
+    return ms
   }
-  
-  return pattern
 }
 
 private let routeKey = "macro.express.route"
@@ -312,5 +306,4 @@ public extension IncomingMessage {
     set { extra[routeKey] = newValue }
     get { return extra[routeKey] as? Route }
   }
-  
 }
