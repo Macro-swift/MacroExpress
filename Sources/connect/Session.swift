@@ -8,6 +8,7 @@
 
 import enum MacroCore.console
 import http
+import struct Foundation.UUID
 
 fileprivate let sessionIdCookie = Cookie(name: "NzSID", maxAge: 3600)
 
@@ -16,13 +17,12 @@ fileprivate var sessionIdCounter = 0
 public typealias SessionIdGenerator = ( IncomingMessage ) -> String
 
 func nextSessionID(msg: IncomingMessage) -> String {
-  // Hahahaha, Ha ha, ha, Haha!
-  sessionIdCounter += 1
-  return "\(sessionIdCounter)"
+  // https://github.com/SwiftWebUI/SwiftWebUI/issues/4
+  return UUID().uuidString
 }
 
-public func session(store s : SessionStore = InMemorySessionStore(),
-                    cookie  : Cookie?      = nil,
+public func session(store s : SessionStore        = InMemorySessionStore(),
+                    cookie  : Cookie?             = nil,
                     genid   : SessionIdGenerator? = nil)
             -> Middleware
 {
@@ -31,7 +31,7 @@ public func session(store s : SessionStore = InMemorySessionStore(),
     let ctx = SessionContext(request: req, response: res,
                              store          : s,
                              templateCookie : cookie ?? sessionIdCookie,
-                             genid          : genid ?? nextSessionID)
+                             genid          : genid  ?? nextSessionID)
     
     guard let sessionID = ctx.sessionID else {
       // no cookie with session-ID, register new
