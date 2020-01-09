@@ -43,6 +43,7 @@ public enum ServeStaticError: Swift.Error {
   case couldNotParseURL
   case fileMissing(URL)
   case indexFileIsNotAFile(URL)
+  case pathIsNotAFile(URL)
 }
 
 /**
@@ -89,9 +90,11 @@ public func serveStatic(_       p : String = process.cwd(),
     }
     else {
       let relPath = rqPath.hasPrefix("/") ? String(rqPath.dropFirst()) : rqPath
-      guard let fsURL = URL(string: relPath, relativeTo: baseFileURL) else {
-        next()
+      guard let url = URL(string: relPath, relativeTo: baseFileURL) else {
+        if o.fallthrough { return next() }
+        return next(ServeStaticError.couldNotParseURL)
       }
+      fsURL = url
     }
     
     
@@ -150,7 +153,7 @@ public func serveStatic(_       p : String = process.cwd(),
               
               // TODO: content-type?
               res.writeHead(200)
-              _ = fs.createReadStream(indexPath) | res
+              _ = fs.createReadStream(indexFileURL.path).pipe(res)
             }
             return
           
@@ -164,11 +167,13 @@ public func serveStatic(_       p : String = process.cwd(),
       
       // regular file
       
-      guard lStat.isFile() else { next(); return }
-      
+      guard lStat.isFile() else {
+        return next(ServeStaticError.pathIsNotAFile(fsURL))
+      }
+
       // TODO: content-type?
       res.writeHead(200)
-      _ = fs.createReadStream(fsPath) | res
+      _ = fs.createReadStream(fsURL.path).pipe(res)
     }
   }
 }
