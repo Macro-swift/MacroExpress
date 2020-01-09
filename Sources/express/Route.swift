@@ -53,8 +53,8 @@ public typealias ErrorMiddleware =
  */
 open class Route: MiddlewareObject, RouteKeeper {
   
-  public var middleware      : ContiguousArray<Middleware>
-  public var errorMiddleware : ContiguousArray<ErrorMiddleware>
+  public var middleware      : [ Middleware ]
+  public var errorMiddleware : [ ErrorMiddleware ]
   
   var id             : String?
   let methods        : ContiguousArray<HTTPMethod>?
@@ -73,8 +73,8 @@ open class Route: MiddlewareObject, RouteKeeper {
   init(id              : String? = nil,
        pattern         : String?,
        method          : HTTPMethod?,
-       middleware      : ContiguousArray<Middleware>,
-       errorMiddleware : ContiguousArray<ErrorMiddleware> = [])
+       middleware      : [ Middleware ],
+       errorMiddleware : [ ErrorMiddleware ] = [])
   {
     self.id = id
     
@@ -106,23 +106,140 @@ open class Route: MiddlewareObject, RouteKeeper {
                      response res       : ServerResponse,
                      next     upperNext : @escaping Next)
   {
-    // FIXME: this needs to be adjusted for the ExExpress variant
-    guard matches(request: req)    else { return upperNext() }
+    let ids   = logPrefix
+    if debug { console.log("\(ids) > enter route:", self) }
+    
+    if let methods = self.methods, !methods.isEmpty {
+      guard case .request(let head) = req.head,
+            methods.contains(head.method) else {
+        if debug {
+          console.log("\(ids) route method does not match, next:", self)
+        }
+        return upperNext()
+      }
+    }
+
+    // FIXME: Could also be a full URL! (CONNECT)
+    let reqPath = req.url.isEmpty ? "/" : req.url
+    
+    let params    : [ String : String ]
+    let matchPath : String?
+    if let pattern = urlPattern {
+      var newParams = req.params // TBD
+      
+      if let base = req.baseURL {
+        let mountPath = String(reqPath[base.endIndex..<reqPath.endIndex])
+        let comps     = split(urlPath: mountPath)
+
+        let mountMatchPath = RoutePattern.match(pattern   : pattern,
+                                                against   : comps,
+                                                variables : &newParams)
+        guard let match = mountMatchPath else {
+          if debug {
+            console.log("\(ids) mount route path does not match, next:", self)
+          }
+          return upperNext()
+        }
+        
+        matchPath = base + match
+      }
+      else {
+        let comps = split(urlPath: reqPath)
+        
+        guard let mp = RoutePattern.match(pattern   : pattern,
+                                          against   : comps,
+                                          variables : &newParams)
+         else {
+          if debug {
+            console.log("\(ids) route path does not match, next:",
+              self)
+          }
+          return upperNext()
+         }
+        matchPath = mp
+      }
+      
+      if debug { console.log("\(ids)     path match:", matchPath) }
+      
+      params = newParams
+    }
+    else {
+      matchPath = nil
+      params    = req.params
+    }
+
+    // TBD: error middleware?
     guard !self.middleware.isEmpty else { return upperNext() }
     
     // push route state
     let oldParams = req.params
     let oldRoute  = req.route
-    req.params = extractPatternVariables(request: req)
-    req.route  = self
-    
+    let oldBase   = req.baseURL
+    req.params  = params
+    req.route   = self
+    if let mp = matchPath {
+      req.baseURL = mp
+      if debug { console.log("\(ids)   push baseURL:", req.baseURL) }
+    }
+
+    final class MiddlewareWalker {
+      
+      var stack      : ArraySlice<Middleware>
+      var errorStack : ArraySlice<ErrorMiddleware>
+      let request    : IncomingMessage
+      let response   : ServerResponse
+      var endNext    : Next?
+      var error      : Swift.Error?
+      
+      init(_ stack      : ArraySlice<Middleware>,
+           _ errorStack : ArraySlice<ErrorMiddleware>,
+           _ request    : IncomingMessage,
+           _ response   : ServerResponse,
+           _ endNext    : @escaping Next)
+      {
+        self.stack      = stack
+        self.errorStack = errorStack
+        self.request    = request
+        self.response   = response
+        self.endNext    = endNext
+      }
+      
+      func step(_ args: Any...) {
+        if let s = args.first as? String, s == "route" || s == "router" {
+          endNext?(); endNext = nil
+          return
+        }
+        
+        if let error = (args.first as? Error) ?? self.error {
+          self.error = error
+          if let middleware = errorStack.popFirst() {
+            middleware(error, request, response, self.step)
+          }
+          else {
+            endNext?(error); endNext = nil
+          }
+          return
+        }
+        
+        if let middleware = stack.popFirst() {
+          middleware(request, response, self.step)
+        }
+        else {
+          assert(error == nil)
+          endNext?(); endNext = nil
+        }
+      }
+    }
+
     let state = MiddlewareWalker(middleware[...], errorMiddleware[...],
                                  req, res)
     { args in
-      // restore route state (only if none matched, i.e. did not call next)
-      req.params = oldParams
-      req.route  = oldRoute
-      if let arg = args.first { // lame 1-object spread
+      // restore route state (only if none matched, i.e. all called next)
+      req.params  = oldParams
+      req.route   = oldRoute
+      req.baseURL = oldBase
+      
+      if let arg = args.first { // lame 1-object spread to pass on errors
         upperNext(arg)
       }
       else {
@@ -134,65 +251,6 @@ open class Route: MiddlewareObject, RouteKeeper {
   
   
   // MARK: - Matching
-  
-  func matches(request req: IncomingMessage) -> Bool {
-    
-    // match methods
-    
-    if let methods = self.methods {
-      guard case .request(let head) = req.head else { return false }
-      guard methods.contains(head.method) else { return false }
-    }
-    
-    // match URLs
-    
-    if var pattern = urlPattern {
-      // TODO: consider mounting!
-      
-      let escapedPathComponents = split(urlPath: req.url)
-      if debugMatcher {
-        print("MATCH: \(req.url)\n  components: \(escapedPathComponents)\n" +
-              "  against: \(pattern)")
-      }
-      
-      // this is to support matching "/" against the "/*" ("", "*") pattern
-      if escapedPathComponents.count + 1 == pattern.count {
-        if case .wildcard = pattern.last! {
-          let endIdx = pattern.count - 1
-          pattern = Array<RoutePattern>(pattern[0..<endIdx])
-        }
-      }
-      
-      guard escapedPathComponents.count >= pattern.count else { return false }
-      
-      var lastWasWildcard = false
-      for i in pattern.indices {
-        let patternComponent = pattern[i]
-        let matchComponent   = escapedPathComponents[i]
-        
-        guard patternComponent.match(string: matchComponent) else {
-          return false
-        }
-        
-        if debugMatcher {
-          print("  MATCHED[\(i)]: \(patternComponent) \(matchComponent)")
-        }
-        
-        // Special case, last component is a wildcard. Like /* or /todos/*. In
-        // this case we ignore extra URL path stuff.
-        if case .wildcard = patternComponent {
-          let isLast = i + 1 == pattern.count
-          if isLast { lastWasWildcard = true }
-        }
-      }
-      
-      if escapedPathComponents.count > pattern.count {
-        if !lastWasWildcard { return false }
-      }
-    }
-    
-    return true
-  }
   
   private func split(urlPath: String) -> [ String ] {
     guard !urlPath.isEmpty else { return [] }

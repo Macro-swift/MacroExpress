@@ -69,11 +69,53 @@ open class Express: SettingsHolder, MiddlewareObject, RouteKeeper {
   public func engine(_ key: String, _ engine: @escaping ExpressEngine) {
     engines[key] = engine
   }
+
+  /// The identifier used in the x-powered-by header
+  open var productIdentifier : String {
+    return "MacroExpress"
+  }
 }
 
-private let appKey    = "macro.express.app"
-private let reqKey    = "macro.express.request"
-private let paramsKey = "macro.express.params"
+extension Express: CustomStringConvertible {
+  
+  open var description : String {
+    var ms = "<\(type(of: self)):"
+    
+    if router.isEmpty {
+      ms += " no-routes"
+    }
+    else if router.count == 1 {
+      ms += " route"
+    }
+    else {
+      ms += " #routes=\(router.count)"
+    }
+    
+    if let mountPath = mountPath, !mountPath.isEmpty {
+      if mountPath.count == 1 {
+        ms += " mounted=\(mountPath[0])"
+      }
+      else {
+        ms += " mounted=[\(mountPath.joined(separator: ","))]"
+      }
+    }
+    
+    if !engines.isEmpty {
+      ms += " engines="
+      ms += engines.keys.joined(separator: ",")
+    }
+    
+    if !settingsStore.isEmpty {
+      for ( key, value ) in settingsStore {
+        ms += " '\(key)'='\(value)'"
+      }
+    }
+    
+    ms += ">"
+    return ms
+  }
+
+}
 
 public typealias ExpressEngine = (
     _ path:    String,
@@ -82,29 +124,19 @@ public typealias ExpressEngine = (
   ) -> Void
 
 
+// keys for extra dictionary in IncomingRequest/ServerResponse
+
+enum ExpressExtKey {
+  static let app     = "macro.express.app"
+  static let req     = "macro.express.request"
+  static let params  = "macro.express.params"
+  static let locals  = "macro.express.locals"
+  static let route   = "macro.express.route"
+  static let baseURL = "macro.express.baseurl"
+  static let query   = "macro.express.query"
+}
+
 // MARK: - App access helper
-
-public extension IncomingMessage {
-  
-  var app : Express? { return extra[appKey] as? Express }
-  
-  var params : [ String : String ] {
-    set { extra[paramsKey] = newValue }
-    get {
-      // TODO: should be :Any
-      return (extra[paramsKey] as? [ String : String ]) ?? [:]
-    }
-  }
-}
-
-public extension ServerResponse {
-  
-  var app : Express? { return extra[appKey] as? Express }
-  
-  var request : IncomingMessage? {
-    return extra[reqKey] as? IncomingMessage
-  }
-}
 
 public extension Dictionary where Key : ExpressibleByStringLiteral {
   subscript(int key : Key) -> Int? {

@@ -6,30 +6,19 @@
 //  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
 //
 
-import class     http.IncomingMessage
-import class     http.ServerResponse
 import typealias connect.Next
+import typealias connect.Middleware
 
-open class Router: MiddlewareObject, RouteKeeper {
-  
-  var routes        = ContiguousArray<Route>()
-  var errorHandlers = ContiguousArray<ErrorMiddleware>()
+// A Route itself now can do everything a Router could do before (most
+// importantly it can hold an array of middleware)
+public typealias Router = Route
 
-  open func add(route e: Route) {
-    routes.append(e)
-  }
+public extension Router {
   
-  
-  // MARK: MiddlewareObject
-  
-  public func handle(request      req : IncomingMessage,
-                     response     res : ServerResponse,
-                     next     endNext : @escaping Next)
+  convenience init(id: String? = nil, _ pattern: String? = nil,
+                   _ middleware: Middleware...)
   {
-    guard !self.routes.isEmpty else { return endNext() }
-        
-    let state = MiddlewareWalker(routes[routes.indices],
-                                 req, res, endNext)
-    state.step()
+    self.init(id: id, pattern: pattern, method: nil,
+              middleware: middleware)
   }
 }
