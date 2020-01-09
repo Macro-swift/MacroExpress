@@ -9,6 +9,7 @@
 @_exported import MacroCore
 @_exported import connect
 @_exported import express
+import enum mime.mime
 
 @_exported import func     MacroCore.nextTick
 @_exported import func     MacroCore.setTimeout
@@ -21,6 +22,7 @@
 @_exported import enum     MacroCore.WritableError
 @_exported import protocol NIO.EventLoop
 @_exported import protocol NIO.EventLoopGroup
+@_exported import enum     mime.mime
 
 // MARK: - Submodules in `fs` Target
 
