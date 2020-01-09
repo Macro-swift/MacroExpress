@@ -60,9 +60,7 @@ public enum RoutePattern {
   static func parse(_ s: String) -> [ RoutePattern ]? {
     if s == "*" { return nil } // match-all
     
-    var url = URL()
-    url.path = s
-    let comps = url.escapedPathComponents!
+    let comps = extractEscapedURLPathComponents(for: s)
     
     var isFirst = true
     
@@ -71,48 +69,44 @@ public enum RoutePattern {
       if isFirst {
         isFirst = false
         if c == "" { // root
-          pattern.append(.Root)
+          pattern.append(.root)
           continue
         }
       }
       
       if c == "*" {
-        pattern.append(.Wildcard)
+        pattern.append(.wildcard)
         continue
       }
       
       if c.hasPrefix(":") {
         let vIdx = c.index(after: c.startIndex)
-        pattern.append(.Variable(String(c[vIdx..<c.endIndex])))
+        pattern.append(.variable(String(c[vIdx..<c.endIndex])))
         continue
       }
       
       if c.hasPrefix("*") {
         let vIdx = c.index(after: c.startIndex)
-        #if swift(>=3.2)
-          let cLen = c.count
-        #else
-          let cLen = c.characters.count
-        #endif
+        let cLen = c.count
         if c == "**" {
-          pattern.append(.Wildcard)
+          pattern.append(.wildcard)
         }
         else if c.hasSuffix("*") && cLen > 1 {
           let eIdx = c.index(before: c.endIndex)
-          pattern.append(.Contains(String(c[vIdx..<eIdx])))
+          pattern.append(.contains(String(c[vIdx..<eIdx])))
         }
         else {
-          pattern.append(.Suffix(String(c[vIdx..<c.endIndex])))
+          pattern.append(.suffix(String(c[vIdx..<c.endIndex])))
         }
         continue
       }
       if c.hasSuffix("*") {
         let eIdx = c.index(before: c.endIndex)
-        pattern.append(.Prefix(String(c[c.startIndex..<eIdx])))
+        pattern.append(.prefix(String(c[c.startIndex..<eIdx])))
         continue
       }
 
-      pattern.append(.Text(c))
+      pattern.append(.text(c))
     }
     
     return pattern
@@ -142,7 +136,7 @@ public enum RoutePattern {
     // will match
     //   /hello*     [pc = 1]
     if escapedPathComponents.count + 1 == pattern.count {
-      if case .Wildcard = pattern.last! {
+      if case .wildcard = pattern.last! {
         let endIdx = pattern.count - 1
         pattern = Array<RoutePattern>(pattern[0..<endIdx])
       }
@@ -154,7 +148,7 @@ public enum RoutePattern {
     
     // If the pattern ends in $
     if let lastComponent = pattern.last {
-      if case .EOL = lastComponent {
+      if case .eol = lastComponent {
         // is this correct?
         guard escapedPathComponents.count < pattern.count else { return nil }
       }
@@ -187,7 +181,7 @@ public enum RoutePattern {
               "against '\(matchComponent)'")
       }
 
-      if case .Variable(let s) = patternComponent {
+      if case .variable(let s) = patternComponent {
         variables[s] = matchComponent // TODO: unescape
       }
       
@@ -196,10 +190,10 @@ public enum RoutePattern {
       // this case we ignore extra URL path stuff.
       let isLast = i + 1 == pattern.count
       if isLast {
-        if case .Wildcard = patternComponent {
+        if case .wildcard = patternComponent {
           lastWasWildcard = true
         }
-        if case .EOL = patternComponent {
+        if case .eol = patternComponent {
           lastWasEOL = true
         }
       }
@@ -218,5 +212,29 @@ public enum RoutePattern {
     
     if debugMatcher { print("  match: '\(matched)'") }
     return matched
+  }
+}
+
+func extractEscapedURLPathComponents(for urlPath: String) -> [ String ] {
+  guard !urlPath.isEmpty else { return [] }
+  
+  let isAbsolute = urlPath.hasPrefix("/")
+  let pathComps  = urlPath.split(separator: "/",
+                                 omittingEmptySubsequences: false)
+                          .map(String.init)
+  /* Note: we cannot just return a leading slash for absolute pathes as we
+   *       wouldn't be able to distinguish between an absolute path and a
+   *       relative path starting with an escaped slash.
+   *   So: Absolute pathes instead start with an empty string.
+   */
+  var gotAbsolute = isAbsolute ? false : true
+  return pathComps.filter {
+    if $0 != "" || !gotAbsolute {
+      if !gotAbsolute { gotAbsolute = true }
+      return true
+    }
+    else {
+      return false
+    }
   }
 }

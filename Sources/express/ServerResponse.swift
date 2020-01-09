@@ -104,13 +104,13 @@ public extension ServerResponse {
     }
   }
   
-  func redirect(_ statusCode: Int, _ location: String) throws {
+  func redirect(_ statusCode: Int, _ location: String) {
     self.status(statusCode)
     self.location(location)
-    try self.end()
+    self.end()
   }
-  func redirect(_ location: String) throws {
-    try redirect(302, location) // work around swiftc confusion
+  func redirect(_ location: String) {
+    redirect(302, location) // work around swiftc confusion
   }
   
   

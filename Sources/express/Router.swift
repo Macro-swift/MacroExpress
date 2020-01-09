@@ -15,7 +15,7 @@ public typealias Router = Route
 
 public extension Router {
   
-  convenience init(id: String? = nil, _ pattern: String? = nil,
+  convenience init(id: String? = nil, _ pattern: String?,
                    _ middleware: Middleware...)
   {
     self.init(id: id, pattern: pattern, method: nil,

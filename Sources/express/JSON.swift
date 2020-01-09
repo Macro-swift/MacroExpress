@@ -19,14 +19,14 @@ public extension ServerResponse {
     if canAssignContentType {
       setHeader("Content-Type", "application/json; charset=utf-8")
     }
-    writeJSON(object)
+    _ = writeJSON(object)
     end()
   }
   func json<E: Encodable>(_ object: E?) {
     if canAssignContentType {
       setHeader("Content-Type", "application/json; charset=utf-8")
     }
-    writeJSON(object)
+    _ = writeJSON(object)
     end()
   }
 }

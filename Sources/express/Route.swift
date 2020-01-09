@@ -70,11 +70,11 @@ open class Route: MiddlewareObject, RouteKeeper {
     // FIXME: all this works a little different in Express.js. Exact matches,
     //        non-path-component matches, regex support etc.
   
-  init(id              : String? = nil,
-       pattern         : String?,
-       method          : HTTPMethod?,
-       middleware      : [ Middleware ],
-       errorMiddleware : [ ErrorMiddleware ] = [])
+  public init(id              : String?             = nil,
+              pattern         : String?             = nil,
+              method          : HTTPMethod?         = nil,
+              middleware      : [ Middleware      ] = [],
+              errorMiddleware : [ ErrorMiddleware ] = [])
   {
     self.id = id
     
@@ -95,6 +95,16 @@ open class Route: MiddlewareObject, RouteKeeper {
       }
     }
   }
+  public convenience init(id              : String?             = nil,
+                          pattern         : String?             = nil,
+                          method          : HTTPMethod?         = nil,
+                          middleware      : [ MiddlewareObject ])
+  {
+    // In ExExpress we use an enum to hold the different variants, which might
+    // be a little more efficient
+    self.init(id: id, pattern: pattern, method: method,
+              middleware: middleware.map { $0.middleware })
+  }
   
   public func add(route: Route) {
     self.middleware.append(route.middleware)
@@ -106,7 +116,7 @@ open class Route: MiddlewareObject, RouteKeeper {
                      response res       : ServerResponse,
                      next     upperNext : @escaping Next)
   {
-    let ids   = logPrefix
+    let ids = debug ? logPrefix : ""
     if debug { console.log("\(ids) > enter route:", self) }
     
     if let methods = self.methods, !methods.isEmpty {
@@ -233,7 +243,7 @@ open class Route: MiddlewareObject, RouteKeeper {
 
     let state = MiddlewareWalker(middleware[...], errorMiddleware[...],
                                  req, res)
-    { args in
+    { ( args : Any...) in
       // restore route state (only if none matched, i.e. all called next)
       req.params  = oldParams
       req.route   = oldRoute
@@ -253,56 +263,7 @@ open class Route: MiddlewareObject, RouteKeeper {
   // MARK: - Matching
   
   private func split(urlPath: String) -> [ String ] {
-    guard !urlPath.isEmpty else { return [] }
-    
-    let isAbsolute = urlPath.hasPrefix("/")
-    let pathComps  = urlPath.split(separator: "/",
-                                   omittingEmptySubsequences: false)
-                            .map(String.init)
-    /* Note: we cannot just return a leading slash for absolute pathes as we
-     *       wouldn't be able to distinguish between an absolute path and a
-     *       relative path starting with an escaped slash.
-     *   So: Absolute pathes instead start with an empty string.
-     */
-    var gotAbsolute = isAbsolute ? false : true
-    return pathComps.filter {
-      if $0 != "" || !gotAbsolute {
-        if !gotAbsolute { gotAbsolute = true }
-        return true
-      }
-      else {
-        return false
-      }
-    }
-  }
-  
-  func extractPatternVariables(request rq: IncomingMessage)
-       -> [ String : String ]
-  {
-    guard let pat = urlPattern else { return [:] }
-    
-    // TODO: consider mounting!
-    let matchPrefix = rq.url
-    
-    var url = URL()
-    url.path = matchPrefix
-    let matchComponents = url.escapedPathComponents!
-    
-    var vars = [ String : String ]()
-    
-    for i in pat.indices {
-      guard i < matchComponents.count else { break }
-      
-      let patternComponent = pat[i]
-      let matchComponent   = matchComponents[i]
-      
-      switch patternComponent {
-        case .variable(let s): vars[s] = matchComponent
-        default:               continue
-      }
-    }
-    
-    return vars
+    return extractEscapedURLPathComponents(for: urlPath)
   }
   
 }
@@ -311,7 +272,7 @@ extension Route: CustomStringConvertible {
   
   // MARK: - Description
   
-  private var logPrefix : String = {
+  private var logPrefix : String {
     let logPrefixPad = 20
     let id = self.id ?? ObjectIdentifier(self).debugDescription
     let p  = id
@@ -319,7 +280,7 @@ extension Route: CustomStringConvertible {
       ? p + String(repeating: " ", count: logPrefixPad - p.count)
       : p
     return "[\(ids)]:"
-  }()
+  }
   
   public var description : String {
     var ms = "<Route:"
@@ -353,15 +314,5 @@ extension Route: CustomStringConvertible {
     
     ms += ">"
     return ms
-  }
-}
-
-private let routeKey = "macro.express.route"
-
-public extension IncomingMessage {
-  
-  var route : Route? {
-    set { extra[routeKey] = newValue }
-    get { return extra[routeKey] as? Route }
   }
 }
