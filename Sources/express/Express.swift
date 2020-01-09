@@ -6,9 +6,10 @@
 //  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
 //
 
-import enum MacroCore.process
-import enum MacroCore.EventListenerSet
-import http
+import enum  MacroCore.process
+import enum  MacroCore.EventListenerSet
+import class http.IncomingMessage
+import class http.ServerResponse
 
 /**
  * # The Express application object
@@ -34,7 +35,7 @@ import http
  *
  *     let app = Express()
  *     app.use("/index") {
- *       req, res, _ in try res.render("index")
+ *       req, res, _ in res.render("index")
  *     }
  *
  *
@@ -264,6 +265,9 @@ public extension Dictionary where Key : ExpressibleByStringLiteral {
 
 
 // MARK: - Wrap Server
+
+import class http.Server
+import func  http.createServer
 
 public extension Express {
   
