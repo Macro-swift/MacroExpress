@@ -2,11 +2,12 @@
 //  MacroExpress.swift
 //  MacroExpress
 //
-//  Created by Helge Hess.
+//  Created by Helge Heß.
 //  Copyright © 2020 ZeeZide GmbH. All rights reserved.
 //
 
 @_exported import MacroCore
+@_exported import connect
 @_exported import express
 
 @_exported import func     MacroCore.nextTick
@@ -14,10 +15,10 @@
 @_exported import enum     MacroCore.console
 @_exported import enum     MacroCore.process
 @_exported import func     MacroCore.concat
-@_exported import enum     MacroCore.JSON
+@_exported import enum     MacroCore.json
+@_exported import struct   MacroCore.Buffer
 @_exported import enum     MacroCore.ReadableError
 @_exported import enum     MacroCore.WritableError
-@_exported import struct   NIO.ByteBuffer
 @_exported import protocol NIO.EventLoop
 @_exported import protocol NIO.EventLoopGroup
 
@@ -36,10 +37,8 @@ import enum      http.HTTPModule
 public typealias http = HTTPModule
 import enum      http.BasicAuthModule
 public typealias basicAuth = BasicAuthModule
-#if false // requires 0.0.3
 import enum      http.QueryStringModule
 public typealias querystring = QueryStringModule
-#endif
 
 // MARK: - Process stuff
 
