@@ -93,7 +93,7 @@ extension BodyParserBody : ExpressibleByStringLiteral {
 
 
 // Module holding the different variants of bodyParsers.
-public struct bodyParser {
+public enum bodyParser {
   
   public class Options {
     let inflate  = false

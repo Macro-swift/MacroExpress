@@ -6,10 +6,8 @@
 //  Copyright © 2016 ZeeZide GmbH. All rights reserved.
 //
 
-import streams
+import MacroCore
 import http
-import json
-@_exported import Freddy
 
 public extension ServerResponse {
   // TODO: add jsonp
@@ -17,36 +15,18 @@ public extension ServerResponse {
   // TODO: Maybe we don't want to convert to a `JSON`, but rather stream real
   //       object.
   
-  func json(_ object: JSON) {
+  func json(_ object: Any?) {
     if canAssignContentType {
       setHeader("Content-Type", "application/json; charset=utf-8")
     }
-    writeJSON(object: object)
+    writeJSON(object)
+    end()
+  }
+  func json<E: Encodable>(_ object: E?) {
+    if canAssignContentType {
+      setHeader("Content-Type", "application/json; charset=utf-8")
+    }
+    writeJSON(object)
     end()
   }
 }
-
-
-// MARK: - Helpers
-
-public extension ServerResponse {
-
-  func json(_ object: JSONEncodable) {
-    json(object.toJSON())
-  }
-  
-  func json(_ object: Any?) {
-    if let o = object {
-      if let jsonEncodable = (o as? JSONEncodable) {
-        json(jsonEncodable)
-      }
-      else {
-        json(String(0))
-      }
-    }
-    else {
-      json(.Null)
-    }
-  }
-}
-

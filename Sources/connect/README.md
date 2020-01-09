@@ -1,11 +1,11 @@
-# Noze.io Connect
+# Macro Connect
 
-Connect is a Noze.io module modelled after the
+Connect is a Macro module modelled after the
 [Connect](https://github.com/senchalabs/connect#readme)
 JavaScript framework from SenchaLabs.
 As usual in Noze.io the module is supposed to be as similar as possible.
 
-Connect builds on top of the Noze.io [http](../Sources/http/) module.
+Connect builds on top of the Macro http module.
 It adds the concept of *middleware*. Middleware are just functions that can
 deal with HTTP requests. 
 They take a request (`IncomingMessage`) and response (`ServerResponse`) object 
@@ -22,34 +22,22 @@ that there is another module called
 which builds on top of Connect. Express provides even more advanced routing
 capabilities and other extras.
 
-Show us some code! This is the gist of the
-[connect-static](../../Samples/connect-static/)
-example:
+Show us some code! Example:
 
-    import connect
-    import process
-    
-    let __dirname = process.cwd()
-    
-    let app = connect()
-    app.use(logger("dev")) // this middleware logs requests
-    app.use(serveStatic(_dirname + "/public"))
-    app.listen(1337) { print("server lisetning: \($0)") }
+```swift
+import connect
+import process
+
+let __dirname = process.cwd()
+
+let app = connect()
+app.use(logger("dev")) // this middleware logs requests
+app.use(serveStatic(_dirname + "/public"))
+app.listen(1337) { print("server lisetning: \($0)") }
+```
 
 It is a very basic HTTP server that serves all files living in the 'public'
 directory and logs the requests on stdout.
-Check out
-[connect-static](../../Samples/connect-static/)
-for the full example.
-
-## Examples
-
-Noze.io comes with two Connect examples:
-
-- [connect-static](../../Samples/connect-static/)
-  (serve an HTML file and an image using just serveStatic)
-- [connect-git](../../Samples/connect-git/)
-  (runs some `git` shell commands in response to URL requests)
 
 ## Included Middleware
 

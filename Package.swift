@@ -30,7 +30,8 @@ let package = Package(
             dependencies: [ "MacroCore", "http", "fs", "connect", "mustache" ]),
     .target(name: "MacroExpress",
             dependencies: [ 
-                "MacroCore", "xsys", "http", "fs"
+                "MacroCore", "xsys", "http", "fs",
+                "connect", "express"
             ])
   ]
 )

@@ -6,10 +6,16 @@
 //  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
 //
 
-import enum MacroCore.process
-import enum MacroCore.console
-import http
-import xsys // timespec
+import enum  MacroCore.process
+import enum  MacroCore.console
+import class http.IncomingMessage
+import class http.ServerResponse
+import xsys // timespec and extensions
+#if os(Linux)
+  import func Glibc.isatty
+#else
+  import func Darwin.isatty
+#endif
 
 // TODO: do some actual parsing of formats :-)
 
@@ -133,7 +139,8 @@ private struct LogInfoProvider {
     let colorStatus : String
     
     // TODO: Add `isTTY` from Noze
-    if /* !process.stdout.isTTY */ true || process.isRunningInXCode {
+    let isStdoutTTY = isatty(xsys.STDOUT_FILENO) != 0
+    if isStdoutTTY || process.isRunningInXCode {
       colorStatus = self.status
     }
     else if res.statusCode > 0 {

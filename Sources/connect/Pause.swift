@@ -1,9 +1,9 @@
 //
 //  Pause.swift
-//  Noze.io
+//  Noze.io / Macro
 //
 //  Created by Helge Hess on 21/07/16.
-//  Copyright © 2016 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
 //
 
 import func MacroCore.setTimeout

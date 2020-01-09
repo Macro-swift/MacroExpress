@@ -6,8 +6,8 @@
 //  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
 //
 
-import enum MacroCore.process
-import http
+import enum  MacroCore.process
+import class http.IncomingMessage
 
 /// After running the `cookieParser` middleware you can access the cookies
 /// via `request.cookies` (a [String:String]).
@@ -62,5 +62,4 @@ public extension IncomingMessage {
       return cookies
     }
   }
-  
 }

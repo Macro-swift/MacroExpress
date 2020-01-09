@@ -9,7 +9,7 @@
 import enum   MacroCore.process
 import struct Foundation.URL
 import fs
-import http
+//import http
 
 public enum ServeFilePermission {
   case allow, deny, ignore
@@ -27,16 +27,29 @@ public enum IndexBehaviour {
 
 public struct ServeStaticOptions {
   
-  public let dotfiles     = ServeFilePermission.allow
-  public let etag         = false
-  public let extensions   : [ String ]? = nil
-  public let index        = IndexBehaviour()
-  public let lastModified = true
-  public let redirect     = true
+  public let dotfiles      = ServeFilePermission.allow
+  public let etag          = false
+  public let extensions    : [ String ]? = nil
+  public let index         = IndexBehaviour()
+  public let lastModified  = true
+  public let redirect      = true
+  public let `fallthrough` = true
  
   public init() {} // otherwise init is private
 }
 
+public enum ServeStaticError: Swift.Error {
+  case couldNotConstructIndexPath
+  case couldNotParseURL
+  case fileMissing(URL)
+  case indexFileIsNotAFile(URL)
+}
+
+/**
+ * Serve static files, designed after:
+ *
+ *   https://github.com/expressjs/serve-static
+ */
 public func serveStatic(_       p : String = process.cwd(),
                         options o : ServeStaticOptions = ServeStaticOptions())
             -> Middleware
@@ -44,7 +57,8 @@ public func serveStatic(_       p : String = process.cwd(),
   // Note: 'static' is a reserved work ...
   // TODO: wrapped request with originalUrl, baseUrl etc
   
-  let lPath = !p.isEmpty ? p : process.cwd()
+  let baseFileURL = URL(fileURLWithPath: p.isEmpty ? process.cwd() : p)
+                      .standardized
   
   // options
   let options = ServeStaticOptions()
@@ -52,24 +66,38 @@ public func serveStatic(_       p : String = process.cwd(),
   // middleware
   return { req, res, next in
     // we only want HEAD + GET
-    guard req.method == "HEAD" || req.method == "GET" else { next(); return }
+    guard req.method == "HEAD" || req.method == "GET" else {
+      if o.fallthrough { return next() }
+      res.writeHead(.methodNotAllowed)
+      res.end()
+      return
+    }
     
     // parse URL
-    guard let url = URL(string: req.url), !url.path.isEmpty else {
-      return next()
+    guard let url = URL(string: req.url)?.standardized, !url.path.isEmpty else {
+      if o.fallthrough { return next() }
+      return next(ServeStaticError.couldNotParseURL)
     }
     let rqPath = url.path
     
     // FIXME: sanitize URL, remove '..' etc!!!
     
     // naive implementation
-    let fsPath = lPath + rqPath
+    let fsURL : URL
+    if rqPath.isEmpty {
+      fsURL = baseFileURL
+    }
+    else {
+      let relPath = rqPath.hasPrefix("/") ? String(rqPath.dropFirst()) : rqPath
+      guard let fsURL = URL(string: relPath, relativeTo: baseFileURL) else {
+        next()
+      }
+    }
     
     
     // dotfiles
     
-    // TODO: extract last path component, check whether it is a dotfile
-    let isDotFile = fsPath.hasPrefix(".") // TODO
+    let isDotFile = fsURL.lastPathComponent.hasPrefix(".")
     if isDotFile {
       switch options.dotfiles {
         case .allow:  break
@@ -84,29 +112,41 @@ public func serveStatic(_       p : String = process.cwd(),
     // FIXME: Use NIO sendfile
     
     // stat
-    fs.stat(fsPath) { err, stat in
-      guard err == nil && stat != nil else { next(); return }
-      let lStat = stat!
-      
+    fs.stat(fsURL.path) { err, stat in
+      guard let lStat = stat, err == nil else {
+        if o.fallthrough { return next() }
+        res.writeHead(.notFound)
+        res.end()
+        return
+      }
       
       // directory
       
       if lStat.isDirectory() {
         if options.redirect && !rqPath.hasSuffix("/") {
-          res.writeHead(308, [ "Location": rqPath + "/" ])
+          res.writeHead(.permanentRedirect,
+                        headers: [ "Location": rqPath + "/" ])
           res.end()
           return
         }
         
         switch options.index {
           case .indexFile(let filename):
-            let indexPath =
-              (fsPath.hasSuffix("/") ? fsPath : fsPath + "/")
-              + filename
+            guard let indexFileURL =
+                        URL(string: filename, relativeTo: fsURL) else {
+              return next(ServeStaticError.couldNotConstructIndexPath)
+            }
             
-            fs.stat(indexPath) { err, stat in // TODO: reuse closure
-              guard err == nil && stat != nil else { next(); return }
-              guard stat?.isFile() ?? false   else { next(); return }
+            fs.stat(indexFileURL.path) { err, stat in // TODO: reuse closure
+              guard let lStat = stat, err == nil else {
+                if o.fallthrough { return next() }
+                res.writeHead(.notFound)
+                res.end()
+                return
+              }
+              guard lStat.isFile() else {
+                return next(ServeStaticError.indexFileIsNotAFile(indexFileURL))
+              }
               
               // TODO: content-type?
               res.writeHead(200)

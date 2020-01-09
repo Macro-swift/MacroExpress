@@ -16,6 +16,7 @@
 @_exported import enum     MacroCore.process
 @_exported import func     MacroCore.concat
 @_exported import enum     MacroCore.JSON
+@_exported import struct   MacroCore.Buffer
 @_exported import enum     MacroCore.ReadableError
 @_exported import enum     MacroCore.WritableError
 @_exported import protocol NIO.EventLoop
@@ -36,10 +37,8 @@ import enum      http.HTTPModule
 public typealias http = HTTPModule
 import enum      http.BasicAuthModule
 public typealias basicAuth = BasicAuthModule
-#if false // requires 0.0.3
 import enum      http.QueryStringModule
 public typealias querystring = QueryStringModule
-#endif
 
 // MARK: - Process stuff
 

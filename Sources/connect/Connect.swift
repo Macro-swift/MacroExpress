@@ -6,7 +6,10 @@
 //  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
 //
 
-import http
+import class http.IncomingMessage
+import class http.ServerResponse
+import class http.Server
+import func  http.createServer
 
 /**
  * The arguments to next() depend on the actual router, but may include:
@@ -20,6 +23,22 @@ public typealias Next = ( Any... ) -> Void
 public typealias Middleware =
                    ( IncomingMessage, ServerResponse, @escaping Next ) -> Void
 
+
+public enum ConnectModule {}
+
+public extension ConnectModule {
+  
+  @inlinable
+  static func connect(middleware: Middleware...) -> Connect {
+    let app = Connect()
+    
+    for m in middleware {
+      _ = app.use(m)
+    }
+    
+    return app
+  }
+}
 
 public class Connect {
   

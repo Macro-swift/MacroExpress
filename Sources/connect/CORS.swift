@@ -1,13 +1,12 @@
 //
 //  CORS.swift
-//  Noze.io
+//  Noze.io / Macro
 //
 //  Created by Helge Heß on 02/06/16.
-//  Copyright © 2016 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
 //
 
 import enum NIOHTTP1.HTTPMethod
-import http
 
 fileprivate let defaultMethods : [ HTTPMethod ] = [
   .GET, .HEAD, .POST, .DELETE, .OPTIONS, .PUT, .PATCH
