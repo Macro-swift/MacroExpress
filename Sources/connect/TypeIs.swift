@@ -6,9 +6,7 @@
 //  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
 //
 
-import xsys
-import http
-import Foundation
+import class http.IncomingMessage
 
 
 // TODO: the API is both crap nor really the same like Node

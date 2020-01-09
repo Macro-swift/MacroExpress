@@ -6,8 +6,9 @@
 //  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
 //
 
-import enum MacroCore.console
-import http
+import enum   MacroCore.console
+import class  http.IncomingMessage
+import class  http.ServerResponse
 import struct Foundation.UUID
 
 fileprivate let sessionIdCookie = Cookie(name: "NzSID", maxAge: 3600)
@@ -28,7 +29,8 @@ public func session(store s : SessionStore        = InMemorySessionStore(),
 {
   return { req, res, next in
     // This is just a workaround for recursive funcs crashing the compiler.
-    let ctx = SessionContext(request: req, response: res,
+    let ctx = SessionContext(request        : req,
+                             response       : res,
                              store          : s,
                              templateCookie : cookie ?? sessionIdCookie,
                              genid          : genid  ?? nextSessionID)
