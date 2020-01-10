@@ -23,6 +23,14 @@ let app = connect()
 #elseif true
 
   app.use(logger("dev")) // Middleware: logs the request
+  app.use(pause(2))
+  app.use { req, res, next in
+    res.sendStatus(404)
+  }
+
+#elseif true
+
+  app.use(logger("dev")) // Middleware: logs the request
 
   app.use(pause(2))
 
