@@ -9,7 +9,7 @@
 import enum   MacroCore.process
 import struct Foundation.URL
 import fs
-//import http
+import mime
 
 public enum ServeFilePermission {
   case allow, deny, ignore
@@ -150,10 +150,18 @@ public func serveStatic(_       p : String = process.cwd(),
               guard lStat.isFile() else {
                 return next(ServeStaticError.indexFileIsNotAFile(indexFileURL))
               }
+
+              if res.headers["Content-Type"].isEmpty,
+                 let type = mime.lookup(indexFileURL.path)
+              {
+                res.setHeader("Content-Type", type)
+              }
+              res.setHeader("Content-Length", lStat.size)
               
               // TODO: content-type?
               res.writeHead(200)
-              _ = fs.createReadStream(indexFileURL.path).pipe(res)
+              if req.method == "HEAD" { res.end() }
+              else { _ = fs.createReadStream(indexFileURL.path).pipe(res) }
             }
             return
           
@@ -171,9 +179,18 @@ public func serveStatic(_       p : String = process.cwd(),
         return next(ServeStaticError.pathIsNotAFile(fsURL))
       }
 
-      // TODO: content-type?
+      if res.headers["Content-Type"].isEmpty,
+         let type = mime.lookup(fsURL.path)
+      {
+        res.setHeader("Content-Type", type)
+      }
+      res.setHeader("Content-Length", lStat.size)
+
       res.writeHead(200)
-      _ = fs.createReadStream(fsURL.path).pipe(res)
+      if req.method == "HEAD" { res.end() }
+      else {
+        _ = fs.createReadStream(fsURL.path).pipe(res)
+      }
     }
   }
 }
