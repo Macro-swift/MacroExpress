@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1024" height="1024"  xml:space="preserve" id="microExpressIcon1024">
+    <defs>
+        <linearGradient id="microExpressIcon1024-badgeGradient-backgroundOval" x1="513" y1="-907" x2="513" y2="-119" gradientUnits="userSpaceOnUse" >
+            <stop offset="0" stop-color="rgb(227, 193, 199)" stop-opacity="1" />
+            <stop offset="0.55" stop-color="rgb(202, 120, 132)" stop-opacity="1" />
+            <stop offset="1" stop-color="rgb(157, 16, 39)" stop-opacity="1" />
+        </linearGradient>
+    </defs>
+    <g id="microExpressIcon1024-group">
+        <g id="microExpressIcon1024-group2" transform="" >
+            <circle id="microExpressIcon1024-backgroundOval" stroke="rgb(157, 16, 39)" stroke-width="92" stroke-miterlimit="10" fill="url(#microExpressIcon1024-badgeGradient-backgroundOval)" cx="513" cy="-513" r="394" />
+            <circle id="microExpressIcon1024-outlineOval" stroke="rgb(246, 235, 237)" stroke-width="29.44" stroke-miterlimit="10" fill="none" cx="513" cy="-513" r="394" />
+        </g>
+    </g>
+    
+    <text  fill="rgb(255, 255, 255)" font-family="SignPainter-HouseScript, SignPainter, sans-serif" font-size="640" x="383.22" y="-841" text-anchor="middle"><tspan x="512.5" y="-374">&#0181;</tspan></text>
+</svg>

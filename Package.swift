@@ -14,12 +14,18 @@ let package = Package(
     .library(name: "MacroExpress", targets: [ "MacroExpress" ]),
     .library(name: "express",      targets: [ "express"      ]),
     .library(name: "connect",      targets: [ "connect"      ]),
-    .library(name: "mime",         targets: [ "mime"         ])
+    .library(name: "mime",         targets: [ "mime"         ]),
+
+    .executable(name: "test-connect", targets: [ "test-connect" ])
   ],
   
   dependencies: [
+    .package(url: "file:///Users/helge/dev/Swift/Macro/Macro",
+             .branch("develop")),
+    /*
     .package(url: "https://github.com/macro-swift/Macro.git",
-             from: "0.0.12"),
+             from: "0.0.13"),
+     */
     .package(url: "https://github.com/AlwaysRightInstitute/mustache.git",
              from: "0.5.9")
   ],
@@ -37,6 +43,8 @@ let package = Package(
             dependencies: [ 
                 "MacroCore", "xsys", "http", "fs",
                 "mime", "connect", "express"
-            ])
+            ]),
+    
+    .target(name: "test-connect", dependencies: [ "MacroExpress" ])
   ]
 )
