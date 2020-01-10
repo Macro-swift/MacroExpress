@@ -11,8 +11,11 @@ public enum qs {
   // TODO: stringify etc
   // TODO: this is a little funky because URL parsing really happens at a byte
   //       level (% decoding etc)
+}
+
+public extension qs {
   
-  public class Options {
+  final class Options {
     let separator      : Character = "&"
     let pairSeparator  : Character = "="
     let depth          : Int       = 5
@@ -21,19 +24,18 @@ public enum qs {
     let allowsDot      : Bool      = false
   }
 
-  class EmptyArraySlot {}
-  public static let sparseArrayDefaultValue : Any = EmptyArraySlot()
+  private class EmptyArraySlot {}
+  static let sparseArrayDefaultValue : Any = EmptyArraySlot()
   
-  public static func parse(_ string       : String,
-                           separator      : Character = "&",
-                           pairSeparator  : Character = "=",
-                           depth          : Int       = 5,
-                           parameterLimit : Int       = 1000,
-                           arrayLimit     : Int       = 20,
-                           allowsDot      : Bool      = false,
-                           decodeURIComponent dd:
-                                       (( String ) -> String)? = nil)
-                     -> Dictionary<String, Any>
+  static func parse(_ string              : String,
+                    separator             : Character = "&",
+                    pairSeparator         : Character = "=",
+                    depth                 : Int       = 5,
+                    parameterLimit        : Int       = 1000,
+                    arrayLimit            : Int       = 20,
+                    allowsDot             : Bool      = false,
+                    decodeURIComponent dd : (( String ) -> String)? = nil)
+              -> [ String : Any ]
   {
     let decodeURIComponent = dd ?? _unescape
     if allowsDot { fatalError("allowsDot unsupported") }
@@ -252,8 +254,8 @@ protocol RefTypeFlatten: class {
   
 }
 
-typealias RefAnyArray            = RefArray<Any>
-typealias RefStringAnyDictionary = RefDictionary<String, Any>
+private typealias RefAnyArray            = RefArray<Any>
+private typealias RefStringAnyDictionary = RefDictionary<String, Any>
 
 class RefArray<Element>: RefTypeFlatten {
   
@@ -296,7 +298,7 @@ class RefArray<Element>: RefTypeFlatten {
   }
 }
 
-class RefDictionary<Key : Hashable, Value>: RefTypeFlatten {
+private class RefDictionary<Key : Hashable, Value>: RefTypeFlatten {
   
   var storage = Dictionary<Key, Value>()
   
