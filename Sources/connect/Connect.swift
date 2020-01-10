@@ -12,20 +12,22 @@ import class http.Server
 import func  http.createServer
 
 public enum ConnectModule {}
-public typealias connect = ConnectModule
 
 public extension ConnectModule {
   
   @inlinable
   static func connect(middleware: Middleware...) -> Connect {
     let app = Connect()
-    
-    for m in middleware {
-      _ = app.use(m)
-    }
-    
+    middleware.forEach { app.use($0) }
     return app
   }
+}
+
+@inlinable
+public func connect(middleware: Middleware...) -> Connect {
+  let app = Connect()
+  middleware.forEach { app.use($0) }
+  return app
 }
 
 public class Connect {
