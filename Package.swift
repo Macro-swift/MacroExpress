@@ -24,7 +24,7 @@ let package = Package(
              .branch("develop")),
     /*
     .package(url: "https://github.com/macro-swift/Macro.git",
-             from: "0.0.13"),
+             from: "0.0.14"),
      */
     .package(url: "https://github.com/AlwaysRightInstitute/mustache.git",
              from: "0.5.9")

@@ -7,7 +7,7 @@ let dirname = __dirname()
 
 let app = connect()
 
-#if true
+#if false
   app.use { req, res, next in
     console.log("request:", req.url)
     res.onceFinish {
@@ -20,9 +20,12 @@ let app = connect()
     console.log("did send")
   }
 
-#elseif false
+#elseif true
 
   app.use(logger("dev")) // Middleware: logs the request
+
+  app.use(pause(2))
+
   let servePath = __dirname() + "/public"
   console.log("serving:", servePath)
   app.use(serveStatic(__dirname() + "/public"))
