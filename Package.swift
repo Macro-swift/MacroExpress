@@ -13,7 +13,8 @@ let package = Package(
   products: [
     .library(name: "MacroExpress", targets: [ "MacroExpress" ]),
     .library(name: "express",      targets: [ "express"      ]),
-    .library(name: "connect",      targets: [ "connect"      ])
+    .library(name: "connect",      targets: [ "connect"      ]),
+    .library(name: "mime",         targets: [ "mime"         ])
   ],
   
   dependencies: [
@@ -24,14 +25,18 @@ let package = Package(
   ],
   
   targets: [
-    .target(name: "connect",
-            dependencies: [ "MacroCore", "http", "fs" ]),
+    .target(name: "mime",    dependencies: [ ]),
+    .target(name: "connect", dependencies: [ "MacroCore", "http", "fs" ]),
     .target(name: "express",
-            dependencies: [ "MacroCore", "http", "fs", "connect", "mustache" ]),
+            dependencies: [
+              "MacroCore", "http", "fs",
+              "connect", "mime",
+              "mustache"
+            ]),
     .target(name: "MacroExpress",
             dependencies: [ 
                 "MacroCore", "xsys", "http", "fs",
-                "connect", "express"
+                "mime", "connect", "express"
             ])
   ]
 )

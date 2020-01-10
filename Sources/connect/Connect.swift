@@ -11,20 +11,8 @@ import class http.ServerResponse
 import class http.Server
 import func  http.createServer
 
-/**
- * The arguments to next() depend on the actual router, but may include:
- *
- * - `route` / `router` (skip the remaining middleware in the router)
- * - a `Swift.Error` object in case of error
- */
-public typealias Next = ( Any... ) -> Void
-
-/// Supposed to call Next() when it is done.
-public typealias Middleware =
-                   ( IncomingMessage, ServerResponse, @escaping Next ) -> Void
-
-
 public enum ConnectModule {}
+public typealias connect = ConnectModule
 
 public extension ConnectModule {
   
@@ -123,7 +111,12 @@ public class Connect {
       
       func step(_ args : Any...) {
         if let middleware = stack.popFirst() {
-          middleware(request, response, self.step)
+          do {
+            try middleware(request, response, self.step)
+          }
+          catch {
+            self.step(error)
+          }
         }
         else {
           next?(); next = nil

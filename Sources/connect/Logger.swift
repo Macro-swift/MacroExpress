@@ -1,6 +1,6 @@
 //
 //  Logger.swift
-//  Noze.io / MacroCore
+//  Noze.io / Macro
 //
 //  Created by Helge Heß on 31/05/16.
 //  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.

@@ -99,7 +99,7 @@ open class Express: SettingsHolder, MountableMiddlewareObject, MiddlewareObject,
   
   public func handle(request  req : IncomingMessage,
                      response res : ServerResponse,
-                     next         : @escaping Next)
+                     next         : @escaping Next) throws
   {
     let oldApp = req.app
     let oldReq = res.request
@@ -107,7 +107,7 @@ open class Express: SettingsHolder, MountableMiddlewareObject, MiddlewareObject,
     res.extra[ExpressExtKey.app] = self
     res.extra[ExpressExtKey.req] = req
     
-    router.handle(request: req, response: res) { ( args: Any... ) in
+    try router.handle(request: req, response: res) { ( args: Any... ) in
       req.extra[ExpressExtKey.app] = oldApp
       res.extra[ExpressExtKey.app] = oldApp
       res.extra[ExpressExtKey.req] = oldReq

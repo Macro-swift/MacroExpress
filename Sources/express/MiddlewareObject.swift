@@ -29,7 +29,7 @@ public protocol MiddlewareObject {
   
   func handle(request  req: IncomingMessage,
               response res: ServerResponse,
-              next     cb:  @escaping Next)
+              next     cb:  @escaping Next) throws
   
 }
 
@@ -46,7 +46,7 @@ public extension MiddlewareObject {
    */
   var middleware: Middleware {
     return { req, res, cb in
-      self.handle(request: req, response: res, next: cb)
+      try self.handle(request: req, response: res, next: cb)
     }
   }
 
@@ -55,38 +55,46 @@ public extension MiddlewareObject {
    */
   var requestHandler: ( IncomingMessage, ServerResponse ) -> Void {
     return { req, res in
-      self.handle(request: req, response: res) { ( args: Any... ) in
-        if let error = args.first as? Error {
-          // essentially the final handler
-          console.error("No middleware catched the error:",
-                        "\(self) \(req.method) \(req.url):",
-                        error)
-          res.writeHead(500)
-          res.end()
-        }
-        else if req.method == "OPTIONS" {
-          // This assumes option headers have been set via cors middleware or
-          // sth similar.
-          // Just respond with OK and we are done, right?
-          
-          if res.getHeader("Allow") == nil {
-            res.setHeader("Allow",
-                          allowedDefaultMethods.joined(separator: ", "))
+      do {
+        try self.handle(request: req, response: res) { ( args: Any... ) in
+          if let error = args.first as? Error {
+            console.error("No middleware catched the error:",
+                          "\(self) \(req.method) \(req.url):",
+                          error)
+            res.writeHead(500)
+            res.end()
           }
-          if res.getHeader("Server") == nil {
-            res.setHeader("Server", "Macro/1.33.7")
+          else if req.method == "OPTIONS" {
+            // This assumes option headers have been set via cors middleware or
+            // sth similar.
+            // Just respond with OK and we are done, right?
+            
+            if res.getHeader("Allow") == nil {
+              res.setHeader("Allow",
+                            allowedDefaultMethods.joined(separator: ", "))
+            }
+            if res.getHeader("Server") == nil {
+              res.setHeader("Server", "Macro/1.33.7")
+            }
+            
+            res.writeHead(200)
+            res.end()
           }
-          
-          res.writeHead(200)
-          res.end()
+          else {
+            // essentially the final handler
+            console.warn("No middleware called end:",
+                         "\(self) \(req.method) \(req.url)")
+            res.writeHead(404)
+            res.end()
+          }
         }
-        else {
-          // essentially the final handler
-          console.warn("No middleware called end:",
-                       "\(self) \(req.method) \(req.url)")
-          res.writeHead(404)
-          res.end()
-        }
+      }
+      catch {
+        console.error("No middleware catched the error:",
+                      "\(self) \(req.method) \(req.url):",
+                      error)
+        res.writeHead(500)
+        res.end()
       }
     }
   }
