@@ -280,4 +280,12 @@ public extension Express {
     _ = server.listen(port, backlog: backlog, onListening: cb)
     return self
   }
+  
+  @inlinable
+  @discardableResult
+  func listen(_ port: Int?, backlog: Int = 512,
+              onListening cb : @escaping () -> Void) -> Self
+  {
+    return listen(port, backlog: backlog) { _ in cb() }
+  }
 }

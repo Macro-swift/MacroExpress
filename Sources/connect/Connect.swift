@@ -149,6 +149,7 @@ public class Connect {
 
 public extension Connect {
   
+  @inlinable
   @discardableResult
   func listen(_ port: Int?, backlog: Int = 512,
               onListening cb : (( http.Server ) -> Void)? = nil) -> Self
@@ -158,4 +159,11 @@ public extension Connect {
     return self
   }
   
+  @inlinable
+  @discardableResult
+  func listen(_ port: Int?, backlog: Int = 512,
+              onListening cb : @escaping () -> Void) -> Self
+  {
+    return listen(port, backlog: backlog) { _ in cb() }
+  }
 }
