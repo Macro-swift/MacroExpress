@@ -163,8 +163,7 @@ public extension Express {
       }
       
       func step() {
-        guard !pending.isEmpty else { return yield(nil) }
-        let pathToCheck = pending.removeFirst()
+        guard let pathToCheck = pending.popFirst() else { return yield(nil) }
         fs.stat(pathToCheck) { error, stat in
           guard let stat = stat, stat.isFile() else {
             return self.step()
