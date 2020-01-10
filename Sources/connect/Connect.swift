@@ -114,6 +114,7 @@ public class Connect {
       func step(_ args : Any...) {
         if let middleware = stack.popFirst() {
           do {
+            print("TRY middleware")
             try middleware(request, response, self.step)
           }
           catch {
@@ -121,12 +122,16 @@ public class Connect {
           }
         }
         else {
+          print("FINISHED middleware stack, going to parent")
           next?(); next = nil
         }
       }
     }
     
     func finalHandler(_ args: Any...) {
+      request.log.notice(
+        "no middleware handled request:\n  \(request)\n  \(response)"
+      )
       response.writeHead(404)
       response.end()
     }
@@ -139,6 +144,8 @@ public class Connect {
                                 .map    { $0.middleware }
     let state = State(middleware[middleware.indices],
                       request, response, finalHandler)
+    
+    print("START middleware")
     state.step()
   }
   

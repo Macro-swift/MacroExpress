@@ -19,7 +19,9 @@ import func MacroCore.setTimeout
 ///
 public func pause(_ timeout: Int, _ error: Error? = nil) -> Middleware {
   return { req, res, next in
+    print("pausing:",ObjectIdentifier(req))
     setTimeout(timeout) {
+      print("done pausing:",ObjectIdentifier(req))
       if let error = error {
         next(error)
       }

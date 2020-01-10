@@ -15,7 +15,7 @@ import struct    Foundation.URL
 
 private let patternMarker : UInt8 = 58 // ':'
 private let debugMatcher  = false
-private let debug         = false
+private let debug         = true
 
 /**
  * A Route is a middleware which wraps another middleware and guards it by a
