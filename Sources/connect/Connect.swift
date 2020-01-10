@@ -111,7 +111,12 @@ public class Connect {
       
       func step(_ args : Any...) {
         if let middleware = stack.popFirst() {
-          middleware(request, response, self.step)
+          do {
+            try middleware(request, response, self.step)
+          }
+          catch {
+            self.step(error)
+          }
         }
         else {
           next?(); next = nil

@@ -17,6 +17,17 @@ import class http.ServerResponse
  */
 public typealias Next = ( Any... ) -> Void
 
-/// Supposed to call Next() when it is done.
+/**
+ * Middleware are just functions that deal with HTTP transactions.
+ *
+ * They take a request (`IncomingMessage`) and response (`ServerResponse`)
+ * object as well as a closure to signal whether they fully handled the request
+ * or whether the respective "Router" (e.g. Connect) should run the next
+ * middleware.
+ *
+ * Call `Next` when the request processing needs to continue, just return if the
+ * request was fully processed.
+ */
 public typealias Middleware =
-                   ( IncomingMessage, ServerResponse, @escaping Next ) -> Void
+                   ( IncomingMessage, ServerResponse, @escaping Next )
+                   throws -> Void

@@ -17,10 +17,6 @@ private let patternMarker : UInt8 = 58 // ':'
 private let debugMatcher  = false
 private let debug         = false
 
-public typealias ErrorMiddleware =
-                   ( Swift.Error,
-                     IncomingMessage, ServerResponse, @escaping Next ) -> Void
-
 /**
  * A Route is a middleware which wraps another middleware and guards it by a
  * condition. For example:
@@ -114,7 +110,7 @@ open class Route: MiddlewareObject, RouteKeeper {
   
   public func handle(request  req       : IncomingMessage,
                      response res       : ServerResponse,
-                     next     upperNext : @escaping Next)
+                     next     upperNext : @escaping Next) throws
   {
     let ids = debug ? logPrefix : ""
     if debug { console.log("\(ids) > enter route:", self) }
@@ -223,7 +219,14 @@ open class Route: MiddlewareObject, RouteKeeper {
         if let error = (args.first as? Error) ?? self.error {
           self.error = error
           if let middleware = errorStack.popFirst() {
-            middleware(error, request, response, self.step)
+            do {
+              try middleware(error, request, response, self.step)
+            }
+            catch {
+              // the error which is thrown by the error middleware itself
+              self.error = error
+              self.step(error)
+            }
           }
           else {
             endNext?(error); endNext = nil
@@ -232,7 +235,13 @@ open class Route: MiddlewareObject, RouteKeeper {
         }
         
         if let middleware = stack.popFirst() {
-          middleware(request, response, self.step)
+          do {
+            try middleware(request, response, self.step)
+          }
+          catch {
+            self.error = error
+            self.step(error)
+          }
         }
         else {
           assert(error == nil)
