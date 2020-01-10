@@ -283,7 +283,7 @@ public extension Express {
               onListening cb : (( http.Server ) -> Void)? = nil) -> Self
   {
     let server = http.createServer(handler: requestHandler)
-    _ = server.listen(port, backlog: backlog, onListening: cb)
+    _ = server.listen(port, "0.0.0.0", backlog: backlog, onListening: cb)
     return self
   }
   
