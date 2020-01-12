@@ -19,7 +19,7 @@ let package = Package(
   
   dependencies: [
     .package(url: "https://github.com/macro-swift/Macro.git",
-             from: "0.0.12"),
+             from: "0.0.15"),
     .package(url: "https://github.com/AlwaysRightInstitute/mustache.git",
              from: "0.5.9")
   ],
@@ -35,8 +35,8 @@ let package = Package(
             ]),
     .target(name: "MacroExpress",
             dependencies: [ 
-                "MacroCore", "xsys", "http", "fs",
-                "mime", "connect", "express"
+              "MacroCore", "xsys", "http", "fs",
+              "mime", "connect", "express"
             ])
   ]
 )
