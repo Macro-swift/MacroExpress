@@ -14,16 +14,20 @@ public enum ExpressModule {}
 public extension ExpressModule {
   
   @inlinable
-  static func express(middleware: Middleware...) -> Express {
-    let app = Express()
+  static func express(invokingSourceFilePath: StaticString = #file,
+                      middleware: Middleware...) -> Express
+  {
+    let app = Express(invokingSourceFilePath: invokingSourceFilePath)
     middleware.forEach { app.use($0) }
     return app
   }
 }
 
 @inlinable
-public func express(middleware: Middleware...) -> Express {
-  let app = Express()
+public func express(invokingSourceFilePath: StaticString = #file,
+                    middleware: Middleware...) -> Express
+{
+  let app = Express(invokingSourceFilePath: invokingSourceFilePath)
   middleware.forEach { app.use($0) }
   return app
 }

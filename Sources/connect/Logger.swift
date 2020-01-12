@@ -35,10 +35,8 @@ public func logger(_ format: String = "default") -> Middleware {
     func printLog() {
       let endTS = timespec.monotonic()
       let diff  = (endTS - startTS).milliseconds
-      
-      let info = LogInfoProvider(req: req, res: res, diff: diff)
-      
-      var msg          = ""
+      let info  = LogInfoProvider(req: req, res: res, diff: diff)
+      var msg   = ""
       
       switch fmt {
         case formats["short"]!:
@@ -74,7 +72,7 @@ public func logger(_ format: String = "default") -> Middleware {
       console.log(msg)
     }
     
-    _ = res.onFinish { printLog() }
+    _ = res.onceFinish { printLog() }
     next()
   }
 }

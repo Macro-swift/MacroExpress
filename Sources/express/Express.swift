@@ -63,7 +63,7 @@ import class http.ServerResponse
  * For example to mount an admin frontend into your main application, the code
  * would look like:
  *
- *     let app = ApacheExpress.express(cmd, name: "mods_testapexdb")
+ *     let app = express()
  *     app.use("/admin", AdminExpress.admin())
  *
  * Where `admin` returns another Express instance representing the admin
@@ -76,10 +76,16 @@ open class Express: SettingsHolder, MountableMiddlewareObject, MiddlewareObject,
                     RouteKeeper
 {
   
-  let router        : Router
-  var settingsStore = [ String : Any ]()
+  /// The path of the sourcefile which called `express()`
+  let invokingSourceFilePath : StaticString
+  let router                 : Router
+  var settingsStore          = [ String : Any ]()
   
-  public init(id: String? = nil, mount: String? = nil) {
+  public init(id: String? = nil, mount: String? = nil,
+              invokingSourceFilePath: StaticString = #file)
+  {
+    self.invokingSourceFilePath = invokingSourceFilePath
+    
     router = Router(id: id, pattern: mount)
     settingsStore.reserveCapacity(16)
     
@@ -277,7 +283,15 @@ public extension Express {
               onListening cb : (( http.Server ) -> Void)? = nil) -> Self
   {
     let server = http.createServer(handler: requestHandler)
-    _ = server.listen(port, backlog: backlog, onListening: cb)
+    _ = server.listen(port, "0.0.0.0", backlog: backlog, onListening: cb)
     return self
+  }
+  
+  @inlinable
+  @discardableResult
+  func listen(_ port: Int?, backlog: Int = 512,
+              onListening cb : @escaping () -> Void) -> Self
+  {
+    return listen(port, backlog: backlog) { _ in cb() }
   }
 }

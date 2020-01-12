@@ -19,7 +19,7 @@
 @_exported import protocol  NIO.EventLoopGroup
 
 @_exported import enum      mime.mime
-@_exported import enum      connect.connect
+@_exported import func      connect.connect
 @_exported import typealias connect.Middleware
 @_exported import typealias connect.Next
 @_exported import func      connect.cookieParser
