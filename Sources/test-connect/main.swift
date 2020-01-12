@@ -27,7 +27,7 @@ let app = connect()
     console.log("did send")
   }
 
-#elseif true
+#elseif false
 
   app.use(logger("dev")) // Middleware: logs the request
   app.use(pause(2))
