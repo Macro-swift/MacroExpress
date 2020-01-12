@@ -1,7 +1,14 @@
 #!/usr/bin/swift sh
 
 import Foundation
+import Logging
 import MacroExpress // @Macro-swift ~> 0.0.2
+
+LoggingSystem.bootstrap { label in
+  var handler = StreamLogHandler.standardOutput(label: label)
+  handler.logLevel = .trace
+  return handler
+}
 
 let dirname = __dirname()
 
