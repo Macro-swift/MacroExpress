@@ -175,6 +175,15 @@ import struct Foundation.URL
 /**
  * An attempt to emulate the `__dirname` variable in Node modules,
  * requires a function in Swift.
+ * `__dirname` gives the directory location of the current Swift file, commonly
+ * used to lookup resources that live alongside the Swift source file.
+ *
+ * Note: Do not confuse w/ `process.cwd()`, which returns the current directory
+ *       of the process.
+ *
+ * Note: Can do synchronous I/O, be careful when to call this!
+ *
+ * ### Implementation
  *
  * The complicated thing is that SPM does not have proper resource locations.
  * A workaround is to use the `#file` compiler directive, which contains the
@@ -184,9 +193,28 @@ import struct Foundation.URL
  * source file anymore (because just the library is being deployed).
  * In this case, we return `process.cwd`.
  *
- * Note: Does synchronous I/O, be careful when to call this!
+ * ### `swift sh`
+ *
+ * There are extra issues w/ [swift-sh](https://github.com/mxcl/swift-sh):
+ *
+ *   https://github.com/mxcl/swift-sh/issues/101
+ *
+ * So we catch this and (try to) use the CWD in that situation.
+ * Note: This does not yet work properly for nested modules!
  */
 public func __dirname(caller: String = #file) -> String {
+  // The check for `swift sh`
+  if caller.contains("swift-sh.cache"), let toolname = process.env["_"] {
+    let dirURL  = URL(fileURLWithPath: process.cwd(), isDirectory: true)
+    let toolURL = URL(fileURLWithPath: toolname, relativeTo: dirURL)
+    
+    do {
+      _ = try statSync(toolURL.path)
+      return toolURL.deletingLastPathComponent().path
+    }
+    catch {}
+  }
+  
   do {
     _ = try statSync(caller)
     return URL(fileURLWithPath: caller).deletingLastPathComponent().path
