@@ -22,11 +22,18 @@ public extension ServerResponse {
     _ = writeJSON(object)
     end()
   }
-  func json<E: Encodable>(_ object: E?) {
+  func json<E: Encodable>(_ object: E) {
     if canAssignContentType {
       setHeader("Content-Type", "application/json; charset=utf-8")
     }
-    _ = writeJSON(object)
+    _ = write(object)
     end()
+  }
+  func json<E: Encodable>(_ object: E?) {
+    guard let object = object else {
+      _ = write("")
+      return end()
+    }
+    return json(object)
   }
 }
