@@ -8,14 +8,16 @@
 
 import enum      NIOHTTP1.HTTPMethod
 import enum      MacroCore.console
+import enum      MacroCore.process
 import class     http.IncomingMessage
 import class     http.ServerResponse
 import typealias connect.Next
 import struct    Foundation.URL
 
 private let patternMarker : UInt8 = 58 // ':'
-private let debugMatcher  = false
-private let debug         = false
+
+private let debug        = process.getenvflag("macro.router.debug")
+private let debugMatcher = process.getenvflag("macro.router.matcher.debug")
 
 /**
  * A Route is a middleware which wraps another middleware and guards it by a
@@ -283,7 +285,13 @@ extension Route: CustomStringConvertible {
   
   private var logPrefix : String {
     let logPrefixPad = 20
-    let id = self.id ?? ObjectIdentifier(self).debugDescription
+    let id = self.id ?? {
+      let oids = ObjectIdentifier(self).debugDescription
+      // ObjectIdentifier(0x000000010388a610)
+      let dropPrefix = "ObjectIdentifier(0x000000"
+      guard oids.hasPrefix(dropPrefix) else { return oids }
+      return "0x" + oids.dropFirst(dropPrefix.count).dropLast()
+    }()
     let p  = id
     let ids = p.count < logPrefixPad
       ? p + String(repeating: " ", count: logPrefixPad - p.count)

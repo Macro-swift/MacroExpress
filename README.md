@@ -25,6 +25,8 @@ MacroExpress adds the web framework components to
 - `macro.core.retain.debug`
 - `macro.concat.maxsize`
 - `macro.streams.debug.rc`
+- `macro.router.debug`
+- `macro.router.matcher.debug`
 
 ### Links
 

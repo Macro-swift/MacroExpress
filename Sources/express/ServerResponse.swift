@@ -149,7 +149,12 @@ public extension ServerResponse {
 
   @inlinable
   func send<T: Encodable>(_ object: T) { json(object) }
-  
+  @inlinable
+  func send<T: Encodable>(_ object: T?) {
+    guard let object = object else { return send("") } // TBD
+    json(object)
+  }
+
   @inlinable
   var canAssignContentType : Bool {
     return !headersSent && getHeader("Content-Type") == nil

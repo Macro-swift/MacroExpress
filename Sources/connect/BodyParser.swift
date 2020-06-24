@@ -78,6 +78,52 @@ public extension BodyParserBody {
   }
 }
 
+extension BodyParserBody : CustomStringConvertible {
+  
+  public var description: String {
+    switch self {
+      case .notParsed        : return "<Body: not-parsed>"
+      case .noBody           : return "<NoBody: is-perfect>"
+      case .error(let error) : return "<BodyParserError: \(error)>"
+      case .raw(let buffer)  : return "<RawBody: \(buffer)>"
+      
+      case .text(let string):
+        guard !string.isEmpty else { return "<TextBody: empty>" }
+        let clean = string
+                    .replacingOccurrences(of: "\r", with: "\\r")
+                    .replacingOccurrences(of: "\n", with: "\\n")
+        if clean.count < 40 { return "<Body \"\(clean)\">" }
+        else                { return "<Body \"\(clean.prefix(38))\"..>" }
+
+      case .urlEncoded(let params):
+        guard !params.isEmpty else { return "<URLBody: empty>" }
+        var ms = "<URLBody:"
+        for ( name, value ) in params {
+          ms += " \(name)="
+          switch value {
+            case let string as String:
+              ms += "\""
+              let clean = string
+                          .replacingOccurrences(of: "\r", with: "\\r")
+                          .replacingOccurrences(of: "\n", with: "\\n")
+              if clean.count < 40 { ms += clean + "\"" }
+              else                { ms += clean.prefix(38) + "\".." }
+            case let int as Int:
+              ms += "\(int)"
+            default:
+              ms += "\(value)"
+          }
+        }
+        ms += ">"
+        return ms
+
+      case .json(let value):
+        if let s = JSONModule.stringify(value) { return "<JSONBody: \(s)>" }
+        else { return "<InvalidJSONBody: \(value)>" }
+    }
+  }
+}
+
 extension BodyParserBody : ExpressibleByStringLiteral {
 
   public init(stringLiteral value: String) {
@@ -92,9 +138,12 @@ extension BodyParserBody : ExpressibleByStringLiteral {
 }
 
 
-// Module holding the different variants of bodyParsers.
+/// Module holding the different variants of bodyParsers.
 public enum bodyParser {
   
+  /**
+   * Options for use in request body parsers.
+   */
   public class Options {
     let inflate  = false
     let limit    = 100 * 1024
@@ -198,6 +247,27 @@ private func concatError(request : IncomingMessage,
 
 public extension bodyParser {
 
+  /**
+   * Returns a middleware for puts the raw request bytes into the `req.body`
+   * field.
+   *
+   * This parser ignores the content-type and just returns the raw bytes.
+   *
+   * Note: Make sure to place this middleware behind other middleware parsing
+   *       more specific content types!
+   *
+   * # Usage
+   *
+   *     app.use(bodyParser.raw())
+   *
+   *     app.post("/post") { req, res, next in
+   *       console.log("Request body is:", req.body)
+   *       next()
+   *     }
+   *
+   * - Parameter options: The options to be used for parsing.
+   * - Returns: A middleware which does the parsing as described.
+   */
   static func raw(options opts: Options = Options()) -> Middleware {
     return { req, res, next in
       concatError(request: req, next: next) { bytes in
@@ -207,11 +277,36 @@ public extension bodyParser {
     }
   }
   
+  /**
+   * Returns a middleware for parsing text (string) POST bodies.
+   *
+   * If the request has a "text" content-type (e.g. `text/html`, `text/plain`),
+   * this parser kicks in and decodes the raw bytes into a Swift `String`.
+   *
+   * The results of the parsing are available using the `request.body` enum,
+   * or for text, the shortcut `request.body.text`.
+   * If the parsing fails, that will be set to the `.error` case.
+   *
+   * Note: Make sure to place this middleware behind other middleware parsing
+   *       more specific content types!
+   *
+   * # Usage
+   *
+   *     app.use(bodyParser.text())
+   *
+   *     app.post("/post") { req, res, next in
+   *       console.log("Request text is:", req.text)
+   *       next()
+   *     }
+   *
+   * - Parameter options: The options to be used for parsing.
+   * - Returns: A middleware which does the parsing as described.
+   */
   static func text(options opts: Options = Options()) -> Middleware {
     return { req, res, next in
       // text/plain, text/html etc
       // TODO: properly process charset parameter, this assumes UTF-8
-      guard typeIs(req, [ "text" ]) != nil else { next(); return }
+      guard typeIs(req, [ "text" ]) != nil else { return next() }
       
       concatError(request: req, next: next) { bytes in
         do {
@@ -232,18 +327,42 @@ public extension bodyParser {
 
 public extension bodyParser {
   
+  /**
+   * Returns a middleware for parsing form encoded POST bodies.
+   *
+   * If the request has a content-type of `application/x-www-form-urlencoded`
+   * this parser kicks in and parses the encoded values.
+   * It either uses
+   * `qs.parse` if `extended` is enabled in the `Options`,
+   * or `querystring.parse` if not.
+   *
+   * The results of the parsing are available using the `request.body` enum.
+   * If the parsing fails, that will be set to the `.error` case.
+   *
+   * # Usage
+   *
+   *     app.use(bodyParser.urlencoded())
+   *
+   *     app.post("/post") { req, res, next in
+   *       console.log("Query is:", req.body[string: "query"])
+   *       next()
+   *     }
+   *
+   * - Parameter options: The options to be used for parsing. Use the `extended`
+   *                      setting to enable the use of `qs.parse`.
+   * - Returns: A middleware which does the parsing as described.
+   */
   static func urlencoded(options opts: Options = Options()) -> Middleware {
     return { req, res, next in
       guard typeIs(req, [ "application/x-www-form-urlencoded" ]) != nil else {
-        next()
-        return
+        return next()
       }
       
       // TBD: `extended` option. (maps to our zopeFormats?)
       concatError(request: req, next: next) { bytes in
         do {
-          let s = try bytes.toString()
-          let qp = opts.extended ? qs.parse(s) : querystring.parse(s)
+          let s    = try bytes.toString()
+          let qp   = opts.extended ? qs.parse(s) : querystring.parse(s)
           req.body = .urlEncoded(qp)
           return nil
         }
