@@ -25,7 +25,7 @@ let package = Package(
   ],
   
   targets: [
-    .target(name: "mime",    dependencies: [ ]),
+    .target(name: "mime",    dependencies: []),
     .target(name: "connect", dependencies: [ "MacroCore", "http", "fs" ]),
     .target(name: "express",
             dependencies: [
@@ -37,6 +37,8 @@ let package = Package(
             dependencies: [ 
               "MacroCore", "xsys", "http", "fs",
               "mime", "connect", "express"
-            ])
+            ]),
+
+    .testTarget(name: "mimeTests", dependencies: ["mime"])
   ]
 )
