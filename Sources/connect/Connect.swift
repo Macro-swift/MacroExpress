@@ -6,10 +6,11 @@
 //  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
 //
 
-import class http.IncomingMessage
-import class http.ServerResponse
 import class http.Server
 import func  http.createServer
+
+@_exported import class http.IncomingMessage
+@_exported import class http.ServerResponse
 
 public enum ConnectModule {}
 

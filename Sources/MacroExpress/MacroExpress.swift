@@ -18,6 +18,10 @@
 @_exported import protocol  NIO.EventLoop
 @_exported import protocol  NIO.EventLoopGroup
 
+@_exported import class     http.IncomingMessage
+@_exported import class     http.OutgoingMessage
+@_exported import class     http.ServerResponse
+
 @_exported import enum      mime.mime
 @_exported import func      connect.connect
 @_exported import typealias connect.Middleware
