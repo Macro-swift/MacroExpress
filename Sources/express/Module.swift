@@ -8,6 +8,8 @@
 
 import MacroCore
 @_exported import connect
+@_exported import class http.IncomingMessage
+@_exported import class http.ServerResponse
 
 public enum ExpressModule {}
 
