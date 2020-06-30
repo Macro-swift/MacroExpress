@@ -203,14 +203,43 @@ public extension bodyParser {
   static func json(options opts: Options = Options()) -> Middleware {
     
     return { req, res, next in
-      guard typeIs(req, [ "json" ]) != nil else { next(); return }
+      guard typeIs(req, [ "json" ]) != nil else { return next() }
+      
+      struct CouldNotParseJSON: Swift.Error {}
+      
+      func setBodyIfNotNil(_ result: Any?) {
+        guard let result = result else {
+          req.body = .error(CouldNotParseJSON())
+          return
+        }
+        req.body = .json(result)
+      }
 
-      // lame, should be streaming
-      concatError(request: req, next: next) { bytes in
-        let result = JSONModule.parse(bytes)
-        // TODO: error?! (just logged)
-        req.body = result != nil ? .json(result!) : .noBody
-        return nil
+      switch req.body {
+        case .json:
+          return next() // already parsed JSON
+      
+        case .noBody, .error: // already parsed as nothing or error
+          return next()
+      
+        case .notParsed:
+          // lame, should be streaming
+          concatError(request: req, next: next) { bytes in
+            setBodyIfNotNil(JSONModule.parse(bytes))
+            return nil
+          }
+          
+        case .urlEncoded(let values):
+          req.log.notice("remapping URL encoded body data to JSON")
+          req.body = .json(values)
+          next()
+          
+        case .raw(let bytes):
+          setBodyIfNotNil(JSONModule.parse(bytes))
+          next()
+        case .text(let string):
+          setBodyIfNotNil(JSONModule.parse(string))
+          next()
       }
     }
   }
@@ -270,9 +299,19 @@ public extension bodyParser {
    */
   static func raw(options opts: Options = Options()) -> Middleware {
     return { req, res, next in
-      concatError(request: req, next: next) { bytes in
-        req.body = .raw(bytes)
-        return nil
+      switch req.body {
+        case .raw, .noBody, .error:
+          return next() // already loaded
+        
+        case .notParsed:
+          concatError(request: req, next: next) { bytes in
+            req.body = .raw(bytes)
+            return nil
+          }
+
+        default:
+          req.log.warning("not overriding parsed body \(req.body) w/ .raw")
+          return next()
       }
     }
   }
@@ -308,15 +347,36 @@ public extension bodyParser {
       // TODO: properly process charset parameter, this assumes UTF-8
       guard typeIs(req, [ "text" ]) != nil else { return next() }
       
-      concatError(request: req, next: next) { bytes in
-        do {
-          req.body = .text(try bytes.toString())
-          return nil
-        }
-        catch {
-          req.body = .error(BodyParserError.couldNotDecodeString(error))
-          return error
-        }
+      switch req.body {
+        case .text, .noBody, .error:
+          return next() // already loaded
+        
+        case .notParsed:
+          concatError(request: req, next: next) { bytes in
+            do {
+              req.body = .text(try bytes.toString())
+              return nil
+            }
+            catch {
+              req.body = .error(BodyParserError.couldNotDecodeString(error))
+              return error
+            }
+          }
+          
+        case .raw(let bytes):
+          do {
+            req.body = .text(try bytes.toString())
+            next()
+          }
+          catch {
+            let bpError = BodyParserError.couldNotDecodeString(error)
+            req.body = .error(bpError)
+            return next(error)
+          }
+
+        default:
+          req.log.warning("not overriding parsed body \(req.body) w/ .text")
+          return next()
       }
     }
   }
@@ -358,18 +418,50 @@ public extension bodyParser {
         return next()
       }
       
-      // TBD: `extended` option. (maps to our zopeFormats?)
-      concatError(request: req, next: next) { bytes in
-        do {
-          let s    = try bytes.toString()
+      switch req.body {
+        case .urlEncoded, .noBody, .error:
+          return next() // already loaded
+
+        case .notParsed:
+          concatError(request: req, next: next) { bytes in
+            do {
+              let s    = try bytes.toString()
+              let qp   = opts.extended ? qs.parse(s) : querystring.parse(s)
+              req.body = .urlEncoded(qp)
+              return nil
+            }
+            catch {
+              req.body = .error(BodyParserError.couldNotDecodeString(error))
+              return error
+            }
+          }
+          
+        case .json(let json):
+          guard let dict = json as? [ String : Any ] else {
+            req.log.warning(
+              "cannot remap non-dict JSON encoded body \(json) to urlencoded")
+            return next()
+          }
+          req.log.notice("remapping JSON encoded body data to urlencoded")
+          req.body = .urlEncoded(dict)
+          next()
+          
+        case .raw(let bytes):
+          do {
+            let s    = try bytes.toString()
+            let qp   = opts.extended ? qs.parse(s) : querystring.parse(s)
+            req.body = .urlEncoded(qp)
+          }
+          catch {
+            let bpError = BodyParserError.couldNotDecodeString(error)
+            req.body = .error(bpError)
+            return next(error)
+          }
+          
+        case .text(let s):
           let qp   = opts.extended ? qs.parse(s) : querystring.parse(s)
           req.body = .urlEncoded(qp)
-          return nil
-        }
-        catch {
-          req.body = .error(BodyParserError.couldNotDecodeString(error))
-          return error
-        }
+          next()
       }
     }
   }
