@@ -31,20 +31,19 @@ public extension RouteKeeper {
    * Returns a route to gate on a path. Since a `Route` itself is a RouteKeeper,
    * you can then hookup additional routes.
    *
-   * Example:
+   * Attached routes are mounted, i.e. their path is relative to the parent
+   * route.
+   *
+   * Examples:
    *
    *     app.route("/cows")
    *       .get  { req, res, next ... }
    *       .post { req, res, next ... }
    *
-   * Note: A Route is not a mountable object! I.e. this doesn't do the thing
-   * you expect:
-   * TODO: is this actually true? A route seems to push baseUrl and such.
-   *
    *     app.route("/admin"
-   *       .get("/view") { .. }   // does NOT match /admin/view, but /view
+   *       .get("/view") { .. }   // does match `/admin/view`, not `/view`
    *
-   * Use a new `Express` instance for mounting.
+   * One can also mount using a separate `Express` instance.
    */
   @inlinable
   func route(id: String? = nil, _ path: String) -> Route {
