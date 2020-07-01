@@ -6,10 +6,11 @@
 //  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
 //
 
-import enum  MacroCore.process
-import enum  MacroCore.EventListenerSet
-import class http.IncomingMessage
-import class http.ServerResponse
+import struct Logging.Logger
+import enum   MacroCore.process
+import enum   MacroCore.EventListenerSet
+import class  http.IncomingMessage
+import class  http.ServerResponse
 
 /**
  * # The Express application object
@@ -75,18 +76,22 @@ import class http.ServerResponse
 open class Express: SettingsHolder, MountableMiddlewareObject, MiddlewareObject,
                     RouteKeeper
 {
-  
+  public let log : Logger
+
   /// The path of the sourcefile which called `express()`
   let invokingSourceFilePath : StaticString
   let router                 : Router
   var settingsStore          = [ String : Any ]()
   
-  public init(id: String? = nil, mount: String? = nil,
+  public init(id  : String? = nil, mount: String? = nil,
+              log : Logger = .init(label: "μ.express.app"),
               invokingSourceFilePath: StaticString = #file)
   {
-    self.invokingSourceFilePath = invokingSourceFilePath
+    // TODO: might need #filePath in Swift 5.4
     
-    router = Router(id: id, pattern: mount)
+    self.invokingSourceFilePath = invokingSourceFilePath
+    self.log                    = log
+    self.router                 = Router(id: id, pattern: mount)
     settingsStore.reserveCapacity(16)
     
     let me = mustacheExpress
@@ -204,15 +209,9 @@ extension Express: CustomStringConvertible {
   open var description : String {
     var ms = "<\(type(of: self)):"
     
-    if router.isEmpty {
-      ms += " no-routes"
-    }
-    else if router.count == 1 {
-      ms += " route"
-    }
-    else {
-      ms += " #routes=\(router.count)"
-    }
+    if router.isEmpty         { ms += " no-routes"               }
+    else if router.count == 1 { ms += " route"                   }
+    else                      { ms += " #routes=\(router.count)" }
     
     if let mountPath = mountPath, !mountPath.isEmpty {
       if mountPath.count == 1 {
@@ -229,9 +228,7 @@ extension Express: CustomStringConvertible {
     }
     
     if !settingsStore.isEmpty {
-      for ( key, value ) in settingsStore {
-        ms += " '\(key)'='\(value)'"
-      }
+      for ( key, value ) in settingsStore { ms += " '\(key)'='\(value)'" }
     }
     
     ms += ">"
@@ -241,10 +238,10 @@ extension Express: CustomStringConvertible {
 }
 
 public typealias ExpressEngine = (
-    _ path:    String,
-    _ options: Any?,
-    _ done:    @escaping ( Any?... ) -> Void
-  ) -> Void
+                   _ path:    String,
+                   _ options: Any?,
+                   _ done:    @escaping ( Any?... ) -> Void
+                 ) -> Void
 
 
 // keys for extra dictionary in IncomingRequest/ServerResponse
