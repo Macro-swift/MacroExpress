@@ -15,6 +15,7 @@
 @_exported import struct    MacroCore.Buffer
 @_exported import enum      MacroCore.ReadableError
 @_exported import enum      MacroCore.WritableError
+@_exported import func      MacroCore.__dirname
 @_exported import protocol  NIO.EventLoop
 @_exported import protocol  NIO.EventLoopGroup
 
