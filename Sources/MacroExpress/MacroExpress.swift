@@ -19,6 +19,8 @@
 @_exported import protocol  NIO.EventLoop
 @_exported import protocol  NIO.EventLoopGroup
 
+@_exported import enum      dotenv.dotenv
+
 @_exported import class     http.IncomingMessage
 @_exported import class     http.OutgoingMessage
 @_exported import class     http.ServerResponse
