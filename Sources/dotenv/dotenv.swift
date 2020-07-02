@@ -6,9 +6,14 @@
 //  Copyright © 2020 ZeeZide GmbH. All rights reserved.
 //
 
+#if os(Linux)
+  import func Glibc.setenv
+#else
+  import func Darwin.setenv
+#endif
+
 import enum  MacroCore.console
 import func  MacroCore.__dirname
-import func  Darwin.setenv
 import class Foundation.FileManager
 
 public enum dotenv {}
