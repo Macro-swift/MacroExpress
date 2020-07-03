@@ -20,6 +20,7 @@ public enum dotenv {}
 
 public extension dotenv {
   
+  #if swift(>=5.3) // oh this mess
   /**
    * Read the .env config file, apply it to the environment, and return the
    * parsed values.
@@ -43,10 +44,12 @@ public extension dotenv {
    */
   @discardableResult
   static func config(path     : String? = nil,
-                     override : Bool    = false) -> [ String : String ]?
+                     override : Bool    = false,
+                     caller   : String  = #filePath) -> [ String : String ]?
   {
     do {
-      return try tryConfig(path: path, override: override, logError: true)
+      return try tryConfig(path: path, override: override, logError: true,
+                           caller: caller)
     }
     catch {
       return nil
@@ -56,9 +59,11 @@ public extension dotenv {
   /// See `config` for details. This is a throwing variant
   static func tryConfig(path     : String? = nil,
                         override : Bool    = false,
-                        logError : Bool    = false) throws -> [String : String]
+                        logError : Bool    = false,
+                        caller   : String  = #filePath)
+                throws -> [String : String]
   {
-    let path = path ?? (__dirname() + "/.env")
+    let path = path ?? (__dirname(caller: caller) + "/.env")
     let fm   = FileManager.default
     
     guard fm.fileExists(atPath: path) else { return [:] } // not an error
@@ -80,6 +85,71 @@ public extension dotenv {
       throw error
     }
   }
+  #else
+  /**
+   * Read the .env config file, apply it to the environment, and return the
+   * parsed values.
+   *
+   * Important: Remember to call this as early as possible, otherwise Foundation
+   *            might not pick up the changed environment! (which also affects
+   *            `process.env`)
+   *
+   * Values which are already set in the environment are not overridden (unless
+   * the `override` argument is set).
+   *
+   * Syntax:
+   * - empty lines are skipped
+   * - lines starting w/ `#` are skipped (comments)
+   * - key & value are trimmed
+   * - missing values become the empty string ""
+   *
+   * Note: This does none of the quoting stuff of the original yet.
+   *
+   * Original JS module: https://github.com/motdotla/dotenv
+   */
+  @discardableResult
+  static func config(path     : String? = nil,
+                     override : Bool    = false,
+                     caller   : String  = #file) -> [ String : String ]?
+  {
+    do {
+      return try tryConfig(path: path, override: override, logError: true,
+                           caller: caller)
+    }
+    catch {
+      return nil
+    }
+  }
+  
+  /// See `config` for details. This is a throwing variant
+  static func tryConfig(path     : String? = nil,
+                        override : Bool    = false,
+                        logError : Bool    = false,
+                        caller   : String  = #file) throws -> [String : String]
+  {
+    let path = path ?? (__dirname(caller: caller) + "/.env")
+    let fm   = FileManager.default
+    
+    guard fm.fileExists(atPath: path) else { return [:] } // not an error
+
+    do {
+      let config = parse(try String(contentsOfFile: path))
+      
+      for ( key, value ) in config {
+        setenv(key, value, override ? 1 : 0)
+      }
+      
+      return config
+    }
+    catch {
+      if logError {
+        console.error("dotenv failed to load .env file:", path,
+                      "  error:", error)
+      }
+      throw error
+    }
+  }
+  #endif // <= Swift 5.2
 
   /**
    * Parse the string passed as a .env file.
