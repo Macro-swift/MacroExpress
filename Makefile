@@ -4,6 +4,7 @@
 SWIFT_BUILD=swift build
 SWIFT_CLEAN=swift package clean
 SWIFT_BUILD_DIR=.build
+SWIFT_TEST=swift test
 CONFIGURATION=release
 
 # docker config
@@ -21,6 +22,10 @@ SWIFT_SOURCES=\
 
 all:
 	$(SWIFT_BUILD) -c $(CONFIGURATION)
+
+# Cannot test in `release` configuration?!
+test:
+	$(SWIFT_TEST) 
 	
 clean :
 	$(SWIFT_CLEAN)
