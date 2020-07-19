@@ -128,6 +128,13 @@ public extension IncomingMessage {
     return typeIs(self, [ pattern.lowercased() ]) != nil
   }
   
+  /**
+   * Returns true if the request originated from an `XMLHttpRequest` (aka
+   * browser AJAX).
+   *
+   * This is checking whether the `X-Requested-With` header exists,
+   * and whether that contains the `XMLHttpRequest` string.
+   */
   @inlinable
   var xhr : Bool {
     guard let h = headers["X-Requested-With"].first else { return false }
