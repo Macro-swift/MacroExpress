@@ -53,6 +53,7 @@ final class SimpleRouteTests: XCTestCase {
   }
 
   static var allTests = [
-    ( "testSimpleEndingRoute", testSimpleEndingRoute ),
+    ( "testSimpleEndingRoute"    , testSimpleEndingRoute    ),
+    ( "testSimpleNonEndingRoute" , testSimpleNonEndingRoute )
   ]
 }
