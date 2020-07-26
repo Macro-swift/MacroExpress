@@ -18,6 +18,7 @@ private let patternMarker : UInt8 = 58 // ':'
 
 private let debug        = process.getenvflag("macro.router.debug")
 private let debugMatcher = process.getenvflag("macro.router.matcher.debug")
+private let debugWalker  = process.getenvflag("macro.router.walker.debug")
 
 /**
  * A Route is a middleware which wraps another middleware and guards it by a
@@ -49,7 +50,9 @@ private let debugMatcher = process.getenvflag("macro.router.matcher.debug")
  *
  * and companions.
  */
-open class Route: MiddlewareObject, RouteKeeper {
+open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
+                  CustomStringConvertible
+{
   
   public var middleware      : [ Middleware ]
   public var errorMiddleware : [ ErrorMiddleware ]
@@ -108,15 +111,44 @@ open class Route: MiddlewareObject, RouteKeeper {
   
   @inlinable
   public func add(route: Route) {
+    // Note: We cannot skip empty routes (or append the contents), because
+    //       Route's are objects and can be filled later.
     self.middleware.append(route.middleware)
-    self.errorMiddleware.append(contentsOf: route.errorMiddleware)
+
+    #if true // this is incorrect wrt mounting, but works
+      self.errorMiddleware += route.errorMiddleware
+    #else    // this doesn't work yet :-)
+      self.errorMiddleware.append(route.errorMiddleware)
+    #endif
   }
 
   // MARK: - MiddlewareObject
   
-  public func handle(request  req       : IncomingMessage,
-                     response res       : ServerResponse,
-                     next     upperNext : @escaping Next) throws
+  @inlinable
+  public func handle(request  : IncomingMessage,
+                     response : ServerResponse,
+                     next     : @escaping Next) throws
+  {
+    try handle(request: request, response: response, error: nil, next: next)
+  }
+
+  @inlinable
+  public func handle(error    : Swift.Error,
+                     request  : IncomingMessage,
+                     response : ServerResponse,
+                     next     : @escaping Next) throws
+  {
+    try handle(request: request, response: response, error: error, next: next)
+  }
+
+  
+  // MARK: - Mounted Routing
+  
+  @usableFromInline
+  internal func handle(request    req : IncomingMessage,
+                       response   res : ServerResponse,
+                       error          : Swift.Error?,
+                       next upperNext : @escaping Next) throws
   {
     let ids = debug ? logPrefix : ""
     if debug { console.log("\(ids) > enter route:", self) }
@@ -196,6 +228,7 @@ open class Route: MiddlewareObject, RouteKeeper {
 
     final class MiddlewareWalker {
       
+      let ids        : String
       var stack      : ArraySlice<Middleware>
       var errorStack : ArraySlice<ErrorMiddleware>
       let request    : IncomingMessage
@@ -203,61 +236,82 @@ open class Route: MiddlewareObject, RouteKeeper {
       var endNext    : Next?
       var error      : Swift.Error?
       
-      init(_ stack      : ArraySlice<Middleware>,
+      init(_ ids        : String,
+           _ stack      : ArraySlice<Middleware>,
            _ errorStack : ArraySlice<ErrorMiddleware>,
            _ request    : IncomingMessage,
            _ response   : ServerResponse,
+           _ error      : Swift.Error?,
            _ endNext    : @escaping Next)
       {
+        self.ids        = ids
         self.stack      = stack
         self.errorStack = errorStack
         self.request    = request
         self.response   = response
+        self.error      = error
         self.endNext    = endNext
       }
       
       func step(_ args: Any...) {
+        if debugWalker {
+          if args.isEmpty { console.log("\(ids)   push step")        }
+          else            { console.log("\(ids)   push step:", args) }
+        }
         if let s = args.first as? String, s == "route" || s == "router" {
+          if debugWalker { console.log("\(ids)   end-step via route:", args) }
           endNext?(); endNext = nil
           return
         }
         
-        if let error = (args.first as? Error) ?? self.error {
+        if let error = (args.first as? Swift.Error) ?? self.error {
+          if debugWalker { console.log("\(ids)     step error:", error) }
           self.error = error
-          if let middleware = errorStack.popFirst() {
-            do {
-              try middleware(error, request, response, self.step)
-            }
-            catch {
-              // the error which is thrown by the error middleware itself
-              self.error = error
-              self.step(error)
-            }
-          }
-          else {
+          
+          guard let middleware = errorStack.popFirst() else {
+            if debugWalker { console.log("\(ids)   end-error next:", error) }
             endNext?(error); endNext = nil
+            return
           }
-          return
-        }
-        
-        if let middleware = stack.popFirst() {
+          
           do {
-            try middleware(request, response, self.step)
+            try middleware(error, request, response, self.step)
           }
           catch {
+            // the error which is thrown by the error middleware itself
+            if debugWalker {
+              console.log("\(ids)     step error-middleware threw:", error)
+            }
             self.error = error
             self.step(error)
           }
         }
         else {
-          assert(error == nil)
-          endNext?(); endNext = nil
+          guard let middleware = stack.popFirst() else {
+            if debugWalker { console.log("\(ids)   end-step next") }
+            assert(error == nil)
+            endNext?(); endNext = nil
+            return
+          }
+          
+          if debugWalker { console.log("\(ids)     step middleware") }
+          do {
+            try middleware(request, response, self.step)
+          }
+          catch {
+            if debugWalker {
+              console.log("\(ids)     step middleware threw:", error)
+            }
+            self.error = error
+            self.step(error)
+          }
         }
       }
     }
 
-    let state = MiddlewareWalker(middleware[...], errorMiddleware[...],
-                                 req, res)
+    let state = MiddlewareWalker(ids,
+                                 middleware[...], errorMiddleware[...],
+                                 req, res, error)
     { ( args : Any...) in
       // restore route state (only if none matched, i.e. all called next)
       req.params  = oldParams
