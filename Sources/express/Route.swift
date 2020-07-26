@@ -64,7 +64,7 @@ open class Route: MiddlewareObject, RouteKeeper {
   @inlinable
   public var count   : Int  { return middleware.count + errorMiddleware.count }
 
-  let urlPattern      : [ RoutePattern ]?
+  let urlPattern     : [ RoutePattern ]?
     // FIXME: all this works a little different in Express.js. Exact matches,
     //        non-path-component matches, regex support etc.
   
@@ -93,6 +93,8 @@ open class Route: MiddlewareObject, RouteKeeper {
       }
     }
   }
+  
+  @inlinable
   public convenience init(id              : String?             = nil,
                           pattern         : String?             = nil,
                           method          : HTTPMethod?         = nil,
@@ -104,12 +106,13 @@ open class Route: MiddlewareObject, RouteKeeper {
               middleware: middleware.map { $0.middleware })
   }
   
+  @inlinable
   public func add(route: Route) {
     self.middleware.append(route.middleware)
     self.errorMiddleware.append(contentsOf: route.errorMiddleware)
   }
 
-  // MARK: MiddlewareObject
+  // MARK: - MiddlewareObject
   
   public func handle(request  req       : IncomingMessage,
                      response res       : ServerResponse,
@@ -277,12 +280,8 @@ open class Route: MiddlewareObject, RouteKeeper {
   private func split(urlPath: String) -> [ String ] {
     return extractEscapedURLPathComponents(for: urlPath)
   }
-  
-}
 
-extension Route: CustomStringConvertible {
-  
-  // MARK: - Description
+  // MARK: - CustomStringConvertible
   
   private var logPrefix : String {
     let logPrefixPad = 20
@@ -300,7 +299,7 @@ extension Route: CustomStringConvertible {
     return "[\(ids)]:"
   }
   
-  public var description : String {
+  open var description : String {
     var ms = "<Route:"
     
     if let id = id {
@@ -325,9 +324,13 @@ extension Route: CustomStringConvertible {
     }
     else if count > 1 {
       ms += " #middleware=\(middleware.count)"
+      if !errorMiddleware.isEmpty {
+        ms += "(#error=\(errorMiddleware.count))"
+      }
     }
     else {
-      ms += " 1-middleware"
+      if errorMiddleware.isEmpty { ms += " 1-middleware"       }
+      else                       { ms += " 1-error-middleware" }
     }
     
     ms += ">"
