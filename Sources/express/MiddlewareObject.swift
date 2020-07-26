@@ -32,14 +32,33 @@ public protocol MiddlewareObject {
               next     : @escaping Next) throws
 }
 
+/**
+ * ErrorMiddlewareObject is the 'object variant' of an ErrorMiddleware callback.
+ *
+ * All ErrorMiddlewareObject's provide a
+ * `handle(error:request:response:next:)` method.
+ *
+ * And you can generate a ErrorMiddleware function for a ErrorMiddlewareObject
+ * by using the `.errorMiddleware` property. Like so:
+ *
+ *     app.use(otherApp.errorMiddleware)
+ *
+ */
+public protocol ErrorMiddlewareObject {
   
+  func handle(error    : Swift.Error,
+              request  : IncomingMessage,
+              response : ServerResponse,
+              next     : @escaping Next) throws
 }
 
 public protocol MountableMiddlewareObject : MiddlewareObject {
   
   func mount(at: String, parent: Express)
-  
 }
+
+
+// MARK: - Default Implementations
 
 public extension MiddlewareObject {
   
@@ -99,6 +118,20 @@ public extension MiddlewareObject {
         res.writeHead(500)
         res.end()
       }
+    }
+  }
+}
+
+public extension ErrorMiddlewareObject {
+  
+  /**
+   * Returns an `ErrorMiddleware` closure which targets this
+   * `ErrorMiddlewareObject`.
+   */
+  @inlinable
+  var errorMiddleware: ErrorMiddleware {
+    return { error, req, res, next in
+      try self.handle(error: error, request: req, response: res, next: next)
     }
   }
 }
