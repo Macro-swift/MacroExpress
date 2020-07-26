@@ -41,6 +41,8 @@ let package = Package(
               "dotenv", "mime", "connect", "express"
             ]),
 
-    .testTarget(name: "mimeTests", dependencies: ["mime"])
+    .testTarget(name: "mimeTests",  dependencies: [ "mime" ]),
+    .testTarget(name: "RouteTests",
+                dependencies: [ "express", "MacroTestUtilities" ])
   ]
 )
