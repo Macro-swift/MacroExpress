@@ -106,6 +106,7 @@ open class Route: MiddlewareObject, RouteKeeper {
   
   public func add(route: Route) {
     self.middleware.append(route.middleware)
+    self.errorMiddleware.append(contentsOf: route.errorMiddleware)
   }
 
   // MARK: MiddlewareObject
