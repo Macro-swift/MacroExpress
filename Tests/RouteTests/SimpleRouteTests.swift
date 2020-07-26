@@ -6,7 +6,7 @@ import class     http.IncomingMessage
 final class SimpleRouteTests: XCTestCase {
   
   func testSimpleEndingRoute() throws {
-    let route = Route()
+    let route = Route(id: "root")
     
     var didCallRoute = false
     route.use { req, res, next in
@@ -53,6 +53,7 @@ final class SimpleRouteTests: XCTestCase {
   }
 
   static var allTests = [
-    ( "testSimpleEndingRoute", testSimpleEndingRoute ),
+    ( "testSimpleEndingRoute"    , testSimpleEndingRoute    ),
+    ( "testSimpleNonEndingRoute" , testSimpleNonEndingRoute )
   ]
 }

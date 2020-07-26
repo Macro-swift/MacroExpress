@@ -10,19 +10,19 @@ final class ErrorMiddlewareTests: XCTestCase {
       case thisWentWrong
     }
     
-    let route = Route()
+    let route = Route(id: "root")
     
     // install error handler
     
     var errorCatched : Swift.Error? = nil
-    route.use { error, req, res, next in
+    route.use(id: "handler") { error, req, res, next in
       XCTAssertNil(errorCatched)
       errorCatched = error
     }
     
     // install throwing route
     
-    route.use { req, res, next in
+    route.use(id: "thrower") { req, res, next in
       throw SomeError.thisWentWrong
     }
     
@@ -51,7 +51,7 @@ final class ErrorMiddlewareTests: XCTestCase {
       case thisWentWrong
     }
     
-    let route = Route()
+    let route = Route(id: "root")
     
     // install error handler
     
