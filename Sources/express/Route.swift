@@ -113,13 +113,8 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
   public func add(route: Route) {
     // Note: We cannot skip empty routes (or append the contents), because
     //       Route's are objects and can be filled later.
-    self.middleware.append(route.middleware)
-
-    #if true // this is incorrect wrt mounting, but works
-      self.errorMiddleware += route.errorMiddleware
-    #else    // this doesn't work yet :-)
-      self.errorMiddleware.append(route.errorMiddleware)
-    #endif
+    self.middleware     .append(route.middleware)
+    self.errorMiddleware.append(route.errorMiddleware)
   }
 
   // MARK: - MiddlewareObject
@@ -159,6 +154,7 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
         if debug {
           console.log("\(ids) route method does not match, next:", self)
         }
+        if let error = error { throw error }
         return upperNext()
       }
     }
@@ -182,6 +178,7 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
           if debug {
             console.log("\(ids) mount route path does not match, next:", self)
           }
+          if let error = error { throw error }
           return upperNext()
         }
         
@@ -198,6 +195,7 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
             console.log("\(ids) route path does not match, next:",
               self)
           }
+          if let error = error { throw error }
           return upperNext()
          }
         matchPath = mp
@@ -212,8 +210,12 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
       params    = req.params
     }
 
-    // TBD: error middleware?
-    guard !self.middleware.isEmpty else { return upperNext() }
+    if let error = error {
+      guard !self.errorMiddleware.isEmpty else { throw error }
+    }
+    else {
+      guard !self.middleware     .isEmpty else { return upperNext() }
+    }
     
     // push route state
     let oldParams = req.params
