@@ -6,7 +6,7 @@ import class     http.IncomingMessage
 final class RouteMountingTests: XCTestCase {
     
   func testSimpleMountMatch() throws {
-    let outerRoute = Route()
+    let outerRoute = Route(id: "outer")
 
     // match /admin/view
     var didCallRoute = false
@@ -38,7 +38,7 @@ final class RouteMountingTests: XCTestCase {
       case thisWentWrong
     }
     
-    let outerRoute = Route()
+    let outerRoute = Route(id: "outer")
 
     // match /admin/view
     var didCallErrorMiddleware    = false

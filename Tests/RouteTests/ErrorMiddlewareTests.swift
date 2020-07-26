@@ -10,7 +10,7 @@ final class ErrorMiddlewareTests: XCTestCase {
       case thisWentWrong
     }
     
-    let route = Route()
+    let route = Route(id: "root")
     
     // install error handler
     
@@ -51,7 +51,7 @@ final class ErrorMiddlewareTests: XCTestCase {
       case thisWentWrong
     }
     
-    let route = Route()
+    let route = Route(id: "root")
     
     // install error handler
     
