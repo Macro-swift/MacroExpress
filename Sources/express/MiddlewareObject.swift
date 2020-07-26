@@ -27,9 +27,11 @@ import enum MacroCore.console
  */
 public protocol MiddlewareObject {
   
-  func handle(request  req: IncomingMessage,
-              response res: ServerResponse,
-              next     cb:  @escaping Next) throws
+  func handle(request  : IncomingMessage,
+              response : ServerResponse,
+              next     : @escaping Next) throws
+}
+
   
 }
 
@@ -44,9 +46,10 @@ public extension MiddlewareObject {
   /**
    * Returns a `Middleware` closure which targets this `MiddlewareObject`.
    */
+  @inlinable
   var middleware: Middleware {
-    return { req, res, cb in
-      try self.handle(request: req, response: res, next: cb)
+    return { req, res, next in
+      try self.handle(request: req, response: res, next: next)
     }
   }
 
