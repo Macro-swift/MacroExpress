@@ -6,10 +6,6 @@ let package = Package(
   
   name: "MacroExpress",
 
-  platforms: [
-    .macOS(.v10_14), .iOS(.v11)
-  ],
-  
   products: [
     .library(name: "MacroExpress", targets: [ "MacroExpress" ]),
     .library(name: "express",      targets: [ "express"      ]),
@@ -20,7 +16,7 @@ let package = Package(
   
   dependencies: [
     .package(url: "https://github.com/Macro-swift/Macro.git",
-             from: "0.5.0"),
+             from: "0.5.1"),
     .package(url: "https://github.com/AlwaysRightInstitute/mustache.git",
              from: "0.5.9")
   ],
