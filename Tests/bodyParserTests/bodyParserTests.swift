@@ -14,6 +14,8 @@ final class bodyParserTests: XCTestCase {
     )
 
     req.push(Buffer("Hello World"))
+    req.push(nil)
+    // how to end/finish?
 
     let res = ServerResponse(unsafeChannel: nil, log: req.log)
     
