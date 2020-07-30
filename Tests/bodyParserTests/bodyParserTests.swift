@@ -14,19 +14,27 @@ final class bodyParserTests: XCTestCase {
     )
 
     req.push(Buffer("Hello World"))
-    req.push(nil)
-    // how to end/finish?
+    req.push(nil) // EOF
 
-    let res = ServerResponse(unsafeChannel: nil, log: req.log)
-    
-    // this is using concat ... so we need an expectations
     let sem = expectation(description: "parsing body ...")
-    let mw = bodyParser.text()
-    try mw(req, res) { ( args : Any...) in
-      console.log("done parsing ...", args)
-      sem.fulfill()
-    }
 
+    // This is using pipes, and pipes need to (currently) happen on the
+    // same eventloop.
+    MacroCore.shared.fallbackEventLoop().execute {
+      let res = ServerResponse(unsafeChannel: nil, log: req.log)
+      
+      // this is using concat ... so we need an expectations
+      let mw = bodyParser.text()
+      do {
+        try mw(req, res) { ( args : Any...) in
+          console.log("done parsing ...", args)
+          sem.fulfill()
+        }
+      }
+      catch {
+        sem.fulfill()
+      }
+    }
 
     waitForExpectations(timeout: 3) { error in
       if let error = error {
