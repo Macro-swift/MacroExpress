@@ -16,15 +16,16 @@ let package = Package(
   
   dependencies: [
     .package(url: "https://github.com/Macro-swift/Macro.git",
-             from: "0.5.1"),
+             from: "0.5.3"),
     .package(url: "https://github.com/AlwaysRightInstitute/mustache.git",
              from: "0.5.9")
   ],
   
   targets: [
     .target(name: "mime",    dependencies: []),
-    .target(name: "dotenv",  dependencies: [ "MacroCore",              ]),
-    .target(name: "connect", dependencies: [ "MacroCore", "http", "fs" ]),
+    .target(name: "dotenv",  dependencies: [ "MacroCore" ]),
+    .target(name: "connect",
+            dependencies: [ "MacroCore", "http", "fs", "mime" ]),
     .target(name: "express",
             dependencies: [
               "MacroCore", "http", "fs",
@@ -37,7 +38,8 @@ let package = Package(
               "dotenv", "mime", "connect", "express"
             ]),
 
-    .testTarget(name: "mimeTests",  dependencies: [ "mime" ]),
+    .testTarget(name: "mimeTests",       dependencies: [ "mime"    ]),
+    .testTarget(name: "bodyParserTests", dependencies: [ "connect" ]),
     .testTarget(name: "RouteTests",
                 dependencies: [ "express", "MacroTestUtilities" ])
   ]
