@@ -39,8 +39,15 @@ final class bodyParserTests: XCTestCase {
     waitForExpectations(timeout: 3) { error in
       if let error = error {
         console.log("Error:", error.localizedDescription)
+        XCTFail("expection returned in error")
       }
-      console.log("REQ:", req.body)
+      
+      guard case .text(let value) = req.body else {
+        XCTFail("returned value is not a text")
+        return
+      }
+      
+      XCTAssertEqual(value, "Hello World")
     }
   }
 
