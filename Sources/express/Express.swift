@@ -274,21 +274,46 @@ import func  http.createServer
 
 public extension Express {
   
+  /**
+   * Create an HTTP server (using http.server) with the `Express` instance
+   * as the handler, and then start listening.
+   *
+   * - Parameters:
+   *   - port        : The port the server should listen on.
+   *   - host        : The host to bind the socket to,
+   *                   defaults to wildcard IPv4 (0.0.0.0).
+   *   - backlog     : The amount of socket backlog space (defaults to 512).
+   *   - onListening : An optional closure to run when the server started
+   *                   listening.
+   */
   @inlinable
   @discardableResult
-  func listen(_ port: Int? = nil, backlog: Int = 512,
-              onListening cb : (( http.Server ) -> Void)? = nil) -> Self
+  func listen(_ port: Int? = nil, _ host: String = "0.0.0.0",
+              backlog: Int = 512,
+              onListening execute: (( http.Server ) -> Void)? = nil) -> Self
   {
     let server = http.createServer(handler: requestHandler)
-    _ = server.listen(port, "0.0.0.0", backlog: backlog, onListening: cb)
+    _ = server.listen(port, host, backlog: backlog, onListening: execute)
     return self
   }
   
+  /**
+   * Create an HTTP server (using http.server) with the `Express` instance
+   * as the handler, and then start listening.
+   *
+   * - Parameters:
+   *   - port        : The port the server should listen on.
+   *   - host        : The host to bind the socket to,
+   *                   defaults to wildcard IPv4 (0.0.0.0).
+   *   - backlog     : The amount of socket backlog space (defaults to 512).
+   *   - onListening : An optional closure to run when the server started
+   *                   listening.
+   */
   @inlinable
   @discardableResult
-  func listen(_ port: Int?, backlog: Int = 512,
-              onListening cb : @escaping () -> Void) -> Self
+  func listen(_ port: Int?, _ host: String = "0.0.0.0", backlog: Int = 512,
+              onListening execute: @escaping () -> Void) -> Self
   {
-    return listen(port, backlog: backlog) { _ in cb() }
+    return listen(port, host, backlog: backlog) { _ in execute() }
   }
 }
