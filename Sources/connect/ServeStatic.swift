@@ -195,26 +195,3 @@ public func serveStatic(_       p : String = process.cwd(),
     }
   }
 }
-
-
-// MARK: - X Compile Support - Macro/fs/Utils/StatStruct
-// Dupe to support:
-// https://github.com/SPMDestinations/homebrew-tap/issues/2
-
-#if !os(Windows)
-#if os(Linux)
-  import let Glibc.S_IFMT
-  import let Glibc.S_IFREG
-  import let Glibc.S_IFDIR
-#else
-  import let Darwin.S_IFMT
-  import let Darwin.S_IFREG
-  import let Darwin.S_IFDIR
-#endif
-
-fileprivate extension xsys.stat_struct {
-  func isFile()      -> Bool { return (st_mode & S_IFMT) == S_IFREG  }
-  func isDirectory() -> Bool { return (st_mode & S_IFMT) == S_IFDIR  }
-  var size : Int { return Int(st_size) }
-}
-#endif // !os(Windows)
