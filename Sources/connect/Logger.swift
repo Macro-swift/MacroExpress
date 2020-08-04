@@ -171,3 +171,99 @@ private struct LogInfoProvider {
     return url + String(s)
   }
 }
+
+
+// MARK: - X Compile Support - Macro/xsys/time.swift
+// Dupe to support:
+// https://github.com/SPMDestinations/homebrew-tap/issues/2
+
+#if !os(Windows)
+#if os(Windows)
+  import WinSDK
+#elseif os(Linux)
+  import Glibc
+
+  public typealias struct_tm = Glibc.tm
+  public typealias time_t    = Glibc.time_t
+  
+  public let time          = Glibc.time
+  public let gmtime_r      = Glibc.gmtime_r
+  public let localtime_r   = Glibc.localtime_r
+  public let strftime      = Glibc.strftime
+  
+#else
+  import Darwin
+  
+  public typealias struct_tm = Darwin.tm
+  public typealias time_t    = Darwin.time_t
+
+  public let time          = Darwin.time
+  public let gmtime_r      = Darwin.gmtime_r
+  public let localtime_r   = Darwin.localtime_r
+  public let strftime      = Darwin.strftime
+#endif
+
+/// The Unix `tm` struct is essentially NSDateComponents PLUS some timezone
+/// information (isDST, offset, tz abbrev name).
+internal extension xsys.struct_tm {
+  
+  /// Create a Unix date components structure from a timestamp. This variant
+  /// creates components in the local timezone.
+  init(_ tm: time_t) {
+    self = tm.componentsInLocalTime
+  }
+  
+  /// Create a Unix date components structure from a timestamp. This variant
+  /// creates components in the UTC timezone.
+  init(utc tm: time_t) {
+    self = tm.componentsInUTC
+  }
+  
+  var utcTime : time_t {
+    var tm = self
+    return timegm(&tm)
+  }
+  var localTime : time_t {
+    var tm = self
+    return mktime(&tm)
+  }
+  
+  /// Example `strftime` format (`man strftime`):
+  ///   "%a, %d %b %Y %H:%M:%S GMT"
+  ///
+  func format(_ sf: String, defaultCapacity: Int = 100) -> String {
+    var tm = self
+    
+    // Yes, yes, I know.
+    let attempt1Capacity = defaultCapacity
+    let attempt2Capacity = defaultCapacity > 1024 ? defaultCapacity * 2 : 1024
+    var capacity = attempt1Capacity
+    
+    var buf = UnsafeMutablePointer<CChar>.allocate(capacity: capacity)
+    #if swift(>=4.1)
+      defer { buf.deallocate() }
+    #else
+      defer { buf.deallocate(capacity: capacity) }
+    #endif
+  
+    let rc = xsys.strftime(buf, capacity, sf, &tm)
+  
+    if rc == 0 {
+      #if swift(>=4.1)
+        buf.deallocate()
+      #else
+        buf.deallocate(capacity: capacity)
+      #endif
+      capacity = attempt2Capacity
+      buf = UnsafeMutablePointer<CChar>.allocate(capacity: capacity)
+  
+      let rc = xsys.strftime(buf, capacity, sf, &tm)
+      assert(rc != 0)
+      guard rc != 0 else { return "" }
+    }
+  
+    return String(cString: buf);
+  }
+}
+
+#endif // !os(Windows)

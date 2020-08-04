@@ -192,3 +192,23 @@ func detectTypeForContent(string: String,
   }
   return `default`
 }
+
+
+// MARK: - X Compile Support - Macro/fs/Utils/StatStruct
+// Dupe to support:
+// https://github.com/SPMDestinations/homebrew-tap/issues/2
+
+#if !os(Windows)
+import struct xsys.stat_struct
+#if os(Linux)
+  import let Glibc.S_IFMT
+  import let Glibc.S_IFREG
+#else
+  import let Darwin.S_IFMT
+  import let Darwin.S_IFREG
+#endif
+
+fileprivate extension xsys.stat_struct {
+  func isFile() -> Bool { return (st_mode & S_IFMT) == S_IFREG }
+}
+#endif // !os(Windows)
