@@ -16,6 +16,7 @@ SWIFT_DOCKER_BUILD_DIR="$(DOCKER_BUILD_DIR)/x86_64-unknown-linux/$(CONFIGURATION
 DOCKER_BUILD_PRODUCT="$(DOCKER_BUILD_DIR)/$(TOOL_NAME)"
 
 XENIAL_DESTINATION=/usr/local/lib/swift/dst/x86_64-unknown-linux/swift-5.3-ubuntu16.04.xtoolchain/destination.json
+AWS_DESTINATION=/usr/local/lib/swift/dst/x86_64-unknown-linux/swift-5.2-amazonlinux2.xtoolchain/destination.json
 
 
 SWIFT_SOURCES=\
@@ -34,6 +35,12 @@ clean :
 	# We have a different definition of "clean", might be just German
 	# pickyness.
 	rm -rf $(SWIFT_BUILD_DIR) 
+
+
+# Building for Linux
+
+amazon-linux:
+	$(SWIFT_BUILD) -c $(CONFIGURATION) --destination $(AWS_DESTINATION)
 
 xc-xenial:
 	$(SWIFT_BUILD) -c $(CONFIGURATION) --destination $(XENIAL_DESTINATION)

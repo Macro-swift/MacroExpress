@@ -93,11 +93,10 @@ private let formats = [
 
 private struct LogInfoProvider {
   
-  let req  : IncomingMessage
-  let res  : ServerResponse
-  let diff : Int
-  
-  let noval        = "-"
+  let req   : IncomingMessage
+  let res   : ServerResponse
+  let diff  : Int
+  let noval = "-"
   
   var remoteAddr   : String {
     guard let sock = req.socket         else { return noval }
@@ -136,9 +135,7 @@ private struct LogInfoProvider {
   var colorStatus : String {
     let colorStatus : String
     
-    // TODO: Add `isTTY` from Noze
-    let isStdoutTTY = isatty(xsys.STDOUT_FILENO) != 0
-    if isStdoutTTY || process.isRunningInXCode {
+    if !shouldDoColorLogging {
       colorStatus = self.status
     }
     else if res.statusCode > 0 {
@@ -171,3 +168,11 @@ private struct LogInfoProvider {
     return url + String(s)
   }
 }
+
+fileprivate let shouldDoColorLogging : Bool = {
+  // TODO: Add `isTTY` from Noze
+  let isStdoutTTY = isatty(xsys.STDOUT_FILENO) != 0
+  if !isStdoutTTY             { return false }
+  if process.isRunningInXCode { return false }
+  return true
+}()
