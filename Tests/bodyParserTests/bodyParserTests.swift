@@ -87,17 +87,30 @@ final class bodyParserTests: XCTestCase {
         console.log("Error:", error.localizedDescription)
         XCTFail("expection returned in error")
       }
-            
-      guard case .urlEncoded(let dict) = req.body else {
-        XCTFail("returned value is not url encoded")
-        return
-      }
       
-      guard let typedDict = dict as? [ String : [ String ] ] else {
-        XCTFail("returned value is not the expected dict type")
-        return
+      do {
+        guard let value = req.body.a else {
+          XCTFail("body has no 'a' value")
+          return
+        }
+        guard let values = value as? [ String ] else {
+          XCTFail("'a' body does not have the expected [String] value")
+          return
+        }
+        XCTAssertEqual(values, [ "1", "2" ])
       }
-      XCTAssertEqual(typedDict, [ "a": [ "1", "2" ]])
+      do {
+        guard case .urlEncoded(let dict) = req.body else {
+          XCTFail("returned value is not url encoded")
+          return
+        }
+        
+        guard let typedDict = dict as? [ String : [ String ] ] else {
+          XCTFail("returned value is not the expected dict type")
+          return
+        }
+        XCTAssertEqual(typedDict, [ "a": [ "1", "2" ]])
+      }
     }
   }
 
