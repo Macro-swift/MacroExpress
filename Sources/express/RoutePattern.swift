@@ -6,7 +6,9 @@
 //  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
 //
 
-fileprivate let debugMatcher = false
+import enum MacroCore.process
+
+private let debugMatcher = process.getenvflag("macro.router.matcher.debug")
 
 public enum RoutePattern {
   
