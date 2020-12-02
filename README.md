@@ -18,6 +18,31 @@ MacroExpress adds the web framework components to
 [Macro](https://github.com/Macro-swift/Macro/)
 (kinda like `Express.js` adds to `Node.js`).
 
+## What does it look like?
+
+The Macro [Examples](https://github.com/Macro-swift/Examples) package 
+contains a few examples which all can run straight from the source as
+swift-sh scripts.
+
+```swift
+#!/usr/bin/swift sh
+import Macro // @Macro-swift ~> 0.5.4
+
+let app = express()
+app.use(logger("dev"))
+app.use(bodyParser.urlencoded())
+app.use(serveStatic(__dirname() + "/public"))
+
+app.get("/hello") { req, res, next in
+  res.send("Hello World!")
+}
+app.get {
+  res.render("index")
+}
+
+app.listen(1337)
+```
+
 ## Environment Variables
 
 - `macro.core.numthreads`
