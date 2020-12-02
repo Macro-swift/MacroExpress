@@ -18,6 +18,12 @@ MacroExpress adds the web framework components to
 [Macro](https://github.com/Macro-swift/Macro/)
 (kinda like `Express.js` adds to `Node.js`).
 
+[MacroLambda](https://github.com/Macro-swift/MacroLambda) has the bits to
+directly deploy MacroExpress applications on AWS Lambda.
+[MacroApp](https://github.com/Macro-swift/MacroApp) adds a SwiftUI-style
+declarative DSL to setup MacroExpress routes.
+
+
 ## What does it look like?
 
 The Macro [Examples](https://github.com/Macro-swift/Examples) package 
