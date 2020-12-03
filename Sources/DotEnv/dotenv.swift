@@ -16,11 +16,9 @@ import enum  MacroCore.console
 import func  MacroCore.__dirname
 import class Foundation.FileManager
 
-typealias dotenv = DotEnv
+public enum dotenv {}
 
-public enum DotEnv {}
-
-public extension DotEnv {
+public extension dotenv {
   // MARK: - Swift 5.3+
   #if swift(>=5.3) // oh this mess
   /**

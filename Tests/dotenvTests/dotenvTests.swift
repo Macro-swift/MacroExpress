@@ -1,9 +1,10 @@
 import XCTest
-@testable import DotEnv
+@testable import dotenv
 
-final class DotEnvTests: XCTestCase {
+final class dotenvTests: XCTestCase {
     static var allTests = [
-      ( "testConfig", testConfig )
+      ( "testConfig", testConfig ),
+      ( "testParse", testParse ),
     ]
     
     func testConfig() {
