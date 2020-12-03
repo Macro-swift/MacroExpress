@@ -1,11 +1,11 @@
 import XCTest
 import mimeTests
 import routeTests
-import DotEnvTests
+import dotenvTests
 
 var tests = [ XCTestCaseEntry ]()
 tests += mimeTests.allTests()
 tests += routeTests.allTests()
-tests += DotEnvTests.allTests
+tests += dotenvTests.allTests
 
 XCTMain(tests)
