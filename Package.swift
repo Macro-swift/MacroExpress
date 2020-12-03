@@ -11,7 +11,7 @@ let package = Package(
     .library(name: "express",      targets: [ "express"      ]),
     .library(name: "connect",      targets: [ "connect"      ]),
     .library(name: "mime",         targets: [ "mime"         ]),
-    .library(name: "dotenv",       targets: [ "dotenv"       ])
+    .library(name: "DotEnv",       targets: [ "DotEnv"       ])
   ],
   
   dependencies: [
@@ -23,7 +23,7 @@ let package = Package(
   
   targets: [
     .target(name: "mime",    dependencies: []),
-    .target(name: "dotenv",  dependencies: [ "MacroCore" ]),
+    .target(name: "DotEnv",  dependencies: [ "MacroCore" ]),
     .target(name: "connect",
             dependencies: [ "MacroCore", "http", "fs", "mime" ]),
     .target(name: "express",
@@ -35,11 +35,12 @@ let package = Package(
     .target(name: "MacroExpress",
             dependencies: [ 
               "MacroCore", "xsys", "http", "fs",
-              "dotenv", "mime", "connect", "express"
+              "DotEnv", "mime", "connect", "express"
             ]),
 
     .testTarget(name: "mimeTests",       dependencies: [ "mime"    ]),
     .testTarget(name: "bodyParserTests", dependencies: [ "connect" ]),
+    .testTarget(name: "DotEnvTests", dependencies: ["DotEnv"]),
     .testTarget(name: "RouteTests",
                 dependencies: [ "express", "MacroTestUtilities" ])
   ]
