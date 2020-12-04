@@ -19,7 +19,7 @@ import class Foundation.FileManager
 public enum dotenv {}
 
 public extension dotenv {
-  // MARK: - Swift 5.3+
+  
   #if swift(>=5.3) // oh this mess
   /**
    * Read the .env config file, apply it to the environment, and return the
@@ -86,7 +86,6 @@ public extension dotenv {
     }
   }
   #else
-  // MARK: - Swift < 5.3
   /**
    * Read the .env config file, apply it to the environment, and return the
    * parsed values.

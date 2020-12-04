@@ -40,7 +40,6 @@ let package = Package(
 
     .testTarget(name: "mimeTests",       dependencies: [ "mime"    ]),
     .testTarget(name: "bodyParserTests", dependencies: [ "connect" ]),
-    .testTarget(name: "dotenvTests", dependencies: ["dotenv"]),
     .testTarget(name: "RouteTests",
                 dependencies: [ "express", "MacroTestUtilities" ])
   ]
