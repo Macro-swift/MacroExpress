@@ -8,7 +8,7 @@
 
 import enum  MacroCore.process
 import class http.ServerResponse
-import enum  MacroCore.console
+import let   MacroCore.console
 import fs
 
 public enum ExpressRenderingError: Swift.Error {

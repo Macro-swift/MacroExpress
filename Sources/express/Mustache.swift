@@ -9,7 +9,7 @@
 import func fs.readFile
 import func fs.readFileSync
 import enum fs.path
-import enum MacroCore.console
+import let  MacroCore.console
 import mustache
 
 let mustacheExpress : ExpressEngine = { path, options, done in

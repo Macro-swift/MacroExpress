@@ -6,9 +6,7 @@
 //  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
 //
 
-import http
-import connect
-import enum MacroCore.console
+import let MacroCore.console
 
 /**
  * MiddlewareObject is the 'object variant' of a Middleware callback.

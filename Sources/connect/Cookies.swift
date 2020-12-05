@@ -6,7 +6,7 @@
 //  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
 //
 
-import enum  MacroCore.console
+import let   MacroCore.console
 import class http.IncomingMessage
 import class http.ServerResponse
 

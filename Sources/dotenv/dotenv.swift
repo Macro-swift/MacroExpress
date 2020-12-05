@@ -12,7 +12,7 @@
   import func Darwin.setenv
 #endif
 
-import enum  MacroCore.console
+import let   MacroCore.console
 import func  MacroCore.__dirname
 import class Foundation.FileManager
 
