@@ -7,7 +7,7 @@
 //
 
 import enum      NIOHTTP1.HTTPMethod
-import enum      MacroCore.console
+import let       MacroCore.console
 import enum      MacroCore.process
 import class     http.IncomingMessage
 import class     http.ServerResponse

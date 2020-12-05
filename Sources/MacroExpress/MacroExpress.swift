@@ -8,7 +8,7 @@
 
 @_exported import func      MacroCore.nextTick
 @_exported import func      MacroCore.setTimeout
-@_exported import enum      MacroCore.console
+@_exported import let       MacroCore.console
 @_exported import enum      MacroCore.process
 @_exported import func      MacroCore.concat
 @_exported import enum      MacroCore.json

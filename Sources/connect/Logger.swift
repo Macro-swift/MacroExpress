@@ -7,7 +7,7 @@
 //
 
 import enum  MacroCore.process
-import enum  MacroCore.console
+import let   MacroCore.console
 import class http.IncomingMessage
 import class http.ServerResponse
 import xsys // timespec and extensions
