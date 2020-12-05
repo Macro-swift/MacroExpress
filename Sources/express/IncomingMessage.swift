@@ -39,6 +39,9 @@ public extension IncomingMessage {
     }
   }
   
+  /**
+   * Returns the query parameters as parsed by the `qs.parse` function.
+   */
   var query : [ String : Any ] {
     if let q = extra[ExpressExtKey.query] as? [ String : Any ] { return q }
     
@@ -51,7 +54,8 @@ public extension IncomingMessage {
     
     // TODO: shoe[color]=blue gives shoe.color = blue
     // FIXME: cannot use url.parse due to overload
-    // FIXME: improve parser (fragments?
+    // FIXME: improve parser (fragments?!)
+    // TBD: just use Foundation?!
     guard let idx = url.firstIndex(of: "?") else {
       extra[ExpressExtKey.query] = [:]
       return [:]

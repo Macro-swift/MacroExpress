@@ -160,11 +160,21 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
     }
 
     // FIXME: Could also be a full URL! (CONNECT)
-    let reqPath = req.url.isEmpty ? "/" : req.url
+    let reqPath = req.url.isEmpty ? "/" : {
+      // Strip of query parameters and such. This is the raw URL,
+      // but we need to match just the path.
+      let s = req.url
+      if let idx = s.firstIndex(where: { $0 == "#" || $0 == "?" }) {
+        return String(s[..<idx])
+      }
+      else {
+        return s
+      }
+    }()
     
     let params    : [ String : String ]
     let matchPath : String?
-    if let pattern = urlPattern {
+    if let pattern = urlPattern { // this route has a path pattern assigned
       var newParams = req.params // TBD
       
       if let base = req.baseURL {

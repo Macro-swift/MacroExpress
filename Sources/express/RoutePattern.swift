@@ -1,12 +1,14 @@
 //
-//  Render.swift
+//  RoutePattern.swift
 //  Noze.io / Macro / ExExpress
 //
 //  Created by Helge Heß on 6/2/16.
 //  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
 //
 
-fileprivate let debugMatcher = false
+import enum MacroCore.process
+
+private let debugMatcher = process.getenvflag("macro.router.matcher.debug")
 
 public enum RoutePattern {
   
@@ -115,6 +117,12 @@ public enum RoutePattern {
   
   // MARK: - Pattern Matching
   
+  /**
+   * Matches a pattern (and array of `RoutePattern` components) against an
+   * array of (still) escaped path components.
+   *
+   * Fills any variables it finds into the inout `variables` parameter.
+   */
   static func match(pattern p: [ RoutePattern ],
                     against escapedPathComponents: [ String ],
                     variables: inout [ String : String ]) -> String?
