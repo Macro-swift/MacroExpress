@@ -140,10 +140,15 @@ public extension ServerResponse {
   }
 
   @inlinable
-  func send<T: Encodable>(_ object: T) { json(object) }
+  func send<T: Encodable>(_ object: T) {
+    json(object)
+  }
   @inlinable
   func send<T: Encodable>(_ object: T?) {
-    guard let object = object else { return send("") } // TBD
+    guard let object = object else {
+      log.warn("sending empty string for nil Encodable object?!")
+      return send("")
+    }
     json(object)
   }
 
