@@ -20,7 +20,8 @@ public extension ServerResponse {
   
   /// A reference to the request associated with this response.
   var request : IncomingMessage? {
-    return environment[ExpressExtKey.RequestKey.self]
+    set { environment[ExpressExtKey.RequestKey.self] = newValue }
+    get { return environment[ExpressExtKey.RequestKey.self] }
   }
 
   /**
