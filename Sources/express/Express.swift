@@ -6,11 +6,12 @@
 //  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
 //
 
-import struct Logging.Logger
-import enum   MacroCore.process
-import enum   MacroCore.EventListenerSet
-import class  http.IncomingMessage
-import class  http.ServerResponse
+import struct   Logging.Logger
+import enum     MacroCore.process
+import enum     MacroCore.EventListenerSet
+import protocol MacroCore.EnvironmentKey
+import class    http.IncomingMessage
+import class    http.ServerResponse
 
 /**
  * # The Express application object
@@ -114,14 +115,14 @@ open class Express: SettingsHolder, MountableMiddlewareObject, MiddlewareObject,
   {
     let oldApp = req.app
     let oldReq = res.request
-    req.extra[ExpressExtKey.app] = self
-    res.extra[ExpressExtKey.app] = self
-    res.extra[ExpressExtKey.req] = req
+    req.environment[ExpressExtKey.App.self]        = self
+    res.environment[ExpressExtKey.App.self]        = self
+    res.environment[ExpressExtKey.RequestKey.self] = req
     
     try router.handle(request: req, response: res) { ( args: Any... ) in
-      req.extra[ExpressExtKey.app] = oldApp
-      res.extra[ExpressExtKey.app] = oldApp
-      res.extra[ExpressExtKey.req] = oldReq
+      req.environment[ExpressExtKey.App.self]        = oldApp
+      res.environment[ExpressExtKey.App.self]        = oldApp
+      res.environment[ExpressExtKey.RequestKey.self] = oldReq
 
       next() // continue
     }
@@ -129,9 +130,9 @@ open class Express: SettingsHolder, MountableMiddlewareObject, MiddlewareObject,
   open func clearAttachedState(request  req : IncomingMessage,
                                response res : ServerResponse)
   { // break cycles
-    req.extra[ExpressExtKey.app] = nil
-    res.extra[ExpressExtKey.app] = nil
-    res.extra[ExpressExtKey.req] = nil
+    req.environment[ExpressExtKey.App.self]        = nil
+    res.environment[ExpressExtKey.App.self]        = nil
+    res.environment[ExpressExtKey.RequestKey.self] = nil
   }
   
 
@@ -247,13 +248,66 @@ public typealias ExpressEngine = (
 // keys for extra dictionary in IncomingRequest/ServerResponse
 
 enum ExpressExtKey {
-  static let app     = "macro.express.app"
-  static let req     = "macro.express.request"
-  static let params  = "macro.express.params"
-  static let locals  = "macro.express.locals"
-  static let route   = "macro.express.route"
-  static let baseURL = "macro.express.baseurl"
-  static let query   = "macro.express.query"
+
+  /// A reference to the active application. Updated when subapps are triggered.
+  enum App: EnvironmentKey {
+    static let defaultValue : Express? = nil
+    static let loggingKey   = "app"
+  }
+  
+  /// A reference to the request associated with a response.
+  enum RequestKey: EnvironmentKey {
+    static let defaultValue : IncomingMessage? = nil
+    static let loggingKey   = "request"
+  }
+  
+  /// The active route.
+  enum RouteKey: EnvironmentKey {
+    static let defaultValue : Route? = nil
+    static let loggingKey   = "route"
+  }
+  
+  enum BaseURL: EnvironmentKey {
+    static let defaultValue : String? = nil
+    static let loggingKey   = "baseurl"
+  }
+
+  /**
+   * Request parameters.
+   *
+   * Example:
+   *
+   *     app.use(/users/:id/view) { req, res, next in
+   *       guard let id = req.params[int: "id"]
+   *        else { return try res.sendStatus(400) }
+   *     }
+   *
+   */
+  enum Params: EnvironmentKey {
+    // TBD: Should the value be `Any`?
+    static let defaultValue : [ String : String ] = [:]
+    static let loggingKey   = "params"
+  }
+  
+  /**
+   * The query parameters as parsed by the `qs.parse` function.
+   */
+  enum Query: EnvironmentKey {
+    static let defaultValue : [ String : Any ]? = nil
+    static let loggingKey   = "query"
+  }
+
+  /**
+   * This is legacy, an app can also just use `EnvironmentKey`s with either
+   * `IncomingMessage` or `ServerResponse`.
+   * `EnvironmentKey`s are guaranteed to be unique.
+   *
+   * Traditionally `locals` was used to store Stringly-typed keys & values.
+   */
+  enum Locals: EnvironmentKey {
+    static let defaultValue : [ String : Any ] = [:]
+    static let loggingKey   = "locals"
+  }
 }
 
 // MARK: - App access helper

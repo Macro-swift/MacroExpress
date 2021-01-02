@@ -6,10 +6,11 @@
 //  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
 //
 
-import let    MacroCore.console
-import class  http.IncomingMessage
-import class  http.ServerResponse
-import struct Foundation.UUID
+import let      MacroCore.console
+import protocol MacroCore.EnvironmentKey
+import class    http.IncomingMessage
+import class    http.ServerResponse
+import struct   Foundation.UUID
 
 fileprivate let sessionIdCookie = Cookie(name: "NzSID", maxAge: 3600)
 
@@ -57,7 +58,7 @@ public func session(store s : SessionStore        = InMemorySessionStore(),
       }
       
       // found a session, store into request
-      req.extra[requestKey] = rsession
+      req.environment[SessionKey.self] = rsession
       ctx.pushSessionCookie()
       _ = res.onceFinish {
         s.set(sessionID: sessionID, session: req.session) { err in
@@ -102,16 +103,16 @@ class SessionContext {
   
   func pushSessionCookie() {
     guard let sessionID = self.sessionID else { return }
-    var ourCookie = self.template
+    var ourCookie = template
     ourCookie.value = sessionID
     cookies.set(cookie: ourCookie)
   }
   
   func configureNewSession() {
-    let newSessionID = genid(self.req)
-    self.req.extra[requestKey] = Session()
+    let newSessionID = genid(req)
+    req.environment[SessionKey.self] = Session()
     
-    self.sessionID = newSessionID
+    sessionID = newSessionID
     pushSessionCookie()
     
     // capture some stuff locally
@@ -127,6 +128,7 @@ class SessionContext {
     }
   }
   
+  @inlinable
   var hasSessionID : Bool { return self.sessionID != nil }
 }
 
@@ -160,27 +162,22 @@ public class Session {
 
 // MARK: - IncomingMessage extension
 
-private let requestKey = "macro.connect.session"
+private enum SessionKey: EnvironmentKey {
+  static let defaultValue : Session? = nil
+  static let loggingKey   = "session"
+}
 
 public extension IncomingMessage {
   
   func registerNewSession() -> Session {
     let newSession = Session()
-    extra[requestKey] = newSession
+    environment[SessionKey.self] = newSession
     return newSession
   }
   
   var session : Session {
-    guard let rawSN = extra[requestKey] else { return registerNewSession() }
-    
-    guard let session = rawSN as? Session else {
-      console.error("unexpected session object: \(requestKey) \(rawSN)")
-      return registerNewSession()
-    }
-    
-    return session
+    return environment[SessionKey.self] ?? registerNewSession()
   }
-  
 }
 
 

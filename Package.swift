@@ -16,7 +16,7 @@ let package = Package(
   
   dependencies: [
     .package(url: "https://github.com/Macro-swift/Macro.git",
-             from: "0.5.7"),
+             from: "0.6.2"),
     .package(url: "https://github.com/AlwaysRightInstitute/mustache.git",
              from: "0.5.9")
   ],
@@ -29,13 +29,12 @@ let package = Package(
     .target(name: "express",
             dependencies: [
               "MacroCore", "http", "fs",
-              "connect", "mime",
-              "mustache"
+              "connect",   "mime", "mustache"
             ]),
     .target(name: "MacroExpress",
             dependencies: [ 
-              "MacroCore", "xsys", "http", "fs",
-              "dotenv", "mime", "connect", "express"
+              "MacroCore", "xsys", "http",    "fs",
+              "dotenv",    "mime", "connect", "express"
             ]),
 
     .testTarget(name: "mimeTests",       dependencies: [ "mime"    ]),
