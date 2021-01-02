@@ -17,7 +17,7 @@ public extension IncomingMessage {
   // TODO: hostname, ip, ips, protocol
 
   /// A reference to the active application. Updated when subapps are triggered.
-  var app : Express? { return extra[ExpressExtKey.app] as? Express }
+  var app : Express? { return environment[ExpressExtKey.App.self] }
   
   /**
    * Contains the request parameters.
@@ -30,20 +30,15 @@ public extension IncomingMessage {
    *     }
    */
   var params : [ String : String ] {
-    set {
-      extra[ExpressExtKey.params] = newValue
-    }
-    get {
-      // TODO: should be :Any
-      return (extra[ExpressExtKey.params] as? [ String : String ]) ?? [:]
-    }
+    set { environment[ExpressExtKey.Params.self] = newValue }
+    get { return environment[ExpressExtKey.Params.self] }
   }
   
   /**
    * Returns the query parameters as parsed by the `qs.parse` function.
    */
   var query : [ String : Any ] {
-    if let q = extra[ExpressExtKey.query] as? [ String : Any ] { return q }
+    if let q = environment[ExpressExtKey.Query.self] { return q }
     
     // this should be filled by Express when the request arrives. It depends on
     // the 'query parser' setting:
@@ -57,12 +52,12 @@ public extension IncomingMessage {
     // FIXME: improve parser (fragments?!)
     // TBD: just use Foundation?!
     guard let idx = url.firstIndex(of: "?") else {
-      extra[ExpressExtKey.query] = [:]
+      environment[ExpressExtKey.Query.self] = [:]
       return [:]
     }
     let q  = url[url.index(after: idx)...]
     let qp = qs.parse(String(q))
-    extra[ExpressExtKey.query] = qp
+    environment[ExpressExtKey.Query.self] = qp
     return qp
   }
   
@@ -75,14 +70,14 @@ public extension IncomingMessage {
    * be "/admin/index".
    */
   var baseURL : String? {
-    set { extra[ExpressExtKey.baseURL] = newValue }
-    get { return extra[ExpressExtKey.baseURL] as? String }
+    set { environment[ExpressExtKey.BaseURL.self] = newValue }
+    get { return environment[ExpressExtKey.BaseURL.self] }
   }
   
   /// The active route.
   var route : Route? {
-    set { extra[ExpressExtKey.route] = newValue }
-    get { return extra[ExpressExtKey.route] as? Route }
+    set { environment[ExpressExtKey.RouteKey.self] = newValue }
+    get { return environment[ExpressExtKey.RouteKey.self] }
   }
   
   

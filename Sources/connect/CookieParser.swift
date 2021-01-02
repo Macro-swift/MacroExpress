@@ -6,24 +6,27 @@
 //  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
 //
 
-import enum  MacroCore.process
-import class http.IncomingMessage
+import enum     MacroCore.process
+import protocol MacroCore.EnvironmentKey
+import class    http.IncomingMessage
 
-/// After running the `cookieParser` middleware you can access the cookies
-/// via `request.cookies` (a [String:String]).
-///
-/// Example:
-///
-///     app.use(cookieParser())
-///     app.get("/cookies") { req, res, _ in
-///       res.json(req.cookies)
-///     }
-///
+/**
+ * After running the `cookieParser` middleware you can access the cookies
+ * via `request.cookies` (a [String:String]).
+ *
+ * Example:
+ *
+ *     app.use(cookieParser())
+ *     app.get("/cookies") { req, res, _ in
+ *       res.json(req.cookies)
+ *     }
+ *
+ */
 public func cookieParser() -> Middleware {
   return { req, res, next in
-    if req.extra[requestKey] == nil {
+    if req[CookieKey.self] == nil {
       let cookies = Cookies(req, res)
-      req.extra[requestKey] = cookies.cookies // grab all
+      req.environment[CookieKey.self] = cookies.cookies // grab all
     }
     next()
   }
@@ -31,7 +34,10 @@ public func cookieParser() -> Middleware {
 
 // MARK: - IncomingMessage extension
 
-private let requestKey = "macro.connect.cookie-parser"
+private enum CookieKey: EnvironmentKey {
+  static let defaultValue : [ String : String ]? = nil
+  static let loggingKey   = "cookie"
+}
 
 public extension IncomingMessage {
   
@@ -42,21 +48,16 @@ public extension IncomingMessage {
     get {
       // This concept is a little weird as so many thinks in Node. Why not just
       // parse the cookies on-demand?
-      guard let cookiesKeyValue = extra[requestKey] else {
+      guard let cookies = self[CookieKey.self] else {
         process.emitWarning(
           "attempt to access `cookies` of request, " +
-          "but cookieParser middleware wasn't invoked")
+          "but cookieParser middleware wasn't invoked"
+        )
         
         // be smart
         let cookies = Cookies(self)
-        extra[requestKey] = cookies.cookies // grab all
+        self.environment[CookieKey.self] = cookies.cookies // grab all
         return cookies.cookies
-      }
-      
-      guard let cookies = cookiesKeyValue as? [ String : String ] else {
-        process.emitWarning("Unexpected value in request cookies key: " +
-                            "\(requestKey): \(cookiesKeyValue)")
-        return [:]
       }
       
       return cookies
