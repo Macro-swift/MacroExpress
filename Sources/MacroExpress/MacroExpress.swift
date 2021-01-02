@@ -64,12 +64,14 @@ public typealias jsonfile = JSONFileModule
 
 import enum      http.HTTPModule
 public typealias http = HTTPModule
-import enum      http.BasicAuthModule
-public typealias basicAuth = BasicAuthModule
+import enum      express.BasicAuthModule
+public typealias expressBasicAuth = express.expressBasicAuth
 import enum      http.QueryStringModule
 public typealias querystring = QueryStringModule
 
 // MARK: - Process stuff
 
+@inlinable
 public var argv : [ String ]          { return process.argv }
+@inlinable
 public var env  : [ String : String ] { return process.env  }

@@ -153,8 +153,12 @@ public enum bodyParser {
   }
   
   fileprivate static let requestKey = "macro.connect.body-parser.body"
-}
 
+  fileprivate enum BodyKey: EnvironmentKey {
+    static let defaultValue : BodyParserBody = .notParsed
+    static let loggingKey   = "body"
+  }
+}
 
 public enum BodyParserError : Error {
   
@@ -168,14 +172,8 @@ public enum BodyParserError : Error {
 public extension IncomingMessage {
   
   var body: BodyParserBody {
-    set { extra[bodyParser.requestKey] = newValue }
-    get {
-      guard let body = extra[bodyParser.requestKey] else {
-        return BodyParserBody.notParsed
-      }
-      if let body = body as? BodyParserBody { return body }
-      return BodyParserBody.error(BodyParserError.extraStoreInconsistency)
-    }
+    set { environment[bodyParser.BodyKey.self] = newValue }
+    get { return environment[bodyParser.BodyKey.self] }
   }
 }
 

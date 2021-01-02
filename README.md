@@ -42,7 +42,7 @@ app.use(serveStatic(__dirname() + "/public"))
 app.get("/hello") { req, res, next in
   res.send("Hello World!")
 }
-app.get {
+app.get { req, res, next in
   res.render("index")
 }
 

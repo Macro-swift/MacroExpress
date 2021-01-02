@@ -15,32 +15,24 @@ import struct Foundation.Data
 public extension ServerResponse {
   
   /// A reference to the active application. Updated when subapps are triggered.
-  var app : Express? { return extra[ExpressExtKey.app] as? Express }
+  var app : Express? { return environment[ExpressExtKey.App.self] }
 
   
   /// A reference to the request associated with this response.
   var request : IncomingMessage? {
-    return extra[ExpressExtKey.req] as? IncomingMessage
+    return environment[ExpressExtKey.RequestKey.self]
   }
 
   /**
-   * The locals dictionary of the response. Use this to store response-scoped
-   * data. Be careful with key naming, so that you don't override the data
-   * of other middleware.
+   * This is legacy, an app can also just use `EnvironmentKey`s with either
+   * `IncomingMessage` or `ServerResponse`.
+   * `EnvironmentKey`s are guaranteed to be unique.
    *
-   * Difference between `extra` and `locals`. Conceptually they are the same,
-   * but provide different namespaces. `extra` is used for framework internal
-   * stuff (and hence requires unique key, we recommend reverse DNS),
-   * while `locals` is open to the application and it is reasonable to use
-   * 'plain' keys (like "pageTitle", "results" etc).
+   * Traditionally `locals` was used to store Stringly-typed keys & values.
    */
   var locals : [ String : Any ] {
-    set {
-      extra[ExpressExtKey.locals] = newValue
-    }
-    get {
-      return extra[ExpressExtKey.locals] as? [ String : Any ] ?? [:]
-    }
+    set { environment[ExpressExtKey.Locals.self] = newValue }
+    get { return environment[ExpressExtKey.Locals.self] }
   }
 }
 
@@ -148,10 +140,15 @@ public extension ServerResponse {
   }
 
   @inlinable
-  func send<T: Encodable>(_ object: T) { json(object) }
+  func send<T: Encodable>(_ object: T) {
+    json(object)
+  }
   @inlinable
   func send<T: Encodable>(_ object: T?) {
-    guard let object = object else { return send("") } // TBD
+    guard let object = object else {
+      log.warn("sending empty string for nil Encodable object?!")
+      return send("")
+    }
     json(object)
   }
 
