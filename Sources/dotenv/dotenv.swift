@@ -12,9 +12,9 @@
   import func Darwin.setenv
 #endif
 
-import let   MacroCore.console
-import func  MacroCore.__dirname
-import class Foundation.FileManager
+import let  MacroCore.console
+import func MacroCore.__dirname
+import func fs.statSync
 
 public enum dotenv {}
 
@@ -61,12 +61,17 @@ public extension dotenv {
                         override : Bool    = false,
                         logError : Bool    = false,
                         caller   : String  = #filePath)
-                throws -> [String : String]
+                throws -> [ String : String ]
   {
     let path = path ?? (__dirname(caller: caller) + "/.env")
-    let fm   = FileManager.default
-    
-    guard fm.fileExists(atPath: path) else { return [:] } // not an error
+
+    do {
+      _ = try fs.statSync(path)
+    }
+    catch {
+      // not an error
+      return [:]
+    }
 
     do {
       let config = parse(try String(contentsOfFile: path))
