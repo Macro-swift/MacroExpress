@@ -23,7 +23,7 @@ let package = Package(
   
   targets: [
     .target(name: "mime",    dependencies: []),
-    .target(name: "dotenv",  dependencies: [ "MacroCore" ]),
+    .target(name: "dotenv",  dependencies: [ "MacroCore", "fs" ]),
     .target(name: "connect",
             dependencies: [ "MacroCore", "http", "fs", "mime" ]),
     .target(name: "express",
