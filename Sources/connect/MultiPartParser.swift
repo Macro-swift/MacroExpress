@@ -279,7 +279,7 @@ public struct MultiPartParser {
     
     let idx = input.indexOf(boundary, options: .partialSuffixMatch)
     if idx < 0 {
-      handler(content(input))
+      stage(input)
       return .notFound
     }
     
