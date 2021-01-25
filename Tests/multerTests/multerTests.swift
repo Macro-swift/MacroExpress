@@ -1,5 +1,7 @@
 import XCTest
-import Macro
+import let    MacroCore.console
+import struct MacroCore.Buffer
+import class  MacroCore.MacroCore
 @testable import http
 @testable import connect
 
