@@ -11,7 +11,8 @@ let package = Package(
     .library(name: "express",      targets: [ "express"      ]),
     .library(name: "connect",      targets: [ "connect"      ]),
     .library(name: "mime",         targets: [ "mime"         ]),
-    .library(name: "dotenv",       targets: [ "dotenv"       ])
+    .library(name: "dotenv",       targets: [ "dotenv"       ]),
+    .library(name: "multer",       targets: [ "multer"       ])
   ],
   
   dependencies: [
@@ -24,6 +25,8 @@ let package = Package(
   targets: [
     .target(name: "mime",    dependencies: []),
     .target(name: "dotenv",  dependencies: [ "MacroCore", "fs" ]),
+    .target(name: "multer",
+            dependencies: [ "MacroCore", "fs", "http", "mime", "connect" ]),
     .target(name: "connect",
             dependencies: [ "MacroCore", "http", "fs", "mime" ]),
     .target(name: "express",
@@ -38,6 +41,7 @@ let package = Package(
             ]),
 
     .testTarget(name: "mimeTests",       dependencies: [ "mime"    ]),
+    .testTarget(name: "multerTests",     dependencies: [ "multer"  ]),
     .testTarget(name: "bodyParserTests", dependencies: [ "connect", "Macro" ]),
     .testTarget(name: "dotenvTests",     dependencies: [ "dotenv"  ]),
     .testTarget(name: "RouteTests",

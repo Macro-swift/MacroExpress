@@ -1,5 +1,5 @@
-import Macro
-import connect
+import struct Macro.Buffer
+import struct multer.MultiPartParser
 
 enum Fixtures {
 

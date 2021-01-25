@@ -1,7 +1,6 @@
 import XCTest
 import Macro
-@testable import connect
-import NIO
+@testable import multer
 
 
 final class MultiPartParserTests: XCTestCase {
