@@ -151,8 +151,6 @@ public enum bodyParser {
 
     public init() {}
   }
-  
-  fileprivate static let requestKey = "macro.connect.body-parser.body"
 
   fileprivate enum BodyKey: EnvironmentKey {
     static let defaultValue : BodyParserBody = .notParsed
