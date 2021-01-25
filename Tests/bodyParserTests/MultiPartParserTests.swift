@@ -133,9 +133,57 @@ final class MultiPartParserTests: XCTestCase {
       XCTAssertEqual(events[i], fixture.expectedEvents[i])
     }
   }
+  
+  func testTwoFileSubmit() throws {
+    typealias fixture = Fixtures.TwoFilesSubmit
+    XCTAssertEqual(fixture.data[-2], 13)
+    XCTAssertEqual(fixture.data[-1], 10)
+
+    var parser = MultiPartParser(boundary: fixture.boundary)
+    
+    var events      = [ MultiPartParser.Event ]()
+    var expectedIdx = 0
+    
+    func checkNextEvent(_ event: MultiPartParser.Event, isEnd: Bool = false) {
+      print("\(isEnd ? "END-" : "")EVENT[\(expectedIdx)]:", event)
+      events.append(event)
+      if expectedIdx < fixture.expectedEvents.count {
+        XCTAssertEqual(event, fixture.expectedEvents[expectedIdx])
+        expectedIdx += 1
+      }
+    }
+    
+    let slices = [
+      fixture.data.slice(  0,  1),
+      fixture.data.slice(  1, 30),
+      fixture.data.slice( 30, -10),
+      fixture.data.slice(-10, -1),
+      fixture.data.slice( -1)
+    ]
+    
+    for slice in slices {
+      parser.write(slice) { checkNextEvent($0) }
+    }
+    
+    parser.end { checkNextEvent($0, isEnd: true) }
+    XCTAssert(parser.buffer?.isEmpty ?? true)
+    
+    print("EVENTS:")
+    XCTAssertFalse(events.isEmpty)
+    for event in events {
+      print("  -", event)
+    }
+    
+    XCTAssertEqual(events.count, fixture.expectedEvents.count)
+    for i in 0..<(min(events.count, fixture.expectedEvents.count)) {
+      XCTAssertEqual(events[i], fixture.expectedEvents[i])
+    }
+  }
 
   static var allTests = [
     ( "testSimpleFormData"           , testSimpleFormData           ),
-    ( "testSimpleFormDataFragmented" , testSimpleFormDataFragmented )
+    ( "testSimpleFormDataFragmented" , testSimpleFormDataFragmented ),
+    ( "testImageSubmitData"          , testImageSubmitData          ),
+    ( "testTwoFileSubmit"            , testTwoFileSubmit            )
   ]
 }
