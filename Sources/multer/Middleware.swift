@@ -46,10 +46,10 @@ public extension multer {
           return next()
       
         case .notParsed:
-          handle(request: req, response: res, next: next)
+          self.handle(request: req, response: res, next: next)
           
         case .raw(let bytes):
-          handle(request: req, response: res, content: bytes, next: next)
+          self.handle(request: req, response: res, content: bytes, next: next)
       }
     }
   }
