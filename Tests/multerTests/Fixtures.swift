@@ -1,4 +1,4 @@
-import struct Macro.Buffer
+import struct MacroCore.Buffer
 import struct multer.MultiPartParser
 
 enum Fixtures {

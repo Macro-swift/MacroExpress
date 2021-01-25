@@ -1,7 +1,5 @@
 import XCTest
-import Macro
 @testable import multer
-
 
 final class MultiPartParserTests: XCTestCase {
   
