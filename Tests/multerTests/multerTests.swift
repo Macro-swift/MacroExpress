@@ -1,13 +1,17 @@
 import XCTest
-import let    MacroCore.console
-import struct MacroCore.Buffer
-import class  MacroCore.MacroCore
-@testable import http
-@testable import connect
+import MacroCore
+import http
+import connect
+@testable import multer
 
 final class multerTests: XCTestCase {
   
-  func TODOtestSimpleMultiPartFormDataParser() throws {
+  override class func setUp() {
+    super.setUp()
+    disableAtExitHandler()
+  }
+  
+  func testSimpleMultiPartFormDataParser() throws {
     let boundary = "----WebKitFormBoundaryHU6Dqpfe9L4ATppg"
     
     let req = IncomingMessage(
@@ -28,26 +32,21 @@ final class multerTests: XCTestCase {
       Content-Type: application/octet-stream\r
       \r
       \r
-      --\(boundary)--\r
+      --\(boundary)--\r\n
       """
     )
-
+    
+    let loop = MacroCore.shared.fallbackEventLoop()
+    let sem  = expectation(description: "parsing body ...")
+    
     req.push(requestBody)
     req.push(nil) // EOF
 
-    let sem = expectation(description: "parsing body ...")
-    
-    // This is using pipes, and pipes need to (currently) happen on the
-    // same eventloop.
-    MacroCore.shared.fallbackEventLoop().execute {
+    // TBD: What is the pipe situation here? Do we really use them?
+    loop.execute {
       let res = ServerResponse(unsafeChannel: nil, log: req.log)
       
-      // this is using concat ... so we need an expectations
-      #if false
-        let mw = multer.none()
-      #else
-        let mw = bodyParser.urlencoded()
-      #endif
+      let mw = multer().none()
       do {
         try mw(req, res) { ( args : Any...) in
           console.log("done parsing ...", args)
@@ -92,11 +91,8 @@ final class multerTests: XCTestCase {
       #endif
     }
   }
-  
-  func testDummy() {}
  
   static var allTests = [
-    ( "testSimpleMultiPartFormDataParser" , testDummy )
-      // testSimpleMultiPartFormDataParser )
+    ( "testSimpleMultiPartFormDataParser" , testSimpleMultiPartFormDataParser )
   ]
 }
