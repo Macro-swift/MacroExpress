@@ -290,7 +290,9 @@ public struct MultiPartParser {
       stage(remainder) // incomplete, wait for more data
       return .notFound
     }
-    func uselessTrailer() -> BoundaryParseResult {
+    func uselessTrailer(_ content: ( Buffer ) -> Event,
+                        _ handler: Handler) -> BoundaryParseResult
+    {
       // TBD: What if the boundary is just dashes, would be recurse too much?
       //      => unroll
       // This must be true:
@@ -310,7 +312,9 @@ public struct MultiPartParser {
     if remainder[cursor] == Chars.dash { // check for close delimiter
       cursor += 1
       guard cursor < len                    else { return needMoreData() }
-      guard remainder[cursor] == Chars.dash else { return uselessTrailer() }
+      guard remainder[cursor] == Chars.dash else {
+        return uselessTrailer(content, handler)
+      }
       cursor += 1
       isClose = true
     }
@@ -336,7 +340,7 @@ public struct MultiPartParser {
     }
     
     guard remainder[cursor] == Chars.LF else {
-      return uselessTrailer()
+      return uselessTrailer(content, handler)
     }
     cursor += 1
     
@@ -410,7 +414,8 @@ extension MultiPartParser.Event: Equatable {
         
       case ( .startPart(let lhs), .startPart(let rhs)):
         guard lhs.count == rhs.count else { return false }
-        for ( idx, ( nl, vl )) in lhs.enumerated() {
+        for ( idx, ltuple ) in lhs.enumerated() {
+          let ( nl, vl ) = ltuple
           let ( nr, vr ) = rhs[idx]
           guard (nl == nr) && (vl == vr) else { return false }
         }
