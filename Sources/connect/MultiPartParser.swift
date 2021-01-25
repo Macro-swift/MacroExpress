@@ -22,6 +22,12 @@ fileprivate struct Chars {
   static let CRLFCRLF : [ UInt8 ] = [ CR, LF, CR, LF ]
 }
 
+#if DEBUG && false // TODO: make env
+  fileprivate let heavyDebug = true
+#else
+  fileprivate let heavyDebug = false
+#endif
+
 /**
  * This parser splits a multipart body into its (top level) segments. The
  * segments have a header and a (binary) body.
@@ -57,8 +63,8 @@ public struct MultiPartParser {
   }
   public typealias Handler = ( Event ) -> Void
   
-  let boundary        : [ UInt8 ] // including the initial `--`, excluding CRLF
-  let boundaryLength  : Int
+  var boundary        : [ UInt8 ] // including the initial `--`, excluding CRLF
+  var boundaryLength  : Int
   let maxHeaderLength : Int
   let headerEncoding  : String.Encoding
   
@@ -124,57 +130,64 @@ public struct MultiPartParser {
   private mutating func parse(_ bytes: Buffer, handler: Handler) {
     guard !bytes.isEmpty else { return }
     
-    switch state {
+    // There should be no CoW, we never write to the buffer itself.
+    var input = bytes
     
-      case .fatalError(let error):
-        handler(.parseError(error))
-    
-      case .preamble:
-        switch parseBoundary(bytes, content: { .preambleData($0) }, handler) {
-          case .notFound:
-            break
-            
-          case .found(let remainder):
-            state = .header
-            parse(remainder, handler: handler)
-            
-          case .foundEnd(let remainder):
-            state = .postamble
-            parse(remainder, handler: handler)
-        }
-        
-      case .header:
-        switch parseHeader(bytes) {
-          case .needMoreData:
-            break
-          case .error(let error):
-            state = .fatalError(error)
-            handler(.parseError(error))
-          case .header(let header, let remainder):
-            handler(.startPart(header))
-            state = .body
-            parse(remainder, handler: handler)
-        }
-        
-      case .body:
-        switch parseBoundary(bytes, content: { .bodyData($0) }, handler) {
-          case .notFound:
-            break
-            
-          case .found(let remainder):
-            handler(.endPart)
-            state = .preamble
-            parse(remainder, handler: handler)
-            
-          case .foundEnd(let remainder):
-            handler(.endPart)
-            state = .postamble
-            parse(remainder, handler: handler)
-        }
+    while !input.isEmpty {
+      switch state {
+      
+        case .fatalError(let error):
+          handler(.parseError(error))
+          return
+      
+        case .preamble:
+          switch parseBoundary(input, content: { .preambleData($0) }, handler) {
+            case .notFound:
+              return
+              
+            case .found(let remainder):
+              state = .header
+              input = remainder
+              
+            case .foundEnd(let remainder):
+              state = .postamble
+              input = remainder
+          }
+          
+        case .header:
+          switch parseHeader(input) {
+            case .needMoreData:
+              return
+            case .error(let error):
+              state = .fatalError(error)
+              handler(.parseError(error))
+              return
+            case .header(let header, let remainder):
+              handler(.startPart(header))
+              state = .body
+              input = remainder
+          }
+          
+        case .body:
+          switch parseBoundary(input, content: { .bodyData($0) }, handler) {
+            case .notFound:
+              return
+              
+            case .found(let remainder):
+              handler(.endPart)
+              state = .header
+              input = remainder
+              
+            case .foundEnd(let remainder):
+              handler(.endPart)
+              state = .postamble
+              input = remainder
+          }
 
-      case .postamble:
-        let input = unstage(with: bytes)
-        if !input.isEmpty { handler(.postambleData(input)) }
+        case .postamble:
+          let input = unstage(with: input)
+          if !input.isEmpty { handler(.postambleData(input)) }
+      }
     }
   }
   
@@ -242,6 +255,7 @@ public struct MultiPartParser {
     return .header(header, remainder: remainder)
   }
   
+  
   // MARK: - Boundary Parser
   
   private enum BoundaryParseResult {
@@ -256,6 +270,12 @@ public struct MultiPartParser {
                         -> BoundaryParseResult
   {
     let input = unstage(with: bytes)
+    if heavyDebug {
+      print("\n* process (\(state)):\n==========")
+      //print((try? input.toString()) ?? input.description)
+      print(input.description)
+      print("==========")
+    }
     
     let idx = input.indexOf(boundary, options: .partialSuffixMatch)
     if idx < 0 {
@@ -291,6 +311,7 @@ public struct MultiPartParser {
       cursor += 1
       guard cursor < len                    else { return needMoreData() }
       guard remainder[cursor] == Chars.dash else { return uselessTrailer() }
+      cursor += 1
       isClose = true
     }
     else { // check for regular delimiter
@@ -309,11 +330,21 @@ public struct MultiPartParser {
     // Consume CR. Note: We allow just LF as the end marker
     if remainder[cursor] == Chars.CR {
       cursor += 1
-      guard len > cursor else { return needMoreData() }
+      guard len > cursor else {
+        return needMoreData()
+      }
     }
     
-    guard remainder[cursor] == Chars.LF else { return uselessTrailer() }
+    guard remainder[cursor] == Chars.LF else {
+      return uselessTrailer()
+    }
     cursor += 1
+    
+    assert(boundaryLength > 0)
+    if boundary[0] != Chars.CR {
+      boundaryLength += 2
+      boundary.insert(contentsOf: [ Chars.CR, Chars.LF ], at: 0)
+    }
     
     if isClose {
       return .foundEnd(remainder: remainder.slice(cursor))
