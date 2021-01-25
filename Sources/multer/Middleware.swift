@@ -191,7 +191,7 @@ public extension multer {
 fileprivate func extractHeaderArgument(for header: String, from value: String)
                  -> String?
 {
-  // Naive version, which we had structured headers ;-)
+  // Naive version, wish we had structured headers ;-)
   // multipart/form-data; boundary="abc"
   // multipart/form-data; boundary=abc
   let parts = value
