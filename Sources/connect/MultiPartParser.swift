@@ -9,6 +9,7 @@
 import struct NIO.ByteBuffer
 import struct NIO.ByteBufferView
 import struct MacroCore.Buffer
+import class  MacroCore.MacroCore
 
 fileprivate struct Chars {
   
@@ -43,6 +44,7 @@ public struct MultiPartParser {
     case maximumHeaderLengthExceeded(allowed: Int, buffered: Int)
     case charsetError(Swift.Error)
     case invalidHeaderLine(String)
+    case failedToParseHeader
   }
   
   public enum Event {
@@ -51,7 +53,7 @@ public struct MultiPartParser {
     case startPart    ([ ( name: String, value: String ) ])
     case bodyData     (Buffer)
     case endPart
-    case parseError   (Swift.Error)
+    case parseError   (ParseError)
   }
   public typealias Handler = ( Event ) -> Void
   
@@ -97,12 +99,28 @@ public struct MultiPartParser {
   }
 
   public mutating func end(handler: Handler) {
-    // depends on state what we do, need to close open
+    finish(handler: handler)
   }
   
   
   // MARK: - Parsing
-  
+
+  private mutating func finish(handler: Handler) {
+    // Note: We need no 'done' event, because the consumer itself pushes the
+    //       finish.
+    let trailer = unstage(with: Buffer(capacity: 0))
+    switch state {
+      case .fatalError:
+        break
+      case .preamble  : if !trailer.isEmpty { handler(.preambleData (trailer)) }
+      case .postamble : if !trailer.isEmpty { handler(.postambleData(trailer)) }
+      case .header: handler(.parseError(ParseError.failedToParseHeader))
+      case .body:
+        if !trailer.isEmpty { handler(.bodyData(trailer)) }
+        handler(.endPart)
+    }
+  }
+
   private mutating func parse(_ bytes: Buffer, handler: Handler) {
     guard !bytes.isEmpty else { return }
     
@@ -321,6 +339,59 @@ extension MultiPartParser.Event: CustomStringConvertible {
         
       case .parseError(let error):
         return "<ParseError: \(error)>"
+    }
+  }
+}
+
+extension MultiPartParser.ParseError: Equatable {
+  
+  public static func ==(lhs: MultiPartParser.ParseError,
+                        rhs: MultiPartParser.ParseError) -> Bool
+  {
+    switch ( lhs, rhs ) {
+      case ( .maximumHeaderLengthExceeded(let l1, let l2),
+             .maximumHeaderLengthExceeded(let r1, let r2)):
+        return (l1 == r1) && (l2 == r2)
+      case ( .charsetError, .charsetError ):
+        return true
+      case ( .failedToParseHeader, .failedToParseHeader ):
+        return true
+      case ( .invalidHeaderLine(let lhs), .invalidHeaderLine(let rhs)):
+        return lhs == rhs
+      default:
+        return false
+    }
+  }
+}
+
+extension MultiPartParser.Event: Equatable {
+  
+  public static func ==(lhs: MultiPartParser.Event,
+                        rhs: MultiPartParser.Event) -> Bool
+  {
+    switch ( lhs, rhs ) {
+      case ( .preambleData(let lhs), .preambleData(let rhs)):
+        return lhs == rhs
+      case ( .postambleData(let lhs), .postambleData(let rhs)):
+        return lhs == rhs
+      case ( .bodyData(let lhs), .bodyData(let rhs)):
+        return lhs == rhs
+        
+      case ( .startPart(let lhs), .startPart(let rhs)):
+        guard lhs.count == rhs.count else { return false }
+        for ( idx, ( nl, vl )) in lhs.enumerated() {
+          let ( nr, vr ) = rhs[idx]
+          guard (nl == nr) && (vl == vr) else { return false }
+        }
+        return true
+        
+      case ( .endPart, .endPart ): return true
+        
+      case ( .parseError(let lhs), .parseError(let rhs) ): // Hm
+        return lhs == rhs
+        
+      default:
+        return false
     }
   }
 }
