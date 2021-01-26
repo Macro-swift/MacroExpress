@@ -37,7 +37,7 @@ let package = Package(
     .target(name: "MacroExpress",
             dependencies: [ 
               "MacroCore", "xsys", "http",    "fs",
-              "dotenv",    "mime", "connect", "express"
+              "dotenv",    "mime", "connect", "express", "multer"
             ]),
 
     .testTarget(name: "mimeTests",       dependencies: [ "mime"    ]),
