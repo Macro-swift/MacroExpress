@@ -30,6 +30,7 @@ public enum BodyParserBody {
   case raw(Buffer)
   case text(String)
   
+  @inlinable
   public subscript(dynamicMember k: String) -> Any? {
     return self[k]
   }
@@ -37,6 +38,7 @@ public enum BodyParserBody {
 
 public extension BodyParserBody {
   
+  @inlinable
   var json: Any? {
     switch self {
       case .json      (let json): return json
@@ -46,6 +48,7 @@ public extension BodyParserBody {
     }
   }
   
+  @inlinable
   var text: String? {
     switch self {
       case .text(let s): return s
@@ -56,6 +59,42 @@ public extension BodyParserBody {
 
 public extension BodyParserBody {
   
+  @inlinable
+  var isEmpty: Bool {
+    switch self {
+      case .notParsed, .noBody, .error: return true
+      case .urlEncoded(let values): return values.isEmpty
+  
+      case .json(let json):
+        if let v = json as? [ String : Any ] { return v.isEmpty }
+        if let v = json as? [ Any ]          { return v.isEmpty }
+        return false
+
+      case .raw (let buffer): return buffer.isEmpty
+      case .text(let string): return string.isEmpty
+    }
+  }
+  
+  @inlinable
+  var count: Int {
+    switch self {
+      case .notParsed, .noBody, .error: return 0
+      case .urlEncoded(let values): return values.count
+  
+      case .json(let json):
+        if let v = json as? [ String : Any ] { return v.count }
+        if let v = json as? [ Any ]          { return v.count }
+        return 1
+      
+      case .raw (let buffer): return buffer.count
+      case .text(let string): return string.count
+    }
+  }
+}
+
+public extension BodyParserBody {
+  
+  @inlinable
   subscript(key: String) -> Any? {
     switch self {
       case .urlEncoded(let dict):
@@ -68,6 +107,7 @@ public extension BodyParserBody {
       default: return nil
     }
   }
+  @inlinable
   subscript(string key: String) -> String {
     get {
       guard let value = self[key] else { return "" }
@@ -126,12 +166,15 @@ extension BodyParserBody : CustomStringConvertible {
 
 extension BodyParserBody : ExpressibleByStringLiteral {
 
+  @inlinable
   public init(stringLiteral value: String) {
     self = .text(value)
   }
+  @inlinable
   public init(extendedGraphemeClusterLiteral value: StringLiteralType) {
     self = .text(value)
   }
+  @inlinable
   public init(unicodeScalarLiteral value: StringLiteralType) {
     self = .text(value)
   }
@@ -149,6 +192,7 @@ public enum bodyParser {
     let limit    = 100 * 1024
     let extended = true
 
+    @inlinable
     public init() {}
   }
 
