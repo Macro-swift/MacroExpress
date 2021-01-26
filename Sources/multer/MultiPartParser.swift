@@ -286,7 +286,21 @@ public struct MultiPartParser {
     
     let idx = input.indexOf(boundary, options: .partialSuffixMatch)
     if idx < 0 {
-      stage(input)
+      switch state {
+        case .preamble  :
+          handler(content(input))
+        case .postamble :
+          assertionFailure("unexpected postamble state in parseBoundary")
+          handler(.postambleData(input))
+        case .header:
+          // This is imperfect. We should buffer the header otherwise
+          assertionFailure("unexpected header state in parseBoundary")
+          handler(content(input))
+        case .body:
+          handler(content(input))
+        case .fatalError(_):
+          assertionFailure("unexpected error state in parseBoundary")
+      }
       return .notFound
     }
     

@@ -28,7 +28,8 @@ enum Fixtures {
       """
     )
     
-    static let expectedEvents : [ MultiPartParser.Event ] = [
+    static let expectedEvents = expectedPrefixEvents + [ .endPart ]
+    static let expectedPrefixEvents : [ MultiPartParser.Event ] = [
       .startPart([
         ( "Content-Disposition" , "form-data; name=\"title\"" )
       ]),
@@ -37,8 +38,7 @@ enum Fixtures {
       .startPart([
         ( "Content-Disposition" , "form-data; name=\"file\"; filename=\"\"" ),
         ( "Content-Type"        , "application/octet-stream" )
-      ]),
-      .endPart
+      ])
     ]
     
     static var request : IncomingMessage {
@@ -185,7 +185,7 @@ enum Fixtures {
       return buffer
     }()
     
-    static let expectedEvents : [ MultiPartParser.Event ] = [
+    static let expectedPrefixEvents : [ MultiPartParser.Event ] = [
       .startPart([
         ( "Content-Disposition" , "form-data; name=\"title\"" )
       ]),
@@ -195,9 +195,7 @@ enum Fixtures {
         ( "Content-Disposition" ,
           "form-data; name=\"file\"; filename=\"\(filename)\"" ),
         ( "Content-Type"        , "application/octet-stream" )
-      ]),
-      .bodyData(largeEmptyData),
-      .endPart
+      ])
     ]
   }
 }

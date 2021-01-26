@@ -189,10 +189,10 @@ final class MultiPartParserTests: XCTestCase {
     var expectedIdx = 0
     
     func checkNextEvent(_ event: MultiPartParser.Event, isEnd: Bool = false) {
-      print("\(isEnd ? "END-" : "")EVENT[\(expectedIdx)]:", event)
       events.append(event)
-      if expectedIdx < fixture.expectedEvents.count {
-        XCTAssertEqual(event, fixture.expectedEvents[expectedIdx])
+      if expectedIdx < fixture.expectedPrefixEvents.count {
+        print("\(isEnd ? "END-" : "")EVENT[\(expectedIdx)]:", event)
+        XCTAssertEqual(event, fixture.expectedPrefixEvents[expectedIdx])
         expectedIdx += 1
       }
     }
@@ -204,16 +204,20 @@ final class MultiPartParserTests: XCTestCase {
     }
     XCTAssert(parser.buffer?.isEmpty ?? true)
     
+    #if false
     print("EVENTS:")
     XCTAssertFalse(events.isEmpty)
     for event in events {
       print("  -", event)
     }
+    #endif
     
-    XCTAssertEqual(events.count, fixture.expectedEvents.count)
-    for i in 0..<(min(events.count, fixture.expectedEvents.count)) {
-      XCTAssertEqual(events[i], fixture.expectedEvents[i])
+    XCTAssert(events.count > fixture.expectedPrefixEvents.count)
+    for i in 0..<(min(events.count, fixture.expectedPrefixEvents.count)) {
+      XCTAssertEqual(events[i], fixture.expectedPrefixEvents[i])
     }
+    
+    XCTAssertEqual(events.last, .endPart)
 
     print("DONE:")
   }
