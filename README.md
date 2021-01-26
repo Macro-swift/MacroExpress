@@ -32,7 +32,7 @@ swift-sh scripts.
 
 ```swift
 #!/usr/bin/swift sh
-import MacroExpress // @Macro-swift ~> 0.5.5
+import MacroExpress // @Macro-swift
 
 let app = express()
 app.use(logger("dev"))
