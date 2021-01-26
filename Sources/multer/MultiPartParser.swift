@@ -207,20 +207,24 @@ public struct MultiPartParser {
   
   private mutating func parseHeader(_ data: Buffer) -> HeaderParseResult {
     let input = unstage(with: data)
-    guard input.count < maxHeaderLength else {
-      stage(input) // TBD
-      return .error(.maximumHeaderLengthExceeded(allowed: maxHeaderLength,
-                                                 buffered: input.count))
-    }
     
     func needMoreData() -> HeaderParseResult {
       stage(input) // incomplete, wait for more data
+      guard input.count < maxHeaderLength else {
+        return .error(.maximumHeaderLengthExceeded(allowed: maxHeaderLength,
+                                                   buffered: input.count))
+      }
       return .needMoreData
     }
     
     let idx = input.indexOf(Chars.CRLFCRLF) // TODO: support LFLF?
     guard idx >= 0 else  { return needMoreData() }
-    
+
+    guard idx <= maxHeaderLength else {
+      return .error(.maximumHeaderLengthExceeded(allowed: maxHeaderLength,
+                                                 buffered: idx))
+    }
+
     let headerData = input.slice(0, idx)
     let remainder  = input.slice(idx + 4)
     
