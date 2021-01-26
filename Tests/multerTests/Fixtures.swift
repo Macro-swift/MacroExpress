@@ -1,7 +1,7 @@
 import struct MacroCore.Buffer
 import struct multer.MultiPartParser
 import class  http.IncomingMessage
-
+import struct NIO.ByteBuffer
 
 enum Fixtures {
 
@@ -136,6 +136,67 @@ enum Fixtures {
         ( "Content-Type"        , "image/png" )
       ]),
       .bodyData(icon),
+      .endPart
+    ]
+  }
+  
+  /**
+   * Contains:
+   * - form field `title` with value `file.csv`
+   * - file field `file`, filename `emptyfile.bin`, ~3MB of empty bytes
+   */
+  enum LargeEmptyFile {
+
+    static var request : IncomingMessage {
+      return .init(boundary: boundary, content: data)
+    }
+    
+    static let boundary : String = "----WebKitFormBoundarynMW4HlI9p3a9mvUw"
+
+    static let filename = "emptyfile.bin"
+    
+    static let largeEmptyData =
+                 Buffer(ByteBuffer(repeating: 0, count: 2_896_967))
+    
+    static let data : Buffer = {
+      var buffer = Buffer(capacity: 3 * 1024 * 1024)
+      buffer.append(Buffer(
+        """
+        --\(boundary)\r
+        Content-Disposition: form-data; name="title"\r
+        \r
+        file.csv\r
+        --\(boundary)\r
+        Content-Disposition: form-data; name="file"; filename="\(filename)"\r
+        Content-Type: application/octet-stream\r
+        \r\n
+        """
+      ))
+      
+      buffer.append(largeEmptyData)
+      
+      buffer.append(Buffer(
+        """
+        \r
+        --\(boundary)--\r\n
+        """
+      ))
+
+      return buffer
+    }()
+    
+    static let expectedEvents : [ MultiPartParser.Event ] = [
+      .startPart([
+        ( "Content-Disposition" , "form-data; name=\"title\"" )
+      ]),
+      .bodyData(Buffer("file.csv")),
+      .endPart,
+      .startPart([
+        ( "Content-Disposition" ,
+          "form-data; name=\"file\"; filename=\"\(filename)\"" ),
+        ( "Content-Type"        , "application/octet-stream" )
+      ]),
+      .bodyData(largeEmptyData),
       .endPart
     ]
   }
