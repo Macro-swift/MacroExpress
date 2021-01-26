@@ -26,6 +26,7 @@ public extension multer {
     public var files         : Int? = nil
     
     /// Maximum number of header fields (2000)
+    /// Note: This is not checked yet.
     public var headerPairs   : Int? = 2000
     
     public init(fieldNameSize : Int? = 100,

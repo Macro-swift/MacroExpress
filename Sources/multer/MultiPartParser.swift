@@ -38,6 +38,9 @@ public struct MultiPartParser {
   // https://github.com/Macro-swift/MacroExpress/issues/7
   // https://tools.ietf.org/html/rfc7578
   
+  public typealias HeaderField = ( name: String, value: String )
+  public typealias Header      = [ HeaderField ]
+  
   enum State {
     case preamble
     case postamble
@@ -56,7 +59,7 @@ public struct MultiPartParser {
   public enum Event {
     case preambleData (Buffer)
     case postambleData(Buffer)
-    case startPart    ([ ( name: String, value: String ) ])
+    case startPart    (Header)
     case bodyData     (Buffer)
     case endPart
     case parseError   (ParseError)
@@ -196,7 +199,7 @@ public struct MultiPartParser {
   
   private enum HeaderParseResult {
     case needMoreData
-    case header([ ( name: String, value: String ) ], remainder: Buffer)
+    case header(Header, remainder: Buffer)
     case error (ParseError)
   }
   
@@ -236,7 +239,7 @@ public struct MultiPartParser {
     
     // Yes, naive parser, header lines could be wrapped etc
     let headerLines = headerString.components(separatedBy: "\r\n")
-    var header = [ ( name: String, value: String ) ]()
+    var header = Header()
     header.reserveCapacity(headerLines.count)
     
     for line in headerLines {

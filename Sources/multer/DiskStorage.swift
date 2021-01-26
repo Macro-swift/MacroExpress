@@ -6,7 +6,8 @@
 //  Copyright © 2021 ZeeZide GmbH. All rights reserved.
 //
 
-import class http.IncomingMessage
+import struct MacroCore.Buffer
+import class  http.IncomingMessage
 
 extension multer {
   
@@ -34,6 +35,19 @@ extension multer {
       self.init(destination: { req, file, yield in
         yield(nil, dest)
       })
+    }
+    
+    
+    // MARK: - Storage API
+
+    public func startFile(_ file: multer.File, in ctx: MulterStorageContext) {
+    }
+    public func endFile  (_ file: multer.File, in ctx: MulterStorageContext) {
+    }
+
+    public func write(_ data: Buffer, to file: multer.File,
+                      in ctx: MulterStorageContext) throws
+    {
     }
   }
 }

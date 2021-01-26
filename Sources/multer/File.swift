@@ -10,7 +10,7 @@ import struct MacroCore.Buffer
 
 public extension multer {
   
-  struct File {
+  final class File: Equatable {
     
     /// Name in form field
     public var fieldName    : String
@@ -38,6 +38,29 @@ public extension multer {
      * with the memory storage.
      */
     public var buffer : Buffer?
+    
+    @inlinable
+    public init(fieldName    : String,
+                originalName : String,
+                mimeType     : String,
+                path         : String? = nil,
+                buffer       : Buffer? = nil)
+    {
+      self.fieldName    = fieldName
+      self.originalName = originalName
+      self.mimeType     = mimeType
+      self.path         = path
+      self.buffer       = buffer
+    }
+    
+    @inlinable
+    public static func ==(lhs: File, rhs: File) -> Bool {
+      return lhs.fieldName    == rhs.fieldName
+          && lhs.originalName == rhs.originalName
+          && lhs.mimeType     == rhs.mimeType
+          && lhs.path         == rhs.path
+          && lhs.buffer       == rhs.buffer
+    }
   }
 }
 

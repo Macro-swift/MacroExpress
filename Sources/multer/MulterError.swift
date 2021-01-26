@@ -9,11 +9,13 @@
 public extension multer {
   
   enum MulterError: Swift.Error {
-    case limitUnexpectedFile(File)
+    case limitUnexpectedFile(fieldName: String)
     case tooManyFiles
     case tooManyFields
     case fileTooLarge
     case fieldNameTooLong
-    case filedValueTooLong
+    case fieldValueTooLong
+    
+    case invalidPartHeader(MultiPartParser.Header)
   }
 }
