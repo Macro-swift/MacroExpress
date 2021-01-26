@@ -11,7 +11,15 @@ import class  http.IncomingMessage
 
 extension multer {
   
+  @available(*, unavailable, message: "DiskStorage is not working yet.")
   open class DiskStorage: MulterStorage {
+    
+    // TODO: This needs API changes for async in the `MulterStorage` to account
+    //       for sync writes. The disk storage needs to async write files using
+    //       a file stream or the the NIO disk I/O, and only call `next` when
+    //       all files are done.
+    //       `File` is intentionally an object already, so that the Disk storage
+    //       can reconcile operations.
     
     public typealias DestinationSelector =
       ( IncomingMessage, File, @escaping ( Swift.Error?, String ) -> Void )

@@ -38,19 +38,30 @@ public struct multer {
   
   // MARK: - Init
   
+  #if false // Swift 5.0 is not clever enough to consider the nested unavail
+  @available(*, unavailable, message: "DiskStorage is not working yet.")
   @inlinable
   public init(storage    : MulterStorage? = nil,
-              dest       : String?        = nil,
+              dest       : String,
               limits     : Limits         = Limits(),
               fileFilter : FileFilter?    = nil)
   {
     self.dest       = dest
     self.fileFilter = fileFilter
     self.limits     = limits
-    self.storage    = storage ?? {
-      if let dest = dest { return DiskStorage(dest: dest) }
-      else               { return MemoryStorage()         }
-    }()
+    self.storage    = storage ?? DiskStorage(dest: dest)
+  }
+  #endif
+
+  @inlinable
+  public init(storage    : MulterStorage? = nil,
+              limits     : Limits         = Limits(),
+              fileFilter : FileFilter?    = nil)
+  {
+    self.dest       = nil
+    self.fileFilter = fileFilter
+    self.limits     = limits
+    self.storage    = storage ?? MemoryStorage()
   }
 }
 
@@ -61,6 +72,8 @@ public extension multer { // MARK: - Storage Factory
     return MemoryStorage()
   }
   
+  #if false // Swift 5.0 is not clever enough to consider the nested unavail
+  @available(*, unavailable, message: "DiskStorage is not working yet.")
   @inlinable
   static
   func diskStorage(destination : @escaping DiskStorage.DestinationSelector,
@@ -69,6 +82,7 @@ public extension multer { // MARK: - Storage Factory
   {
     return DiskStorage(destination: destination, filename: filename)
   }
+  #endif
 }
 
 

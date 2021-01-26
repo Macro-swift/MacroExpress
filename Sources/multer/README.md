@@ -17,6 +17,9 @@ Roughly designed after the Node [multer](https://github.com/expressjs/multer#rea
 package.
 
 
+**Note**: DiskStorage is prepared, but not working yet.
+
+
 ### Links
 
 - [Multer](https://github.com/expressjs/multer#readme)
