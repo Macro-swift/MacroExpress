@@ -64,6 +64,21 @@ public extension multer {
   }
 }
 
+extension multer.File: CustomStringConvertible {
+  
+  @inlinable
+  public var description: String {
+    var ms = "<File[\(fieldName)]:"
+    defer { ms += ">" }
+    
+    if !originalName.isEmpty { ms += " filename=\(originalName)" }
+    if !mimeType    .isEmpty { ms += " type=\(mimeType)"         }
+    if let path   = path     { ms += " local=\(path)"            }
+    if let buffer = buffer   { ms += " contents=\(buffer)"       }
+    return ms
+  }
+}
+
 #if canImport(Foundation)
 
 import struct Foundation.URL
@@ -74,6 +89,7 @@ public extension multer.File {
    * The name of the file on the local filesystem, if available. I.e. when
    * used together with the disk storage.
    */
+  @inlinable
   var filename : String? {
     guard let path = path else { return nil }
     return URL(fileURLWithPath: path).lastPathComponent
@@ -83,6 +99,7 @@ public extension multer.File {
    * The folder of the file in the local filesystem, if available. I.e. when
    * used together with the disk storage.
    */
+  @inlinable
   var destination : String? {
     guard let path = path else { return nil }
     return URL(fileURLWithPath: path).deletingLastPathComponent().path
