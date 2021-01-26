@@ -45,6 +45,8 @@
 @_exported import typealias express.Router
 @_exported import class     express.Route
 
+@_exported import struct    multer.multer
+
 // We need to import those fully, because they contain query a few extensions,
 // which we can't import selectively :-/
 @_exported import MacroCore
