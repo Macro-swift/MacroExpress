@@ -1,5 +1,6 @@
 import XCTest
 import MacroCore
+import struct NIO.ByteBuffer
 import http
 import connect
 @testable import multer
@@ -259,6 +260,23 @@ final class multerTests: XCTestCase {
     
     waitForExpectations(timeout: 3)
   }
+  
+  func testBufferRemainingMatchPerformance() {
+    // Just make sure we don't hit cross-module surprises.
+    let bb = Buffer(ByteBuffer(repeating: 0, count: 64 * 1024))
+    let needle : [ UInt8 ] = [ 30, 50, 60, 30, 40, 25, 21, 22, 23, 24, 88, 18 ]
+    
+    let start = Date()
+    measure {
+      for _ in 0..<100 {
+        let idxMaybe = bb
+              .indexOf(needle, options: .partialSuffixMatch)
+        XCTAssertNotNil(idxMaybe)
+      }
+    }
+    let duration = -start.timeIntervalSinceNow
+    print("TOOK:", duration)
+  }
 
   static var allTests = [
     ( "testSimpleAny"      , testSimpleAny      ),
@@ -266,6 +284,8 @@ final class multerTests: XCTestCase {
     ( "testSimpleSingleOK" , testSimpleSingleOK ),
     ( "testSingleFail"     , testSingleFail     ),
     ( "testMultiOK"        , testMultiOK        ),
-    ( "testSizeLimit"      , testSizeLimit      )
+    ( "testSizeLimit"      , testSizeLimit      ),
+    ( "testBufferRemainingMatchPerformance",
+      testBufferRemainingMatchPerformance )
   ]
 }
