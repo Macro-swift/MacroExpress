@@ -4,7 +4,12 @@ import Macro
 @testable import connect
 
 final class bodyParserTests: XCTestCase {
-  
+
+  override class func setUp() {
+    super.setUp()
+    disableAtExitHandler()
+  }
+
   func testStringParser() throws {
     let req = IncomingMessage(
       .init(version: .init(major: 1, minor: 1),

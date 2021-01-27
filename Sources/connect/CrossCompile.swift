@@ -3,7 +3,7 @@
 //  Macro
 //
 //  Created by Helge Heß
-//  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2021 ZeeZide GmbH. All rights reserved.
 //
 
 // Dupes to support:
@@ -14,8 +14,12 @@ import xsys
   import WinSDK
 #elseif os(Linux)
   import Glibc
-#else
+#elseif canImport(Darwin)
   import Darwin
+#elseif canImport(WASIClib)
+  import WASIClib
+#else
+  #error("Unsupported C runtime.")
 #endif
 
 // MARK: - Macro/xsys/timeval_any.swift
