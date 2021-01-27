@@ -1,5 +1,5 @@
 import struct MacroCore.Buffer
-import struct multer.MultiPartParser
+import class  multer.MultiPartParser
 import class  http.IncomingMessage
 import struct NIO.ByteBuffer
 
