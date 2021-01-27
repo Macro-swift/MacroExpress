@@ -32,7 +32,7 @@ fileprivate struct Chars {
  * This parser splits a multipart body into its (top level) segments. The
  * segments have a header and a (binary) body.
  */
-public struct MultiPartParser {
+public final class MultiPartParser {
   // This is not entirely correct and can't be used for arbitrary MIME parts
   // yet. E.g. it doesn't support wrapped header lines.
   // https://github.com/Macro-swift/MacroExpress/issues/7
@@ -90,10 +90,10 @@ public struct MultiPartParser {
   
   // MARK: - Buffer
   
-  private mutating func stage(_ buffer: Buffer) {
+  private func stage(_ buffer: Buffer) {
     if nil == self.buffer?.append(buffer) { self.buffer = buffer }
   }
-  private mutating func unstage(with bytes: Buffer) -> Buffer {
+  private func unstage(with bytes: Buffer) -> Buffer {
     guard var input = self.buffer else { return bytes }
     self.buffer = nil
     input.append(bytes)
@@ -103,18 +103,18 @@ public struct MultiPartParser {
 
   // MARK: - API
 
-  public mutating func write(_ bytes: Buffer, handler: Handler) {
+  public func write(_ bytes: Buffer, handler: Handler) {
     parse(bytes, handler: handler)
   }
 
-  public mutating func end(handler: Handler) {
+  public func end(handler: Handler) {
     finish(handler: handler)
   }
   
   
   // MARK: - Parsing
 
-  private mutating func finish(handler: Handler) {
+  private func finish(handler: Handler) {
     // Note: We need no 'done' event, because the consumer itself pushes the
     //       finish.
     let trailer = unstage(with: Buffer(capacity: 0))
@@ -130,7 +130,7 @@ public struct MultiPartParser {
     }
   }
 
-  private mutating func parse(_ bytes: Buffer, handler: Handler) {
+  private func parse(_ bytes: Buffer, handler: Handler) {
     guard !bytes.isEmpty else { return }
     
     // There should be no CoW, we never write to the buffer itself.
@@ -205,7 +205,7 @@ public struct MultiPartParser {
   
   private let fallbackEncoding : String.Encoding = .isoLatin1
   
-  private mutating func parseHeader(_ data: Buffer) -> HeaderParseResult {
+  private func parseHeader(_ data: Buffer) -> HeaderParseResult {
     let input = unstage(with: data)
     
     func needMoreData() -> HeaderParseResult {
@@ -271,10 +271,10 @@ public struct MultiPartParser {
     case foundEnd(remainder: Buffer)
   }
   
-  private mutating func parseBoundary(_   bytes : Buffer,
-                                      content   : ( Buffer ) -> Event,
-                                      _ handler : Handler)
-                        -> BoundaryParseResult
+  private func parseBoundary(_   bytes : Buffer,
+                             content   : ( Buffer ) -> Event,
+                             _ handler : Handler)
+               -> BoundaryParseResult
   {
     let input = unstage(with: bytes)
     if heavyDebug {
