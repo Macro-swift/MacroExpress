@@ -9,7 +9,7 @@ final class MultiPartParserTests: XCTestCase {
     XCTAssertEqual(fixture.data[-2], 13)
     XCTAssertEqual(fixture.data[-1], 10)
     
-    var parser = MultiPartParser(boundary: fixture.boundary)
+    let parser = MultiPartParser(boundary: fixture.boundary)
     
     var events      = [ MultiPartParser.Event ]()
     var expectedIdx = 0
@@ -45,7 +45,7 @@ final class MultiPartParserTests: XCTestCase {
     XCTAssertEqual(fixture.data[-2], 13)
     XCTAssertEqual(fixture.data[-1], 10)
     
-    var parser = MultiPartParser(boundary: fixture.boundary)
+    let parser = MultiPartParser(boundary: fixture.boundary)
     
     var events      = [ MultiPartParser.Event ]()
     var expectedIdx = 0
@@ -91,7 +91,7 @@ final class MultiPartParserTests: XCTestCase {
     XCTAssertEqual(fixture.data[-2], 13)
     XCTAssertEqual(fixture.data[-1], 10)
 
-    var parser = MultiPartParser(boundary: fixture.boundary)
+    let parser = MultiPartParser(boundary: fixture.boundary)
     
     var events      = [ MultiPartParser.Event ]()
     var expectedIdx = 0
@@ -137,7 +137,7 @@ final class MultiPartParserTests: XCTestCase {
     XCTAssertEqual(fixture.data[-2], 13)
     XCTAssertEqual(fixture.data[-1], 10)
 
-    var parser = MultiPartParser(boundary: fixture.boundary)
+    let parser = MultiPartParser(boundary: fixture.boundary)
     
     var events      = [ MultiPartParser.Event ]()
     var expectedIdx = 0
@@ -183,7 +183,7 @@ final class MultiPartParserTests: XCTestCase {
     XCTAssertEqual(fixture.data[-2], 13)
     XCTAssertEqual(fixture.data[-1], 10)
     
-    var parser = MultiPartParser(boundary: fixture.boundary)
+    let parser = MultiPartParser(boundary: fixture.boundary)
     
     var events      = [ MultiPartParser.Event ]()
     var expectedIdx = 0
