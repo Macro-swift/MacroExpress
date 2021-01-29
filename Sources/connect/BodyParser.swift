@@ -3,11 +3,14 @@
 //  Noze.io / MacroExpress
 //
 //  Created by Helge Heß on 30/05/16.
-//  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2021 ZeeZide GmbH. All rights reserved.
 //
 
-import MacroCore
-import http
+import struct   MacroCore.Buffer
+import enum     MacroCore.JSONModule
+import protocol MacroCore.EnvironmentKey
+import func     MacroCore.concat
+import enum     http.querystring
 
 /// An enum which stores the result of the `bodyParser` middleware. The result
 /// can be accessed as `request.body`, e.g.
@@ -107,6 +110,7 @@ public extension BodyParserBody {
       default: return nil
     }
   }
+  
   @inlinable
   subscript(string key: String) -> String {
     get {
