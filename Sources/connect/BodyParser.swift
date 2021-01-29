@@ -6,6 +6,7 @@
 //  Copyright © 2016-2021 ZeeZide GmbH. All rights reserved.
 //
 
+import MacroCore // for `|` operator
 import struct   MacroCore.Buffer
 import enum     MacroCore.JSONModule
 import protocol MacroCore.EnvironmentKey
