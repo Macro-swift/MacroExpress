@@ -119,6 +119,10 @@ open class Express: SettingsHolder, MountableMiddlewareObject, MiddlewareObject,
     res.environment[ExpressExtKey.App.self]        = self
     res.environment[ExpressExtKey.RequestKey.self] = req
     
+    if settings.xPoweredBy, req.getHeader("X-Powered-By") == nil {
+      res.setHeader("X-Powered-By", productIdentifier)
+    }
+    
     try router.handle(request: req, response: res) { ( args: Any... ) in
       req.environment[ExpressExtKey.App.self]        = oldApp
       res.environment[ExpressExtKey.App.self]        = oldApp
