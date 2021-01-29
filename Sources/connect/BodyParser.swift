@@ -120,6 +120,24 @@ public extension BodyParserBody {
       return String(describing: value)
     }
   }
+  
+  /**
+   * Lookup the given key in either URL parameters or JSON and try to
+   * coerce it to an Int.
+   */
+  @inlinable
+  subscript(int key: String) -> Int? {
+    get {
+      guard let value = self[key] else { return nil }
+      switch value { // TBD
+        case let v as Int    : return v
+        case let v as Int64  : return Int(v)
+        case let v as String : return Int(v)
+        case let v as Double : return Int(v)
+        default: return nil
+      }
+    }
+  }
 }
 
 extension BodyParserBody : CustomStringConvertible {
