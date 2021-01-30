@@ -1,9 +1,9 @@
 //
 //  ServeStatic.swift
-//  Noze.io / Macro
+//  Noze.io / MacroExpress
 //
 //  Created by Helge Heß on 08/05/16.
-//  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2021 ZeeZide GmbH. All rights reserved.
 //
 
 import enum   MacroCore.process
@@ -12,20 +12,51 @@ import fs
 import mime
 import xsys
 
+/**
+ * Specify file permissions for `serveStatic`
+ */
 public enum ServeFilePermission {
-  case allow, deny, ignore
+  
+  /// Allow access to the file.
+  case allow
+  
+  /// Deny access to the file, will usually return a 404 (as a 403 exposes the
+  /// existence)
+  case deny
+  
+  /// Ignore a file, i.e. behave as if it didn't exist
+  case ignore
 }
 
+/**
+ * Specifies the supported processing of index-files.
+ *
+ * If the local path targetted by serveStatic is a directory,
+ * serveStatic will check for index-files as specified by
+ * this behaviour.
+ * Possible modes are: no index file handling, a single index file or multiple
+ * index files.
+ */
 public enum IndexBehaviour {
+  
+  /// Don't do any index-file processing.
   case none
+  
+  /// Support a single index-file with the specified name (e.g. index.html)
   case indexFile (String)
+  
+  /// Support a set of index files.
   case indexFiles([ String ])
   
+  @inlinable
   public init() {
     self = .indexFile("index.html")
   }
 }
 
+/**
+ * Options supported by `serveStatic`.
+ */
 public struct ServeStaticOptions {
   
   public let dotfiles      = ServeFilePermission.allow
@@ -42,21 +73,26 @@ public struct ServeStaticOptions {
 public enum ServeStaticError: Swift.Error {
   case couldNotConstructIndexPath
   case couldNotParseURL
-  case fileMissing(URL)
+  case fileMissing        (URL)
   case indexFileIsNotAFile(URL)
-  case pathIsNotAFile(URL)
+  case pathIsNotAFile     (URL)
 }
 
 /**
  * Serve static files, designed after:
  *
  *   https://github.com/expressjs/serve-static
+ *
+ * Example:
+ *
+ *     app.use(serveStatic(__dirname() + "/public"))
+ *
  */
-public func serveStatic(_       p : String = process.cwd(),
+public func serveStatic(_       p : String             = process.cwd(),
                         options o : ServeStaticOptions = ServeStaticOptions())
             -> Middleware
 {
-  // Note: 'static' is a reserved work ...
+  // Note: 'static' is a reserved word ...
   // TODO: wrapped request with originalUrl, baseUrl etc
   
   let baseFileURL = URL(fileURLWithPath: p.isEmpty ? process.cwd() : p)
@@ -86,7 +122,7 @@ public func serveStatic(_       p : String = process.cwd(),
     
     // naive implementation
     let fsURL : URL
-    if rqPath.isEmpty {
+    if rqPath.isEmpty || rqPath == "/" {
       fsURL = baseFileURL
     }
     else {
@@ -101,8 +137,7 @@ public func serveStatic(_       p : String = process.cwd(),
     
     // dotfiles
     
-    let isDotFile = fsURL.lastPathComponent.hasPrefix(".")
-    if isDotFile {
+    if fsURL.lastPathComponent.hasPrefix(".") {
       switch options.dotfiles {
         case .allow:  break
         case .ignore: next(); return
