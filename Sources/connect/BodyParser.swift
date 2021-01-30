@@ -3,11 +3,15 @@
 //  Noze.io / MacroExpress
 //
 //  Created by Helge Heß on 30/05/16.
-//  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2021 ZeeZide GmbH. All rights reserved.
 //
 
-import MacroCore
-import http
+import MacroCore // for `|` operator
+import struct   MacroCore.Buffer
+import enum     MacroCore.JSONModule
+import protocol MacroCore.EnvironmentKey
+import func     MacroCore.concat
+import enum     http.querystring
 
 /// An enum which stores the result of the `bodyParser` middleware. The result
 /// can be accessed as `request.body`, e.g.
@@ -107,6 +111,7 @@ public extension BodyParserBody {
       default: return nil
     }
   }
+  
   @inlinable
   subscript(string key: String) -> String {
     get {
@@ -114,6 +119,24 @@ public extension BodyParserBody {
       if let s = value as? String                  { return s }
       if let s = value as? CustomStringConvertible { return s.description }
       return String(describing: value)
+    }
+  }
+  
+  /**
+   * Lookup the given key in either URL parameters or JSON and try to
+   * coerce it to an Int.
+   */
+  @inlinable
+  subscript(int key: String) -> Int? {
+    get {
+      guard let value = self[key] else { return nil }
+      switch value { // TBD
+        case let v as Int    : return v
+        case let v as Int64  : return Int(v)
+        case let v as String : return Int(v)
+        case let v as Double : return Int(v)
+        default: return nil
+      }
     }
   }
 }
