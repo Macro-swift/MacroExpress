@@ -52,11 +52,24 @@ public extension BodyParserBody {
     }
   }
   
+  /**
+   * Returns a String representation of the body, if possible.
+   *
+   * - If the body is raw data, this attempts to convert it to an UTF-8 string
+   * - If the body is JSON, attempts to generate JSON
+   * - If the body is URL encoded, attempts to generate a URL encoded string
+   *
+   * To check whether the body is actual `text`, check the enum case.
+   */
   @inlinable
   var text: String? {
     switch self {
-      case .text(let s): return s
-      default: return nil
+      case .text(let s)          : return s
+      case .notParsed, .error    : return nil
+      case .noBody               : return ""
+      case .raw (let b)          : return try? b.toString()
+      case .json(let json)       : return JSONModule .stringify(json)
+      case .urlEncoded(let dict) : return querystring.stringify(dict)
     }
   }
 }

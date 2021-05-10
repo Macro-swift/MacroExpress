@@ -3,7 +3,7 @@
 //  Noze.io / ExExpress / Macro
 //
 //  Created by Helge Heß on 02.05.17.
-//  Copyright © 2017-2020 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2017-2021 ZeeZide GmbH. All rights reserved.
 //
 
 public enum qs {
@@ -248,7 +248,7 @@ public extension qs {
 
 // Hm
 
-protocol RefTypeFlatten: class {
+protocol RefTypeFlatten: AnyObject {
   
   func flatten() -> Any
   
