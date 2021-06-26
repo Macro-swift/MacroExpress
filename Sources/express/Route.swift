@@ -87,13 +87,10 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
 
     self.urlPattern = pattern != nil ? RoutePattern.parse(pattern!) : nil
       
-    if debug {
-      if isEmpty {
-        console.log("\(logPrefix) setup route w/o middleware: \(self)")
-      }
-      else {
-        console.log("\(logPrefix) setup route: \(self)")
-      }
+    if debug { // isEmpty is true when the router is initially setup by express
+      console.log(logPrefix,
+                  isEmpty ? "setup route w/o middleware:" : "setup route:",
+                  descriptionContent)
     }
   }
   
@@ -364,26 +361,42 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
       : p
     return "[\(ids)]:"
   }
-  
+
   open var description : String {
     var ms = "<Route:"
     
     if let id = id {
       ms += " [\(id)]"
     }
+    ms += " "
+    ms += descriptionContent
+    ms += ">"
+    return ms
+  }
+  
+  open var descriptionContent : String {
+    var ms = ""
     
     var hadLimit = false
     if let methods = methods, !methods.isEmpty {
-      ms += " "
       ms += methods.map({ $0.rawValue }).joined(separator: ",")
       hadLimit = true
     }
     if let pattern = urlPattern {
-      ms += " "
-      ms += pattern.map({$0.description}).joined(separator: "/")
+      if !ms.isEmpty { ms += " " }
+      if pattern.isEmpty {
+        ms += "empty-pattern?"
+      }
+      else if pattern.first == .root {
+        ms += "/"
+        ms += pattern.dropFirst().map({ $0.description }).joined(separator: "/")
+      }
+      else {
+        ms += pattern.map({ $0.description }).joined(separator: "/")
+      }
       hadLimit = true
     }
-    if !hadLimit { ms += " *" }
+    if !hadLimit { ms += "*" }
     
     if isEmpty {
       ms += " NO-middleware"
@@ -399,7 +412,6 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
       else                       { ms += " 1-error-middleware" }
     }
     
-    ms += ">"
     return ms
   }
 }

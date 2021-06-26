@@ -3,14 +3,14 @@
 //  Noze.io / Macro / ExExpress
 //
 //  Created by Helge Heß on 6/2/16.
-//  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2021 ZeeZide GmbH. All rights reserved.
 //
 
 import enum MacroCore.process
 
 private let debugMatcher = process.getenvflag("macro.router.matcher.debug")
 
-public enum RoutePattern {
+public enum RoutePattern: Hashable {
   
   case root
   case text    (String)
@@ -31,19 +31,6 @@ public enum RoutePattern {
       case .suffix(let v):   return s.hasSuffix(v)
       case .contains(let v): return s.contains(v)
       case .eol:             return false // nothing should come anymore
-    }
-  }
-  
-  public var description : String {
-    switch self {
-      case .root:             return "/"
-      case .text(let v):      return v
-      case .wildcard:         return "*"
-      case .eol:              return "$"
-      case .variable (let n): return ":\(n)"
-      case .prefix(let v):    return "\(v)*"
-      case .suffix(let v):    return "*\(v)"
-      case .contains(let v):  return "*\(v)*"
     }
   }
 
@@ -220,6 +207,23 @@ public enum RoutePattern {
     
     if debugMatcher { print("  match: '\(matched)'") }
     return matched
+  }
+}
+
+extension RoutePattern: CustomStringConvertible {
+  
+  @inlinable
+  public var description : String {
+    switch self {
+      case .root:             return "/"
+      case .text(let v):      return v
+      case .wildcard:         return "*"
+      case .eol:              return "$"
+      case .variable (let n): return ":\(n)"
+      case .prefix(let v):    return "\(v)*"
+      case .suffix(let v):    return "*\(v)"
+      case .contains(let v):  return "*\(v)*"
+    }
   }
 }
 
