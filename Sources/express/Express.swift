@@ -3,7 +3,7 @@
 //  Noze.io / ExExpress / Macro
 //
 //  Created by Helge Heß on 6/2/16.
-//  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2022 ZeeZide GmbH. All rights reserved.
 //
 
 import struct   Logging.Logger
@@ -211,7 +211,7 @@ open class Express: SettingsHolder, MountableMiddlewareObject, MiddlewareObject,
 
 extension Express: CustomStringConvertible {
   
-  open var description : String {
+  public var description : String {
     var ms = "<\(type(of: self)):"
     
     if router.isEmpty         { ms += " no-routes"               }
