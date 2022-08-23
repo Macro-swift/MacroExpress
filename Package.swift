@@ -1,4 +1,4 @@
-// swift-tools-version:5.2
+// swift-tools-version:5.4
 
 import PackageDescription
 
@@ -17,7 +17,7 @@ let package = Package(
   
   dependencies: [
     .package(url: "https://github.com/Macro-swift/Macro.git",
-             from: "0.8.11"),
+             from: "0.9.0"),
     .package(url: "https://github.com/AlwaysRightInstitute/mustache.git",
              from: "1.0.1")
   ],
@@ -33,26 +33,26 @@ let package = Package(
       .product(name: "fs",        package: "Macro"),
       .product(name: "http",      package: "Macro"),
       "mime", "connect" 
-    ]),
+    ], exclude: [ "README.md" ]),
     .target(name: "connect", dependencies: [ 
       .product(name: "MacroCore", package: "Macro"), 
       .product(name: "fs",        package: "Macro"),
       .product(name: "http",      package: "Macro"),
       "mime" 
-    ]),
+    ], exclude: [ "README.md" ]),
     .target(name: "express", dependencies: [
       .product(name: "MacroCore", package: "Macro"),
       .product(name: "fs",        package: "Macro"),
       .product(name: "http",      package: "Macro"),
       "connect",   "mime", "mustache"
-    ]),
+    ], exclude: [ "README.md" ]),
     .target(name: "MacroExpress", dependencies: [ 
       .product(name: "MacroCore", package: "Macro"), 
       .product(name: "fs",        package: "Macro"),
       .product(name: "http",      package: "Macro"),
       .product(name: "xsys",      package: "Macro"),
       "dotenv", "mime", "connect", "express", "multer"
-    ]),
+    ], exclude: [ "README.md" ]),
 
     .testTarget(name: "mimeTests",       dependencies: [ "mime"    ]),
     .testTarget(name: "multerTests",     dependencies: [ "multer"  ]),

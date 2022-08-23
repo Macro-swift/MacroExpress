@@ -54,6 +54,13 @@ $(DOCKER_BUILD_PRODUCT): $(SWIFT_SOURCES)
 
 docker-all: $(DOCKER_BUILD_PRODUCT)
 
+docker-test: $(DOCKER_BUILD_PRODUCT)
+	docker run --rm \
+          -v "$(PWD):/src" \
+          -v "$(PWD)/$(DOCKER_BUILD_DIR):/src/.build" \
+          "$(SWIFT_BUILD_IMAGE)" \
+          bash -c 'cd /src && swift test -c $(CONFIGURATION)'
+
 docker-clean:
 	rm $(DOCKER_BUILD_PRODUCT)	
 	
