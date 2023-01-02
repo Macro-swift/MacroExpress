@@ -351,7 +351,7 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
     let id = self.id ?? {
       let oids = ObjectIdentifier(self).debugDescription
       // ObjectIdentifier(0x000000010388a610)
-      let dropPrefix = "ObjectIdentifier(0x000000"
+      let dropPrefix = "ObjectIdentifier(0x0000"
       guard oids.hasPrefix(dropPrefix) else { return oids }
       return "0x" + oids.dropFirst(dropPrefix.count).dropLast()
     }()
