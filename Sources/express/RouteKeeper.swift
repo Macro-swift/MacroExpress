@@ -3,10 +3,11 @@
 //  Noze.io / ExExpress / Macro
 //
 //  Created by Helge Heß on 6/2/16.
-//  Copyright © 2016-2021 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2023 ZeeZide GmbH. All rights reserved.
 //
 
 import typealias connect.Middleware
+import NIOHTTP1
 
 /**
  * An object which keeps routes.

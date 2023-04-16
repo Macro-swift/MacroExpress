@@ -3,11 +3,11 @@
 //  Noze.io / Macro
 //
 //  Created by Helge Heß on 30/05/16.
-//  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2023 ZeeZide GmbH. All rights reserved.
 //
 
 import class http.IncomingMessage
-
+import NIOHTTP1
 
 // TODO: the API is both crap nor really the same like Node
 

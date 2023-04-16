@@ -3,9 +3,11 @@
 //  MacroExpress / multer
 //
 //  Created by Helge Heß
-//  Copyright © 2021 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2021-2023 ZeeZide GmbH. All rights reserved.
 //
 
+#if canImport(Foundation)
+import Foundation
 import struct NIO.ByteBuffer
 import struct NIO.ByteBufferView
 import struct MacroCore.Buffer
@@ -452,3 +454,4 @@ extension MultiPartParser.Event: Equatable {
     }
   }
 }
+#endif // canImport(Foundation)
