@@ -93,4 +93,50 @@ public extension ServerResponse {
     }
     return json(object)
   }
+  
+  /**
+   * Serializes the given String array to JSON,
+   * writes it to the response, and ends the response.
+   * 
+   * If the content-type can still be assigned (no data has been written yet),
+   * the `Content-Type` header to `application/json; charset=utf-8` is set.
+   *
+   * Example:
+   * ```
+   * app.get { req, res, next in
+   *   res.json([]])
+   * }
+   * ```
+   *
+   * - Parameters:
+   *   - object: The string array to JSON encode and send to the client.
+   */
+  func json(_ stringArray: [ String ]) {
+    // Note: This is a workaround to make `json([])` work w/o warnings.
+    _ = write(stringArray)
+    end()
+  }
+  
+  /**
+   * Serializes the given String/String dictionary to JSON,
+   * writes it to the response, and ends the response.
+   *
+   * If the content-type can still be assigned (no data has been written yet),
+   * the `Content-Type` header to `application/json; charset=utf-8` is set.
+   *
+   * Example:
+   * ```
+   * app.get { req, res, next in
+   *   res.json([:]])
+   * }
+   * ```
+   *
+   * - Parameters:
+   *   - object: The string array to JSON encode and send to the client.
+   */
+  func json(_ stringDictionary: [ String : String ]) {
+    // Note: This is a workaround to make `json([:])` work w/o warnings.
+    _ = write(stringDictionary)
+    end()
+  }
 }
