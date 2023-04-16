@@ -3,10 +3,14 @@
 //  Noze.io / Macro
 //
 //  Created by Helge Heß on 6/2/16.
-//  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2023 ZeeZide GmbH. All rights reserved.
 //
 
+#if canImport(Foundation)
+  import Foundation
+#endif
 import class http.IncomingMessage
+import NIOHTTP1
 
 public extension IncomingMessage {
   
@@ -23,11 +27,12 @@ public extension IncomingMessage {
    * Contains the request parameters.
    *
    * Example:
-   *
-   *     app.use(/users/:id/view) { req, res, next in
-   *       guard let id = req.params[int: "id"]
-   *        else { return try res.sendStatus(400) }
-   *     }
+   * ```
+   * app.use(/users/:id/view) { req, res, next in
+   *   guard let id = req.params[int: "id"]
+   *    else { return try res.sendStatus(400) }
+   * }
+   * ```
    */
   var params : [ String : String ] {
     set { environment[ExpressExtKey.Params.self] = newValue }
@@ -63,8 +68,9 @@ public extension IncomingMessage {
   
   /**
    * Contains the part of the URL which matched the current route. Example:
-   *
-   *     app.get("/admin/index") { ... }
+   * ```
+   * app.get("/admin/index") { ... }
+   * ```
    *
    * when this is invoked with "/admin/index/hello/world", the baseURL will
    * be "/admin/index".
@@ -87,23 +93,35 @@ public extension IncomingMessage {
    * the type.
    *
    * Example:
+   * ```
+   * app.get("/index") { req, res, next in
+   *   if req.accepts("json") != nil {
+   *     try res.json(todos.getAll())
+   *   }
+   *   else { try res.send("Hello World!") }
+   * }
+   * ```
    *
-   *     app.get("/index") { req, res, next in
-   *       if req.accepts("json") != nil {
-   *         try res.json(todos.getAll())
-   *       }
-   *       else { try res.send("Hello World!") }
-   *     }
+   * - Parameters:
+   *   - contentType: The content-type look for in the `Accept` header
+   * - Returns: The value of the matching content-type part.
    */
   @inlinable
-  func accepts(_ s: String) -> String? {
+  func accepts(_ contentType: String) -> String? {
     // TODO: allow array values
     for acceptHeader in headers["Accept"] {
       // FIXME: naive and incorrect implementation :-)
       // TODO: parse quality, patterns, etc etc
       let acceptedTypes = acceptHeader.split(separator: ",")
       for mimeType in acceptedTypes {
-        if mimeType.contains(s) { return String(mimeType) }
+        #if canImport(Foundation)
+          if mimeType.contains(contentType) { return String(mimeType) }
+        #else // prefix match if Foundation is missing
+          let length = contentType.count
+          if mimeType.count >= length && mimeType.prefix(length) == s {
+            return String(mimeType)
+          }
+        #endif
       }
     }
     return nil
@@ -116,11 +134,17 @@ public extension IncomingMessage {
    * implementation being used.
    *
    * Example:
+   * ```
+   * app.use { req, res, next in
+   *   guard req.is("application/json") else { return next() }
+   *   // deal with JSON
+   * }
+   * ```
    *
-   *     app.use { req, res, next in
-   *       guard req.is("application/json") else { return next() }
-   *       // deal with JSON
-   *     }
+   * - Parameters:
+   *   - pattern: The type to check for, does a prefix or contains match on the
+   *              `Content-Type` header. Lowercased first.
+   * - Returns: `true` if the header matched.
    */
   @inlinable
   func `is`(_ pattern: String) -> Bool {

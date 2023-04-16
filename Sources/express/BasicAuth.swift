@@ -3,9 +3,12 @@
 //  Macro
 //
 //  Created by Helge Heß on 6/3/16.
-//  Copyright © 2020 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2020-2023 ZeeZide GmbH. All rights reserved.
 //
 
+#if canImport(Foundation)
+  import Foundation
+#endif
 import http
 import protocol MacroCore.EnvironmentKey
 
@@ -17,12 +20,14 @@ public extension BasicAuthModule {
   
   typealias Credentials = http.BasicAuthModule.Credentials
   
-  @inlinable
-  static func auth(_ req: IncomingMessage, encoding: String.Encoding = .utf8)
-                throws -> Credentials
-  {
-    return try http.BasicAuthModule.auth(req, encoding: encoding)
-  }
+  #if canImport(Foundation) // String.Encoding.utf8, provide alternative
+    @inlinable
+    static func auth(_ req: IncomingMessage, encoding: String.Encoding = .utf8)
+                  throws -> Credentials
+    {
+      return try http.BasicAuthModule.auth(req, encoding: encoding)
+    }
+  #endif // canImport(Foundation)
 
   typealias SyncAuthorizer  = (_ user: String, _ password: String ) -> Bool
   typealias AsyncAuthorizer = (_ user: String, _ password: String,
@@ -36,11 +41,22 @@ public extension BasicAuthModule {
     }
     
     public var realm      : String?
-    public var users      : [ String : String ] = [:]
-    public var authorizer : Authorizer = .none
+    public var users      : [ String : String ]
+    public var authorizer : Authorizer
     public var challenge  = true
     
     public var unauthorizedResponse : (( IncomingMessage ) -> String)?
+    
+    public init(realm: String? = nil, users: [String : String] = [:],
+                authorizer: Authorizer = .none, challenge: Bool = true,
+                unauthorizedResponse: ((IncomingMessage) -> String)? = nil)
+    {
+      self.realm                = realm
+      self.users                = users
+      self.authorizer           = authorizer
+      self.challenge            = challenge
+      self.unauthorizedResponse = unauthorizedResponse
+    }
   }
   
   /**
@@ -48,30 +64,39 @@ public extension BasicAuthModule {
    * authentication is successful.
    *
    * Basic usage:
+   * ```
+   * app.use(expressBasicAuth.basicAuth(users: [
+   *   "admin": "supersecret"
+   * ]))
    *
-   *     app.use(expressBasicAuth.basicAuth(users: [
-   *       "admin": "supersecret"
-   *     ]))
-   *
-   *     app.use { req, res, next in
-   *       console.log("user is authorized:", req.authenticatedBasicAuthUser)
-   *     }
+   * app.use { req, res, next in
+   *   console.log("user is authorized:", req.authenticatedBasicAuthUser)
+   * }
+   * ```
    *
    * Using a custom authenticator:
-   *
-   *     app.use(expressBasicAuth.basicAuth { login, password in
-   *       return login == "admin" && password == "supersecret"
-   *     })
+   * ```
+   * app.use(expressBasicAuth.basicAuth { login, password in
+   *   return login == "admin" && password == "supersecret"
+   * })
+   * ```
    *
    * Asynchronous authentication:
+   * ```
+   * app.use(expressBasicAuth.basicAuth { login, password, yield in
+   *   yield(nil, login == "admin" && password == "supersecret")
+   * })
+   * ```
    *
-   *     app.use(expressBasicAuth.basicAuth { login, password, yield in
-   *       yield(nil, login == "admin" && password == "supersecret")
-   *     })
-   *
+   * - Parameters:
+   *   - options:    The configuration for the authentication, see ``Options``.
+   *   - users:      An optional dictionary of users/passwords to run the auth
+   *                 against (convenience argument, also available via ``Options``).
+   *   - authorizer: An optional, synchronous, authorization function
+   *                 (convenience argument, also available via ``Options``).
    */
   @inlinable
-  static func basicAuth(_ options  : Options,
+  static func basicAuth(_ options  : Options = Options(),
                         users      : [ String: String ]? = nil,
                         authorizer : SyncAuthorizer?     = nil)
               -> Middleware
