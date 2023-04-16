@@ -41,11 +41,22 @@ public extension BasicAuthModule {
     }
     
     public var realm      : String?
-    public var users      : [ String : String ] = [:]
-    public var authorizer : Authorizer = .none
+    public var users      : [ String : String ]
+    public var authorizer : Authorizer
     public var challenge  = true
     
     public var unauthorizedResponse : (( IncomingMessage ) -> String)?
+    
+    public init(realm: String? = nil, users: [String : String] = [:],
+                authorizer: Authorizer = .none, challenge: Bool = true,
+                unauthorizedResponse: ((IncomingMessage) -> String)? = nil)
+    {
+      self.realm                = realm
+      self.users                = users
+      self.authorizer           = authorizer
+      self.challenge            = challenge
+      self.unauthorizedResponse = unauthorizedResponse
+    }
   }
   
   /**
@@ -85,7 +96,7 @@ public extension BasicAuthModule {
    *                 (convenience argument, also available via ``Options``).
    */
   @inlinable
-  static func basicAuth(_ options  : Options,
+  static func basicAuth(_ options  : Options = Options(),
                         users      : [ String: String ]? = nil,
                         authorizer : SyncAuthorizer?     = nil)
               -> Middleware
