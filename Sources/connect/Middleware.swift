@@ -3,7 +3,7 @@
 //  Noze.io / Macro
 //
 //  Created by Helge Heß on 5/3/16.
-//  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2023 ZeeZide GmbH. All rights reserved.
 //
 
 import class http.IncomingMessage
@@ -20,13 +20,13 @@ public typealias Next = ( Any... ) -> Void
 /**
  * Middleware are just functions that deal with HTTP transactions.
  *
- * They take a request (`IncomingMessage`) and response (`ServerResponse`)
+ * They take a request (``IncomingMessage``) and response (``ServerResponse``)
  * object as well as a closure to signal whether they fully handled the request
  * or whether the respective "Router" (e.g. Connect) should run the next
  * middleware.
  *
- * Call `Next` when the request processing needs to continue, just return if the
- * request was fully processed.
+ * Call ``Next`` when the request processing needs to continue, just return if
+ * the request was fully processed.
  */
 public typealias Middleware =
                    ( IncomingMessage, ServerResponse, @escaping Next )
