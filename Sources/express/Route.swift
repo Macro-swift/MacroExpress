@@ -348,13 +348,9 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
   
   private var logPrefix : String {
     let logPrefixPad = 20
-    let id = self.id ?? {
-      let oids = ObjectIdentifier(self).debugDescription
-      // ObjectIdentifier(0x000000010388a610)
-      let dropPrefix = "ObjectIdentifier(0x0000"
-      guard oids.hasPrefix(dropPrefix) else { return oids }
-      return "0x" + oids.dropFirst(dropPrefix.count).dropLast()
-    }()
+    let id = self.id ?? (
+      "0x" + String(Int(bitPattern: ObjectIdentifier(self)), radix: 16)
+    )
     let p  = id
     let ids = p.count < logPrefixPad
       ? p + String(repeating: " ", count: logPrefixPad - p.count)
