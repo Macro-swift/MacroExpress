@@ -31,3 +31,13 @@ public typealias Next = ( Any... ) -> Void
 public typealias Middleware =
                    ( IncomingMessage, ServerResponse, @escaping Next )
                    throws -> Void
+
+/**
+ * Middleware are just functions that deal with HTTP transactions.
+ * `FinalMiddleware` is middleware that always ends the response, i.e. would
+ * never call the ``Next`` completion handler of regular ``Middleware``.
+ *
+ * They take a request (``IncomingMessage``) and response (``ServerResponse``).
+ */
+public typealias FinalMiddleware =
+                   ( IncomingMessage, ServerResponse ) throws -> Void
