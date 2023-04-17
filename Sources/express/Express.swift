@@ -3,7 +3,7 @@
 //  Noze.io / ExExpress / Macro
 //
 //  Created by Helge Heß on 6/2/16.
-//  Copyright © 2016-2022 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2023 ZeeZide GmbH. All rights reserved.
 //
 
 import struct   Logging.Logger
@@ -37,7 +37,7 @@ import class    http.ServerResponse
  *
  *     let app = Express()
  *     app.use("/index") {
- *       req, res, _ in res.render("index")
+ *       req, res in res.render("index")
  *     }
  *
  *
