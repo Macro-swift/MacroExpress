@@ -329,12 +329,34 @@ public enum bodyParser {
    * Options for use in request body parsers.
    */
   public class Options {
-    public var inflate  = false
-    public var limit    = 100 * 1024
-    public var extended = true
+    
+    /// Whether the body should be decompressed.
+    /// Unsupported yet.
+    public let inflate  = false
+    
+    /// The maximum number of bytes that will be loaded into memory.
+    /// Defaults to just 100kB, must be explicitly set if larger
+    /// bodies are allowed! (also consider using multer).
+    public var limit    : Int
+    
+    /// If set, `qs.parse` is used to parse URL parameters, otherwise
+    /// `querystring.parse` is used.
+    public var extended : Bool
 
+    /**
+     * Setup ``bodyParser`` options.
+     *
+     * - Parameters:
+     *   - limit:    The maximum number of bytes that will be loaded into memory
+     *               (defaults to just 100kB, explictly set for larger bodies!).
+     *   - extended: Whether to use `qs.parse` or `querystring.parse` for
+     *               URL encoded parameters.
+     */
     @inlinable
-    public init() {}
+    public init(limit: Int = 100_000, extended: Bool = true) {
+      self.limit    = limit
+      self.extended = extended
+    }
   }
 
   fileprivate enum BodyKey: EnvironmentKey {
@@ -425,7 +447,7 @@ public extension bodyParser {
       
         case .notParsed:
           // lame, should be streaming
-          concatError(request: req, next: next) { bytes in
+          concatError(request: req, limit: opts.limit, next: next) { bytes in
             setBodyIfNotNil(JSONModule.parse(bytes))
             return nil
           }
@@ -454,12 +476,13 @@ public extension bodyParser {
 //        state
 
 private func concatError(request : IncomingMessage,
+                         limit   : Int,
                          next    : @escaping Next,
                          handler : @escaping ( Buffer ) -> Swift.Error?)
 {
   var didCallNext = false // used to share the error state
   
-  request | concat { bytes in
+  request | concat(maximumSize: limit) { bytes in
     guard !didCallNext else { return }
     if let error = handler(bytes) {
       next(error)
@@ -507,7 +530,7 @@ public extension bodyParser {
           return next() // already loaded
         
         case .notParsed:
-          concatError(request: req, next: next) { bytes in
+          concatError(request: req, limit: opts.limit, next: next) { bytes in
             req.body = .raw(bytes)
             return nil
           }
@@ -556,7 +579,7 @@ public extension bodyParser {
           return next() // already loaded
         
         case .notParsed:
-          concatError(request: req, next: next) { bytes in
+          concatError(request: req, limit: opts.limit, next: next) { bytes in
             do {
               req.body = .text(try bytes.toString())
               return nil
@@ -630,7 +653,7 @@ public extension bodyParser {
           return next() // already loaded
 
         case .notParsed:
-          concatError(request: req, next: next) { bytes in
+          concatError(request: req, limit: opts.limit, next: next) { bytes in
             do {
               let s    = try bytes.toString()
               let qp   = opts.extended ? qs.parse(s) : querystring.parse(s)
