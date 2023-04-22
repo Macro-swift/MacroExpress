@@ -3,7 +3,7 @@
 //  Noze.io / MacroExpress
 //
 //  Created by Helge Heß on 30/05/16.
-//  Copyright © 2016-2021 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2023 ZeeZide GmbH. All rights reserved.
 //
 
 import MacroCore // for `|` operator
@@ -13,27 +13,81 @@ import protocol MacroCore.EnvironmentKey
 import func     MacroCore.concat
 import enum     http.querystring
 
-/// An enum which stores the result of the `bodyParser` middleware. The result
-/// can be accessed as `request.body`, e.g.
-///
-///     if case .JSON(let json) = request.body {
-///       // do JSON stuff
-///     }
-///
+/**
+ * An enum which stores the result of the ``bodyParser`` middleware.
+ *
+ * The parsing result enum can be accessed using the ``IncomingMessage/body``
+ * property:
+ * ```
+ * if case .JSON(let json) = request.body {
+ *   // do JSON stuff
+ * }
+ * ```
+ *
+ * The enum has a set of convenience helper properties/functions to access the
+ * body using the expected format, e.g.:
+ * - `json`: e.g. `if let json = request.body.json as? [ String : Any ] {}`
+ * - `text`: e.g. `if let text = request.body.text {}`
+ *
+ * Those things "coerce", e.g. one can access a body that was transfered
+ * URL encoded as "JSON".
+ *
+ * If the body is structured, keys can be looked up directly on the body,
+ * e.g. if the body is JSON like this (or similar URL encoded):
+ * ```json
+ * { "answer": 42, "years": [ 1973, 1976 ] }
+ * ```
+ * It can be retrieved like:
+ * ```
+ * request.body.answer as? Int
+ * request.body.count   // 2
+ * request.body.isEmpty // false
+ * ```
+ *
+ * It also provides a set of subscripts:
+ * ```
+ * request.body["answer"]         //  42  (`Any?`)
+ * request.body[int: "answer"]    //  42  (`Int?`)
+ * request.body[string: "answer"] // "42" (`String`)
+ * ```
+ */
 @dynamicMemberLookup
 public enum BodyParserBody {
   
+  /// The request has not been parsed yet by the ``bodyParser`` middleware.
   case notParsed
+  
+  /// The request doesn't contain a body.
   case noBody // IsPerfect
+  
+  /// An error occurred while parsing the body.
   case error(Swift.Error)
   
+  /// The body was URL encoded, the associated value is the pair of URL encoded
+  /// parameters.
   case urlEncoded([ String : Any ])
   
+  /// The body was decoded as JSON, the associated value contains the
+  /// JSON structure.
   case json(Any)
   
+  /// The body was decoded as raw bytes.
   case raw(Buffer)
+  
+  /// The body was decoded as text and could be converted to a Swift String.
   case text(String)
   
+  /**
+   * Lookup a value of a key/value based format directly on the `body`,
+   * e.g. if the body is JSON like this:
+   * ```json
+   * { "answer": 42 }
+   * ```
+   * It can be retrieved like:
+   * ```
+   * if let answer = request.body.answer as? Int {}
+   * ```
+   */
   @inlinable
   public subscript(dynamicMember k: String) -> Any? {
     return self[k]
@@ -42,6 +96,12 @@ public enum BodyParserBody {
 
 public extension BodyParserBody {
   
+  /**
+   * Returns the body as basic "JSON types", i.e. strings, dicts, arrays etc.
+   *
+   * It is not actually limited to JSON, but also returns a value for `text`
+   * and `urlEncoded` bodies.
+   */
   @inlinable
   var json: Any? {
     switch self {
@@ -76,6 +136,17 @@ public extension BodyParserBody {
 
 public extension BodyParserBody {
   
+  /**
+   * Returns whether the body is "empty".
+   *
+   * It is considered empty if:
+   * - it hasn't been parsed yet, had no body, or there was an error
+   * - if it was URL encoded and the resulting dictionary is empty
+   * - if it was JSON and the resulting `[String:Any]` dictionary or `[Any]`
+   *   array was emtpy (returns false for all other content).
+   * - if the body was raw data and that's empty
+   * - if the body was a String and that's empty
+   */
   @inlinable
   var isEmpty: Bool {
     switch self {
@@ -92,6 +163,18 @@ public extension BodyParserBody {
     }
   }
   
+  /**
+   * Returns whether the number of top-level items in the body.
+   *
+   * - Returns 0 if it hasn't been parsed yet, had no body, or there was an
+   *   error.
+   * - If it was URL encoded, returns the number of items in the decoded
+   *   dictionary.
+   * - If it was JSON and the result was a `[String:Any]` dictionary or `[Any]`
+   *   array, the count of that, otherwise 1.
+   * - The number of bytes in a raw data body.
+   * - The number of characters in a Strign body.
+   */
   @inlinable
   var count: Int {
     switch self {
@@ -111,6 +194,11 @@ public extension BodyParserBody {
 
 public extension BodyParserBody {
   
+  /**
+   * Lookup the value for a key in either a URL encoded dictionary,
+   * or in a `[ String : Any ]` JSON dictionary.
+   * Returns `nil` for everything else.
+   */
   @inlinable
   subscript(key: String) -> Any? {
     switch self {
@@ -125,6 +213,14 @@ public extension BodyParserBody {
     }
   }
   
+  /**
+   * Lookup the value for a key in either a URL encoded dictionary,
+   * or in a `[ String : Any ]` JSON dictionary,
+   * and convert that to a String.
+   * Returns an empty String if the key was not found,
+   * the value if it was a String already,
+   * otherwise the CustomStringConvertible or system description.
+   */
   @inlinable
   subscript(string key: String) -> String {
     get {
@@ -136,8 +232,14 @@ public extension BodyParserBody {
   }
   
   /**
-   * Lookup the given key in either URL parameters or JSON and try to
-   * coerce it to an Int.
+   * Lookup the value for a key in either a URL encoded dictionary,
+   * or in a `[ String : Any ]` JSON dictionary,
+   * and convert that to an `Int`, if possible..
+   * Returns `nil` if the key was not found,
+   * the value if it was an `Int` / `Int64` already,
+   * the `Int(double)` value for a `Double`,
+   * and the `Int(string)` parse result for a `String`.
+   * Or `nil` for all other types.
    */
   @inlinable
   subscript(int key: String) -> Int? {
@@ -202,14 +304,17 @@ extension BodyParserBody : CustomStringConvertible {
 
 extension BodyParserBody : ExpressibleByStringLiteral {
 
+  /// Create a `text` body.
   @inlinable
   public init(stringLiteral value: String) {
     self = .text(value)
   }
+  /// Create a `text` body.
   @inlinable
   public init(extendedGraphemeClusterLiteral value: StringLiteralType) {
     self = .text(value)
   }
+  /// Create a `text` body.
   @inlinable
   public init(unicodeScalarLiteral value: StringLiteralType) {
     self = .text(value)
@@ -224,9 +329,9 @@ public enum bodyParser {
    * Options for use in request body parsers.
    */
   public class Options {
-    let inflate  = false
-    let limit    = 100 * 1024
-    let extended = true
+    public var inflate  = false
+    public var limit    = 100 * 1024
+    public var extended = true
 
     @inlinable
     public init() {}
@@ -249,6 +354,24 @@ public enum BodyParserError : Error {
 
 public extension IncomingMessage {
   
+  /**
+   * Returns the ``BodyParserBody`` associated with the request,
+   * i.e. the result of the ``bodyParser`` middleware.
+   * If the middleware wasn't invoked, this will return
+   * ``BodyParserBody/notParsed``
+   *
+   * There is a set of convenience helpers to deal with the result:
+   * ```
+   * request.json                   // "JSON" types wrapped in `Any`
+   * request.text                   // "Hello"
+   * request.body.answer as? Int
+   * request.body.count             // 2
+   * request.body.isEmpty           // false
+   * request.body["answer"]         //  42  (`Any?`)
+   * request.body[int: "answer"]    //  42  (`Int?`)
+   * request.body[string: "answer"] // "42" (`String`)
+   * ```
+   */
   var body: BodyParserBody {
     set { environment[bodyParser.BodyKey.self] = newValue }
     get { return environment[bodyParser.BodyKey.self] }
@@ -264,18 +387,20 @@ public extension IncomingMessage {
 
 public extension bodyParser {
   
-  /// This middleware parses the request body if the content-type is JSON,
-  /// and pushes the the JSON parse result into the `body` property of the
-  /// request.
-  ///
-  /// Example:
-  ///
-  ///     app.use(bodyParser.json())
-  ///     app.use { req, res, next in
-  ///       print("Log JSON Body: \(req.body.json)")
-  ///       next()
-  ///     }
-  ///
+  /** This middleware parses the request body if the content-type is JSON,
+   * and pushes the the JSON parse result into the `body` property of the
+   * request.
+   *
+   * Example:
+   * ```
+   * app.use(bodyParser.json()) // loads and parses the request
+   * app.use { req, res, next in
+   *   console.log("Log JSON Body:", req.body.json)
+   *   console.log("Answer:", req.body.answer)
+   *   next()
+   * }
+   * ```
+   */
   static func json(options opts: Options = Options()) -> Middleware {
     
     return { req, res, next in
@@ -332,7 +457,7 @@ private func concatError(request : IncomingMessage,
                          next    : @escaping Next,
                          handler : @escaping ( Buffer ) -> Swift.Error?)
 {
-  var didCallNext = false
+  var didCallNext = false // used to share the error state
   
   request | concat { bytes in
     guard !didCallNext else { return }
@@ -361,14 +486,16 @@ public extension bodyParser {
    * Note: Make sure to place this middleware behind other middleware parsing
    *       more specific content types!
    *
-   * # Usage
+   * ## Usage
    *
-   *     app.use(bodyParser.raw())
+   * ```
+   * app.use(bodyParser.raw()) // load the content, similar to `concat`
    *
-   *     app.post("/post") { req, res, next in
-   *       console.log("Request body is:", req.body)
-   *       next()
-   *     }
+   * app.post("/post") { req, res, next in
+   *   console.log("Request body is:", req.body)
+   *   next()
+   * }
+   * ```
    *
    * - Parameter options: The options to be used for parsing.
    * - Returns: A middleware which does the parsing as described.
@@ -405,14 +532,15 @@ public extension bodyParser {
    * Note: Make sure to place this middleware behind other middleware parsing
    *       more specific content types!
    *
-   * # Usage
+   * ## Usage
+   * ```
+   * app.use(bodyParser.text()) // load and parse the request
    *
-   *     app.use(bodyParser.text())
-   *
-   *     app.post("/post") { req, res, next in
-   *       console.log("Request text is:", req.text)
-   *       next()
-   *     }
+   * app.post("/post") { req, res, next in
+   *   console.log("Request text is:", req.text)
+   *   next()
+   * }
+   * ```
    *
    * - Parameter options: The options to be used for parsing.
    * - Returns: A middleware which does the parsing as described.
@@ -475,14 +603,17 @@ public extension bodyParser {
    * The results of the parsing are available using the `request.body` enum.
    * If the parsing fails, that will be set to the `.error` case.
    *
-   * # Usage
+   * ## Usage
    *
-   *     app.use(bodyParser.urlencoded())
+   * ```
+   * app.use(bodyParser.urlencoded()) // load an parse the request
    *
-   *     app.post("/post") { req, res, next in
-   *       console.log("Query is:", req.body[string: "query"])
-   *       next()
-   *     }
+   * app.post("/post") { req, res, next in
+   *   console.log("Query is:", req.body[string: "query"])
+   *   console.log("Query is:", req.body.query)
+   *   next()
+   * }
+   * ```
    *
    * - Parameter options: The options to be used for parsing. Use the `extended`
    *                      setting to enable the use of `qs.parse`.
