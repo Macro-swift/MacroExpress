@@ -41,3 +41,42 @@ public typealias Middleware =
  */
 public typealias FinalMiddleware =
                    ( IncomingMessage, ServerResponse ) throws -> Void
+
+#if swift(>=5.5) && canImport(_Concurrency)
+
+/**
+ * Middleware are just functions that deal with HTTP transactions,
+ * this is a middleware that runs in an async context.
+ *
+ * They take a request (``IncomingMessage``) and response (``ServerResponse``)
+ * object as well as a closure to signal whether they fully handled the request
+ * or whether the respective "Router" (e.g. Connect) should run the next
+ * middleware.
+ *
+ * Call ``Next`` when the request processing needs to continue, just return if
+ * the request was fully processed.
+ *
+ * Note: Async middleware will usually start at a NIO eventloop, but then hop
+ *       over to the cooperation thread pool for Swift concurrency.
+ *       That is a convenient, but not necessarily most efficient way to do I/O.
+ */
+public typealias AsyncMiddleware =
+                   ( IncomingMessage, ServerResponse, @escaping Next )
+                   async throws -> Void
+
+/**
+ * Middleware are just functions that deal with HTTP transactions.
+ * `AsyncMiddleware` is middleware that always ends the response, i.e. would
+ * never call the ``Next`` completion handler of regular ``Middleware``.
+ * It runs as part of the cooperative concurrency threadpool.
+ *
+ * They take a request (``IncomingMessage``) and response (``ServerResponse``).
+ *
+ * Note: Async middleware will usually start at a NIO eventloop, but then hop
+ *       over to the cooperation thread pool for Swift concurrency.
+ *       That is a convenient, but not necessarily most efficient way to do I/O.
+ */
+public typealias FinalAsyncMiddleware =
+                   ( IncomingMessage, ServerResponse ) async throws -> Void
+
+#endif // Concurrency
