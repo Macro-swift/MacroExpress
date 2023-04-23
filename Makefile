@@ -55,7 +55,7 @@ $(DOCKER_BUILD_PRODUCT): $(SWIFT_SOURCES)
 
 docker-all: $(DOCKER_BUILD_PRODUCT)
 
-docker-test: $(DOCKER_BUILD_PRODUCT)
+docker-test:
 	docker run --rm \
           -v "$(PWD):/src" \
           -v "$(PWD)/$(DOCKER_BUILD_DIR):/src/.build" \
