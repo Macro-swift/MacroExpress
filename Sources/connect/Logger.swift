@@ -3,7 +3,7 @@
 //  Noze.io / Macro
 //
 //  Created by Helge Heß on 31/05/16.
-//  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2024 ZeeZide GmbH. All rights reserved.
 //
 
 import enum  MacroCore.process
@@ -169,10 +169,19 @@ private struct LogInfoProvider {
   }
 }
 
+#if os(Windows)
+  import func WinSDK.strcmp
+#elseif os(Linux)
+  import func Glibc.strcmp
+#else
+  import func Darwin.strcmp
+#endif
+
 fileprivate let shouldDoColorLogging : Bool = {
   // TODO: Add `isTTY` from Noze
   let isStdoutTTY = isatty(xsys.STDOUT_FILENO) != 0
   if !isStdoutTTY             { return false }
+  if let s = xsys.getenv("TERM"), strcmp(s, "dumb") == 0 { return false }
   if process.isRunningInXCode { return false }
   return true
 }()
