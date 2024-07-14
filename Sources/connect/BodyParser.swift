@@ -364,7 +364,7 @@ public enum bodyParser {
     {
       self.limit    = limit
       self.extended = extended
-      if let type { self.type = { typeIs($0, [ type ]) != nil } }
+      if let type = type { self.type = { typeIs($0, [ type ]) != nil } }
     }
   }
 
