@@ -3,7 +3,7 @@
 //  Noze.io / Macro
 //
 //  Created by Helge Heß on 6/2/16.
-//  Copyright © 2016-2023 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2024 ZeeZide GmbH. All rights reserved.
 //
 
 #if canImport(Foundation)
@@ -28,7 +28,7 @@ public extension IncomingMessage {
    *
    * Example:
    * ```
-   * app.use(/users/:id/view) { req, res, next in
+   * app.use("/users/:id/view") { req, res, next in
    *   guard let id = req.params[int: "id"]
    *    else { return try res.sendStatus(400) }
    * }

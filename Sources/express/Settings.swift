@@ -3,7 +3,7 @@
 //  Noze.io / Macro
 //
 //  Created by Helge Heß on 02/06/16.
-//  Copyright © 2016-2021 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2024 ZeeZide GmbH. All rights reserved.
 //
 
 /**
@@ -122,6 +122,9 @@ func boolValue(_ v : Any) -> Bool {
   // TODO: this should be some Foundation like thing
   if let b = v as? Bool   { return b      }
   if let b = v as? Int    { return b != 0 }
+  #if swift(>=5.10)
+  if let i = (v as? any BinaryInteger) { return Int(i) != 0 }
+  #endif
   if let s = v as? String {
     switch s.lowercased() {
       case "no", "false", "0", "disable": return false

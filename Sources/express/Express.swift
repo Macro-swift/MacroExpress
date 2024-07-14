@@ -3,7 +3,7 @@
 //  Noze.io / ExExpress / Macro
 //
 //  Created by Helge Heß on 6/2/16.
-//  Copyright © 2016-2023 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2024 ZeeZide GmbH. All rights reserved.
 //
 
 import struct   Logging.Logger
@@ -320,6 +320,9 @@ public extension Dictionary where Key : ExpressibleByStringLiteral {
   subscript(int key : Key) -> Int? {
     guard let v = self[key] else { return nil }
     if let i = (v as? Int) { return i }
+    #if swift(>=5.10)
+    if let i = (v as? any BinaryInteger) { return Int(i) }
+    #endif
     return Int("\(v)")
   }
 }

@@ -3,7 +3,7 @@
 //  Noze.io / Macro
 //
 //  Created by Helge Heß on 6/16/16.
-//  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2024 ZeeZide GmbH. All rights reserved.
 //
 
 import let      MacroCore.console
@@ -154,8 +154,11 @@ public class Session {
   
   public subscript(int key: String) -> Int {
     guard let v = values[key] else { return 0 }
-    guard let iv = v as? Int  else { return 0 }
-    return iv
+    if let iv = v as? Int { return iv }
+    #if swift(>=5.10)
+    if let i = (v as? any BinaryInteger) { return Int(i) }
+    #endif
+    return Int("\(v)") ?? 0
   }
 }
 
