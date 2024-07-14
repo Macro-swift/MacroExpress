@@ -342,7 +342,11 @@ public enum bodyParser {
     /// If set, `qs.parse` is used to parse URL parameters, otherwise
     /// `querystring.parse` is used.
     public var extended : Bool
-
+    
+    /// If set, this is used to check whether a bodyParser should run for a
+    /// given request.
+    public var type     : (( IncomingMessage ) -> Bool)?
+    
     /**
      * Setup ``bodyParser`` options.
      *
@@ -351,17 +355,31 @@ public enum bodyParser {
      *               (defaults to just 100kB, explictly set for larger bodies!).
      *   - extended: Whether to use `qs.parse` or `querystring.parse` for
      *               URL encoded parameters.
+     *   - type:     Override the default MIME type of the request that is being
+     *               checked.
      */
     @inlinable
-    public init(limit: Int = 100_000, extended: Bool = true) {
+    public init(limit: Int = 100_000, extended: Bool = true,
+                type: String? = nil)
+    {
       self.limit    = limit
       self.extended = extended
+      if let type { self.type = { typeIs($0, [ type ]) != nil } }
     }
   }
 
   fileprivate enum BodyKey: EnvironmentKey {
     static let defaultValue : BodyParserBody = .notParsed
     static let loggingKey   = "body"
+  }
+}
+
+fileprivate extension bodyParser.Options {
+  
+  func checkType(_ req: IncomingMessage, defaultType: String? = nil) -> Bool {
+    if let type        { return type(req)                           }
+    if let defaultType { return typeIs(req, [ defaultType ]) != nil }
+    return true
   }
 }
 
@@ -426,7 +444,7 @@ public extension bodyParser {
   static func json(options opts: Options = Options()) -> Middleware {
     
     return { req, res, next in
-      guard typeIs(req, [ "json" ]) != nil else { return next() }
+      guard opts.checkType(req, defaultType: "json") else { return next() }
       
       struct CouldNotParseJSON: Swift.Error {}
       
@@ -525,6 +543,7 @@ public extension bodyParser {
    */
   static func raw(options opts: Options = Options()) -> Middleware {
     return { req, res, next in
+      guard opts.checkType(req) else { return next() }
       switch req.body {
         case .raw, .noBody, .error:
           return next() // already loaded
@@ -572,7 +591,7 @@ public extension bodyParser {
     return { req, res, next in
       // text/plain, text/html etc
       // TODO: properly process charset parameter, this assumes UTF-8
-      guard typeIs(req, [ "text" ]) != nil else { return next() }
+      guard opts.checkType(req, defaultType: "text") else { return next() }
       
       switch req.body {
         case .text, .noBody, .error:
@@ -644,9 +663,8 @@ public extension bodyParser {
    */
   static func urlencoded(options opts: Options = Options()) -> Middleware {
     return { req, res, next in
-      guard typeIs(req, [ "application/x-www-form-urlencoded" ]) != nil else {
-        return next()
-      }
+      guard opts.checkType(req,
+        defaultType: "application/x-www-form-urlencoded") else { return next() }
       
       switch req.body {
         case .urlEncoded, .noBody, .error:
