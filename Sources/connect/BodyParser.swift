@@ -377,8 +377,10 @@ public enum bodyParser {
 fileprivate extension bodyParser.Options {
   
   func checkType(_ req: IncomingMessage, defaultType: String? = nil) -> Bool {
-    if let type        { return type(req)                           }
-    if let defaultType { return typeIs(req, [ defaultType ]) != nil }
+    if let type = type { return type(req) }
+    if let defaultType = defaultType {
+      return typeIs(req, [ defaultType ]) != nil
+    }
     return true
   }
 }
