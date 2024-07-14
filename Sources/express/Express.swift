@@ -289,7 +289,7 @@ enum ExpressExtKey {
    */
   enum Params: EnvironmentKey {
     // TBD: Should the value be `Any`?
-    static let defaultValue : [ String : String ] = [:]
+    static let defaultValue = IncomingMessage.Params([:])
     static let loggingKey   = "params"
   }
   
@@ -297,7 +297,7 @@ enum ExpressExtKey {
    * The query parameters as parsed by the `qs.parse` function.
    */
   enum Query: EnvironmentKey {
-    static let defaultValue : [ String : Any ]? = nil
+    static let defaultValue : IncomingMessage.Query? = nil
     static let loggingKey   = "query"
   }
 
@@ -309,7 +309,7 @@ enum ExpressExtKey {
    * Traditionally `locals` was used to store Stringly-typed keys & values.
    */
   enum Locals: EnvironmentKey {
-    static let defaultValue : [ String : Any ] = [:]
+    static let defaultValue : ServerResponse.Locals = .init([:])
     static let loggingKey   = "locals"
   }
 }

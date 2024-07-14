@@ -12,8 +12,12 @@
 import class http.IncomingMessage
 import NIOHTTP1
 
+
 public extension IncomingMessage {
   
+  typealias Params = ExpressWrappedDictionary<String>
+  typealias Query  = ExpressWrappedDictionary<Any>
+
   // TODO: baseUrl, originalUrl, path
   // TODO: hostname, ip, ips, protocol
   
@@ -34,15 +38,15 @@ public extension IncomingMessage {
    * }
    * ```
    */
-  var params : [ String : String ] {
+  var params : Params {
     set { environment[ExpressExtKey.Params.self] = newValue }
     get { return environment[ExpressExtKey.Params.self] }
   }
-  
+
   /**
    * Returns the query parameters as parsed by the `qs.parse` function.
    */
-  var query : [ String : Any ] {
+  var query : Query {
     if let q = environment[ExpressExtKey.Query.self] { return q }
     
     // this should be filled by Express when the request arrives. It depends on
@@ -57,13 +61,13 @@ public extension IncomingMessage {
     // FIXME: improve parser (fragments?!)
     // TBD: just use Foundation?!
     guard let idx = url.firstIndex(of: "?") else {
-      environment[ExpressExtKey.Query.self] = [:]
-      return [:]
+      environment[ExpressExtKey.Query.self] = .init([:])
+      return Query([:])
     }
     let q  = url[url.index(after: idx)...]
     let qp = qs.parse(String(q))
-    environment[ExpressExtKey.Query.self] = qp
-    return qp
+    environment[ExpressExtKey.Query.self] = .init(qp)
+    return Query(qp)
   }
   
   /**

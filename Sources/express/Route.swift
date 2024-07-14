@@ -169,7 +169,7 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
       }
     }()
     
-    let params    : [ String : String ]
+    let params    : IncomingMessage.Params
     let matchPath : String?
     if let pattern = urlPattern { // this route has a path pattern assigned
       var newParams = req.params // TBD
