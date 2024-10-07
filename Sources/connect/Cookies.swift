@@ -94,6 +94,34 @@ public final class Cookies {
   }
 }
 
+extension Cookies: CustomStringConvertible {
+  public var description: String {
+    var ms = "<Cookies:"
+    if cookies.isEmpty {
+      if let res = res {
+        if let c = res.getHeader("Set-Cookie") {
+          ms += " no-cookies, response w/ setCookie: \(c)"
+        }
+        else if let c = res.getHeader("Cookie") {
+          ms += " no-cookies, response w/ Cookie: \(c)"
+        }
+        else {
+          ms += " no-cookies, response w/o Cookie headers"
+        }
+      }
+      else {
+        ms += " no-cookies, no-response"
+      }
+    }
+    else {
+      ms += " "
+      ms += String(cookies.keys.joined(separator: ","))
+    }
+    ms += ">"
+    return ms
+  }
+}
+
 public let cookies = Cookies.self
 
 // MARK: - Internals
