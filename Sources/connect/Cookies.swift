@@ -94,6 +94,34 @@ public final class Cookies {
   }
 }
 
+extension Cookies: CustomStringConvertible {
+  public var description: String {
+    var ms = "<Cookies:"
+    if cookies.isEmpty {
+      if let res = res {
+        if let c = res.getHeader("Set-Cookie") {
+          ms += " no-cookies, response w/ setCookie: \(c)"
+        }
+        else if let c = res.getHeader("Cookie") {
+          ms += " no-cookies, response w/ Cookie: \(c)"
+        }
+        else {
+          ms += " no-cookies, response w/o Cookie headers"
+        }
+      }
+      else {
+        ms += " no-cookies, no-response"
+      }
+    }
+    else {
+      ms += " "
+      ms += String(cookies.keys.joined(separator: ","))
+    }
+    ms += ">"
+    return ms
+  }
+}
+
 public let cookies = Cookies.self
 
 // MARK: - Internals
@@ -229,9 +257,9 @@ extension String {
     let splits = utf8.split(separator: c, maxSplits: 1)
     guard splits.count > 1 else { return ( self, "" ) }
     assert(splits.count == 2, "max split was 1, but got more items?")
-    // TODO: using describing here is wrong
-    let s0 = splits[0], s1 = splits[1]
-    return ( String(describing: s0), String(describing: s1) )
+    let s0 : UTF8View.SubSequence = splits[0], s1 = splits[1]
+    return ( String(decoding: s0, as: UTF8.self),
+             String(decoding: s1, as: UTF8.self) )
   }
 }
 

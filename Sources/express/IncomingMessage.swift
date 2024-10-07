@@ -3,7 +3,7 @@
 //  Noze.io / Macro
 //
 //  Created by Helge Heß on 6/2/16.
-//  Copyright © 2016-2023 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2024 ZeeZide GmbH. All rights reserved.
 //
 
 #if canImport(Foundation)
@@ -12,8 +12,12 @@
 import class http.IncomingMessage
 import NIOHTTP1
 
+
 public extension IncomingMessage {
   
+  typealias Params = ExpressWrappedDictionary<String>
+  typealias Query  = ExpressWrappedDictionary<Any>
+
   // TODO: baseUrl, originalUrl, path
   // TODO: hostname, ip, ips, protocol
   
@@ -28,21 +32,21 @@ public extension IncomingMessage {
    *
    * Example:
    * ```
-   * app.use(/users/:id/view) { req, res, next in
+   * app.use("/users/:id/view") { req, res, next in
    *   guard let id = req.params[int: "id"]
    *    else { return try res.sendStatus(400) }
    * }
    * ```
    */
-  var params : [ String : String ] {
+  var params : Params {
     set { environment[ExpressExtKey.Params.self] = newValue }
     get { return environment[ExpressExtKey.Params.self] }
   }
-  
+
   /**
    * Returns the query parameters as parsed by the `qs.parse` function.
    */
-  var query : [ String : Any ] {
+  var query : Query {
     if let q = environment[ExpressExtKey.Query.self] { return q }
     
     // this should be filled by Express when the request arrives. It depends on
@@ -57,13 +61,13 @@ public extension IncomingMessage {
     // FIXME: improve parser (fragments?!)
     // TBD: just use Foundation?!
     guard let idx = url.firstIndex(of: "?") else {
-      environment[ExpressExtKey.Query.self] = [:]
-      return [:]
+      environment[ExpressExtKey.Query.self] = .init([:])
+      return Query([:])
     }
     let q  = url[url.index(after: idx)...]
     let qp = qs.parse(String(q))
-    environment[ExpressExtKey.Query.self] = qp
-    return qp
+    environment[ExpressExtKey.Query.self] = .init(qp)
+    return Query(qp)
   }
   
   /**

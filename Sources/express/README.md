@@ -49,10 +49,10 @@ app.use { req, _, next in
 //   Mustache template in views/form.html.
 // - If the browser sends 'POST /form', grab the values and render the
 //   form with them
-app.get("/form") { _, res, _ in
+app.get("/form") { _, res in
   res.render("form")
 }
-app.post("/form") { req, res, _ in
+app.post("/form") { req, res in
   let user = req.body[string: "user"] // form value 'user'
   
   let options : [ String : Any ] = [

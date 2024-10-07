@@ -112,7 +112,7 @@ public enum RoutePattern: Hashable {
    */
   static func match(pattern p: [ RoutePattern ],
                     against escapedPathComponents: [ String ],
-                    variables: inout [ String : String ]) -> String?
+                    variables: inout IncomingMessage.Params) -> String?
   {
     // Note: Express does a prefix match, which is important for mounting.
     // TODO: Would be good to support a "$" pattern which guarantees an exact

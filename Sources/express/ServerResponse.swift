@@ -24,6 +24,8 @@ public extension ServerResponse {
     get { return environment[ExpressExtKey.RequestKey.self] }
   }
 
+  typealias Locals = ExpressWrappedDictionary<Any>
+
   /**
    * This is legacy, an app can also just use `EnvironmentKey`s with either
    * `IncomingMessage` or `ServerResponse`.
@@ -31,7 +33,7 @@ public extension ServerResponse {
    *
    * Traditionally `locals` was used to store Stringly-typed keys & values.
    */
-  var locals : [ String : Any ] {
+  var locals : Locals {
     set { environment[ExpressExtKey.Locals.self] = newValue }
     get { return environment[ExpressExtKey.Locals.self] }
   }

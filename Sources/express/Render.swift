@@ -3,7 +3,7 @@
 //  Noze.io / Macro / ExExpress
 //
 //  Created by Helge Heß on 6/2/16.
-//  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2023 ZeeZide GmbH. All rights reserved.
 //
 
 import enum  MacroCore.process
@@ -29,7 +29,7 @@ public extension ServerResponse {
    *
    * Example:
    *
-   *     app.get { _, res, _ in
+   *     app.get { _, res in
    *       res.render('index', { "title": "Hello World!" })
    *     }
    *

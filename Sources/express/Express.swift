@@ -3,7 +3,7 @@
 //  Noze.io / ExExpress / Macro
 //
 //  Created by Helge Heß on 6/2/16.
-//  Copyright © 2016-2022 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2024 ZeeZide GmbH. All rights reserved.
 //
 
 import struct   Logging.Logger
@@ -37,7 +37,7 @@ import class    http.ServerResponse
  *
  *     let app = Express()
  *     app.use("/index") {
- *       req, res, _ in res.render("index")
+ *       req, res in res.render("index")
  *     }
  *
  *
@@ -289,7 +289,7 @@ enum ExpressExtKey {
    */
   enum Params: EnvironmentKey {
     // TBD: Should the value be `Any`?
-    static let defaultValue : [ String : String ] = [:]
+    static let defaultValue = IncomingMessage.Params([:])
     static let loggingKey   = "params"
   }
   
@@ -297,7 +297,7 @@ enum ExpressExtKey {
    * The query parameters as parsed by the `qs.parse` function.
    */
   enum Query: EnvironmentKey {
-    static let defaultValue : [ String : Any ]? = nil
+    static let defaultValue : IncomingMessage.Query? = nil
     static let loggingKey   = "query"
   }
 
@@ -309,7 +309,7 @@ enum ExpressExtKey {
    * Traditionally `locals` was used to store Stringly-typed keys & values.
    */
   enum Locals: EnvironmentKey {
-    static let defaultValue : [ String : Any ] = [:]
+    static let defaultValue : ServerResponse.Locals = .init([:])
     static let loggingKey   = "locals"
   }
 }
@@ -320,6 +320,9 @@ public extension Dictionary where Key : ExpressibleByStringLiteral {
   subscript(int key : Key) -> Int? {
     guard let v = self[key] else { return nil }
     if let i = (v as? Int) { return i }
+    #if swift(>=5.10)
+    if let i = (v as? any BinaryInteger) { return Int(i) }
+    #endif
     return Int("\(v)")
   }
 }
