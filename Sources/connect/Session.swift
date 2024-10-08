@@ -42,17 +42,19 @@ public func session(store s : SessionStore        = InMemorySessionStore(),
       return next()
     }
     
+    // TODO: This should do a session-checkout.
     // retrieve from store
     s.get(sessionID: sessionID) { err, session in
-      guard err == nil else {
-        console.log("could not retrieve session with ID \(sessionID): \(err!)")
+      if let rerr = err {
+        req.log
+          .notice("could not retrieve session with ID \(sessionID): \(rerr)")
         ctx.configureNewSession()
         return next()
       }
       
       guard let rsession = session else {
-        console.log("No error, but could not retrieve session with ID" +
-                    " \(sessionID)")
+        req.log.notice(
+          "No error, but could not retrieve session with ID \(sessionID)")
         ctx.configureNewSession()
         return next()
       }
@@ -61,9 +63,10 @@ public func session(store s : SessionStore        = InMemorySessionStore(),
       req.environment[SessionKey.self] = rsession
       ctx.pushSessionCookie()
       _ = res.onceFinish {
+        // TODO: This should do the session-checkin.
         s.set(sessionID: sessionID, session: req.session) { err in
           if let err = err {
-            console.error("could not save session \(sessionID): \(err)")
+            req.log.error("could not save session \(sessionID): \(err)")
           }
         }
       }
@@ -122,7 +125,7 @@ class SessionContext {
     _ = res.onceFinish {
       store.set(sessionID: newSessionID, session: req.session) { err in
         if let err = err {
-          console.error("could not save new session \(newSessionID): \(err)")
+          req.log.error("could not save new session \(newSessionID): \(err)")
         }
       }
     }
