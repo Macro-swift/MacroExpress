@@ -45,7 +45,7 @@ let package = Package(
       .product(name: "fs",        package: "Macro"),
       .product(name: "http",      package: "Macro"),
       "connect", "mime", 
-      .product(name: "Mustache",  package: "mustache")
+      .product(name: "Mustache",  package: "Mustache")
     ], exclude: [ "README.md" ]),
     .target(name: "MacroExpress", dependencies: [ 
       .product(name: "MacroCore", package: "Macro"), 
