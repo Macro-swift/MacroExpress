@@ -19,7 +19,7 @@ let package = Package(
     .package(url: "https://github.com/Macro-swift/Macro.git",
              from: "1.0.2"),
     .package(url: "https://github.com/AlwaysRightInstitute/mustache.git",
-             from: "1.0.1")
+             from: "1.0.2")
   ],
   
   targets: [
@@ -44,7 +44,8 @@ let package = Package(
       .product(name: "MacroCore", package: "Macro"),
       .product(name: "fs",        package: "Macro"),
       .product(name: "http",      package: "Macro"),
-      "connect",   "mime", "mustache"
+      "connect", "mime", 
+      .product(name: "Mustache",  package: "Mustache")
     ], exclude: [ "README.md" ]),
     .target(name: "MacroExpress", dependencies: [ 
       .product(name: "MacroCore", package: "Macro"), 

@@ -11,6 +11,7 @@ import protocol MacroCore.EnvironmentKey
 import class    http.IncomingMessage
 import class    http.ServerResponse
 import struct   Foundation.UUID
+import struct   NIOConcurrencyHelpers.NIOLock
 
 fileprivate let sessionIdCookie = Cookie(name: "NzSID", maxAge: 3600)
 
@@ -42,17 +43,19 @@ public func session(store s : SessionStore        = InMemorySessionStore(),
       return next()
     }
     
+    // TODO: This should do a session-checkout.
     // retrieve from store
     s.get(sessionID: sessionID) { err, session in
-      guard err == nil else {
-        console.log("could not retrieve session with ID \(sessionID): \(err!)")
+      if let rerr = err {
+        req.log
+          .notice("could not retrieve session with ID \(sessionID): \(rerr)")
         ctx.configureNewSession()
         return next()
       }
       
       guard let rsession = session else {
-        console.log("No error, but could not retrieve session with ID" +
-                    " \(sessionID)")
+        req.log.notice(
+          "No error, but could not retrieve session with ID \(sessionID)")
         ctx.configureNewSession()
         return next()
       }
@@ -61,9 +64,10 @@ public func session(store s : SessionStore        = InMemorySessionStore(),
       req.environment[SessionKey.self] = rsession
       ctx.pushSessionCookie()
       _ = res.onceFinish {
+        // TODO: This should do the session-checkin.
         s.set(sessionID: sessionID, session: req.session) { err in
           if let err = err {
-            console.error("could not save session \(sessionID): \(err)")
+            req.log.error("could not save session \(sessionID): \(err)")
           }
         }
       }
@@ -122,7 +126,7 @@ class SessionContext {
     _ = res.onceFinish {
       store.set(sessionID: newSessionID, session: req.session) { err in
         if let err = err {
-          console.error("could not save new session \(newSessionID): \(err)")
+          req.log.error("could not save new session \(newSessionID): \(err)")
         }
       }
     }
@@ -140,20 +144,24 @@ public class Session {
   //
   //   req.session["a"] = 10
   //
-  // Think about it, kinda non-obvious ;-)
+  // kinda non-obvious.
   
+  // This should not be concurrent but use a checkin/checkout system.
+  fileprivate let lock = NIOLock()
   public var values = Dictionary<String, Any>()
   
   public subscript(key: String) -> Any? {
     set {
-      if let v = newValue { values[key] = v }
-      else { values.removeValue(forKey: key) }
+      lock.withLock {
+        if let v = newValue { values[key] = v }
+        else { _ = values.removeValue(forKey: key) }
+      }
     }
-    get { return values[key] }
+    get { return lock.withLock { values[key] } }
   }
   
   public subscript(int key: String) -> Int {
-    guard let v = values[key] else { return 0 }
+    guard let v = lock.withLock({ values[key] }) else { return 0 }
     if let iv = v as? Int { return iv }
     #if swift(>=5.10)
     if let i = (v as? any BinaryInteger) { return Int(i) }
@@ -228,6 +236,8 @@ public extension SessionStore {
 
 public class InMemorySessionStore : SessionStore {
   
+  // Well, there should be a checkout/checkin system?!
+  fileprivate let lock = NIOLock()
   var store : [ String : Session ]
   
   public init() {
@@ -235,7 +245,7 @@ public class InMemorySessionStore : SessionStore {
   }
   
   public func get(sessionID sid: String, _ cb: ( Error?, Session? ) -> Void ) {
-    guard let session = store[sid] else {
+    guard let session = lock.withLock({ store[sid] }) else {
       cb(SessionStoreError.SessionNotFound, nil)
       return
     }
@@ -245,7 +255,7 @@ public class InMemorySessionStore : SessionStore {
   public func set(sessionID sid: String, session: Session,
                   _ cb: ( Error? ) -> Void )
   {
-    store[sid] = session
+    lock.withLock { store[sid] = session }
     cb(nil)
   }
   
@@ -256,21 +266,21 @@ public class InMemorySessionStore : SessionStore {
   }
   
   public func destroy(sessionID sid: String, _ cb: ( String ) -> Void) {
-    store.removeValue(forKey: sid)
+    lock.withLock { _ = store.removeValue(forKey: sid) }
     cb(sid)
   }
   
   public func clear(cb: ( Error? ) -> Void ) {
-    store.removeAll()
+    lock.withLock { store.removeAll() }
     cb(nil)
   }
   
   public func length(cb: ( Error?, Int) -> Void) {
-    cb(nil, store.count)
+    cb(nil, lock.withLock { store.count })
   }
   
   public func all(cb: ( Error?, [ Session ] ) -> Void) {
-    let values = Array(store.values)
+    let values = Array(lock.withLock { store.values })
     cb(nil, values)
   }
 }

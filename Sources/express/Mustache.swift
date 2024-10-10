@@ -3,14 +3,14 @@
 //  Noze.io / Macro
 //
 //  Created by Helge Heß on 02/06/16.
-//  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2024 ZeeZide GmbH. All rights reserved.
 //
 
 import func fs.readFile
 import func fs.readFileSync
 import enum fs.path
 import let  MacroCore.console
-import mustache
+import Mustache
 
 let mustacheExpress : ExpressEngine = { path, options, done in
   fs.readFile(path, "utf8") { err, str in
@@ -25,7 +25,7 @@ let mustacheExpress : ExpressEngine = { path, options, done in
       return
     }
     
-    let parser = MustacheParser()
+    var parser = MustacheParser()
     let tree   = parser.parse(string: template)
     
     let ctx = ExpressMustacheContext(path: path, object: options)
@@ -53,7 +53,7 @@ class ExpressMustacheContext : MustacheDefaultRenderingContext {
       return nil
     }
     
-    let parser = MustacheParser()
+    var parser = MustacheParser()
     let tree   = parser.parse(string: template)
     return tree
   }
