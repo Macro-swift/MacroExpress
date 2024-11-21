@@ -137,6 +137,10 @@ public enum RoutePattern: Hashable {
       }
     }
     
+    // I don't know if this special case is the best way to handle this but there was a one off error where
+    // any routes that use "/" for the pattern would match all routes
+    if case .root  = pattern[0], pattern.count == 1 && escapedPathComponents.count > 1 { return nil }
+    
     // there have to be more or the same number of components in the path like
     // things to match in the pattern ...
     guard escapedPathComponents.count >= pattern.count else { return nil }
