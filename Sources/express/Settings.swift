@@ -7,31 +7,89 @@
 //
 
 /**
- * Just a special kind of dictionary. The `Express` application class is
+ * Just a special kind of dictionary. The ``Express`` application class is
  * currently the sole example.
  *
  * Examples:
+ * ```swift
+ * app.set("env", "production")
+ * app.enable("x-powered-by")
  *
- *     app.set("env", "production")
- *     app.enable("x-powered-by")
- *
- *     let env = app.settings.env
+ * let env = app.settings.env
+ * ```
  */
 public protocol SettingsHolder {
   
-  func set(_ key: String, _ value: Any?)
+  /**
+   * Sets or removes a configuration key in the settings store.
+   *
+   * Example:
+   * ```swift
+   * app.set("view engine", "html")
+   *    .set("views", __dirname() + "/views")
+   *    .enable("x-powered-by")
+   * ```
+   *
+   * - Parameters:
+   *   - key:   The name of the key, e.g. "view engine"
+   *   - value: The associated value, if `nil` is passed in, the value is
+   *            removed from the store.
+   * - Returns: `self` for chaining.
+   */
+  @discardableResult
+  func set(_ key: String, _ value: Any?) -> Self
+  
+  /**
+   * Returns the value of a configuration key from the settings store.
+   *
+   * Example:
+   * ```swift
+   * let engine = app.get("view engine")
+   * ```
+   *
+   * - Parameters:
+   *   - key:   The name of the key, e.g. "view engine"
+   * - Returns: The value in the store, or `nil` if missing.
+   */
   func get(_ key: String) -> Any?
 }
 
 public extension SettingsHolder {
   
+  /**
+   * Set configuration key in the settings store to `true`.
+   *
+   * Example:
+   * ```swift
+   * app.enable("x-powered-by")
+   * ```
+   *
+   * - Parameters:
+   *   - key:   The name of the bool key, e.g. "view engine"
+   * - Returns: `self` for chaining.
+   */
   @inlinable
-  func enable(_ key: String) {
-    set(key, true)
+  @discardableResult
+  func enable(_ key: String) -> Self {
+    return set(key, true)
   }
+  
+  /**
+   * Set configuration key in the settings store to `false`.
+   *
+   * Example:
+   * ```swift
+   * app.disable("x-powered-by")
+   * ```
+   *
+   * - Parameters:
+   *   - key:   The name of the bool key, e.g. "view engine"
+   * - Returns: `self` for chaining.
+   */
   @inlinable
-  func disable(_ key: String) {
-    set(key, false)
+  @discardableResult
+  func disable(_ key: String) -> Self {
+    return set(key, false)
   }
   
   @inlinable
