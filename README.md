@@ -28,7 +28,7 @@ declarative DSL to setup MacroExpress routes.
 
 The Macro [Examples](https://github.com/Macro-swift/Examples) package 
 contains a few examples which all can run straight from the source as
-swift-sh scripts.
+[swift-sh](https://github.com/mxcl/swift-sh) scripts.
 
 ```swift
 #!/usr/bin/swift sh
@@ -80,5 +80,10 @@ app.listen(1337)
 We like feedback, GitHub stars, cool contract work, 
 presumably any form of praise you can think of.
 
-There is a `#microexpress` channel on the 
-[Noze.io Slack](http://slack.noze.io/). Feel free to join!
+**Want to support my work**?
+Buy an app:
+[Code for SQLite3](https://apps.apple.com/us/app/code-for-sqlite3/id1638111010),
+[Past for iChat](https://apps.apple.com/us/app/past-for-ichat/id1554897185),
+[SVG Shaper](https://apps.apple.com/us/app/svg-shaper-for-swiftui/id1566140414),
+[HMScriptEditor](https://apps.apple.com/us/app/hmscripteditor/id1483239744).
+You don't have to use it! 😀

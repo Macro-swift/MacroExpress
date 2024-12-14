@@ -3,7 +3,7 @@
 //  MacroExpress
 //
 //  Created by Helge Heß on 02.07.20.
-//  Copyright © 2020 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2020-2024 ZeeZide GmbH. All rights reserved.
 //
 
 #if os(Linux)
@@ -17,13 +17,25 @@ import func MacroCore.__dirname
 import func fs.accessSync
 import let  fs.R_OK
 
+/**
+ * How to use:
+ *
+ * ```swift
+ * import dotenv
+ *
+ * dotenv.config()
+ * ```
+ *
+ * This reads the `.env` file (located using `__dirname`),
+ * and adds the contents to the environment of the running process.
+ */
 public enum dotenv {}
 
 public extension dotenv {
   
   #if swift(>=5.3) // oh this mess
   /**
-   * Read the .env config file, apply it to the environment, and return the
+   * Read the .env config file, apply it on the environment, and return the
    * parsed values.
    *
    * Important: Remember to call this as early as possible, otherwise Foundation
