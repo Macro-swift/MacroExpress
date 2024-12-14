@@ -149,20 +149,61 @@ open class Express: SettingsHolder, MountableMiddlewareObject, MiddlewareObject,
   
   // MARK: - SettingsHolder
   
-  public func set(_ key: String, _ value: Any?) {
+  /**
+   * Sets or removes a configuration key in the settings store.
+   *
+   * Example:
+   * ```swift
+   * app.set("view engine", "html")
+   *    .set("views", __dirname() + "/views")
+   * ```
+   *
+   * - Parameters:
+   *   - key:   The name of the key, e.g. "view engine"
+   *   - value: The associated value, if `nil` is passed in, the value is
+   *            removed from the store.
+   * - Returns: `self` for chaining.
+   */
+  @discardableResult
+  public func set(_ key: String, _ value: Any?) -> Self {
     if let v = value { settingsStore[key] = v }
     else             { settingsStore.removeValue(forKey: key) }
+    return self
   }
+  
+  /**
+   * Returns the value of a configuration key from the settings store.
+   *
+   * Example:
+   * ```swift
+   * let engine = app.get("view engine")
+   * ```
+   *
+   * - Parameters:
+   *   - key:   The name of the key, e.g. "view engine"
+   * - Returns: The value in the store, or `nil` if missing.
+   */
   public func get(_ key: String) -> Any? {
     return settingsStore[key]
   }
   
+  
   // MARK: - Engines
   
-  var engines = [ String : ExpressEngine]()
+  var engines = [ String : ExpressEngine ]()
   
-  public func engine(_ key: String, _ engine: @escaping ExpressEngine) {
+  /**
+   * Sets an engine implementation.
+   *
+   * Example:
+   * ```swift
+   * app.engine("mustache", mustacheExpress)
+   * ```
+   */
+  @discardableResult
+  public func engine(_ key: String, _ engine: @escaping ExpressEngine) -> Self {
     engines[key] = engine
+    return self
   }
 
   
