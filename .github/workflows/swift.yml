@@ -14,7 +14,7 @@ jobs:
       matrix:
         image:
           - swift:5.9.2-focal
-          - swift:6.0-noble
+          - swift:6.1-noble
     container: ${{ matrix.image }}
     steps:
       - name: Checkout Repository
