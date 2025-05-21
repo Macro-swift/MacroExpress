@@ -3,14 +3,19 @@
 //  MacroExpress / multer
 //
 //  Created by Helge Heß on 30/05/16.
-//  Copyright © 2021 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2021-2025 ZeeZide GmbH. All rights reserved.
 //
 
 import struct MacroCore.Buffer
 
 extension multer {
 
+  /**
+   * A ``MulterStorage`` that writes the file contents to the ``File/buffer``
+   * property of the ``File`` object, i.e. stores it in-memory.
+   */
   open class MemoryStorage: MulterStorage {
+    // TBD: does this have to be a class?
     
     public init() {}
     

@@ -3,7 +3,7 @@
 //  Noze.io / Macro
 //
 //  Created by Helge Heß on 2023-04-16.
-//  Copyright © 2016-2023 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2025 ZeeZide GmbH. All rights reserved.
 //
 
 import typealias connect.Middleware
@@ -162,29 +162,33 @@ public extension RouteKeeper {
   
   @discardableResult
   @inlinable
-  func use(id: String? = nil, _ middleware: FinalMiddleware...) -> Self {
+  func use(id: String? = nil, _ middleware: Middleware..., 
+           final: @escaping FinalMiddleware) -> Self 
+  {
     add(route: Route(id: id, pattern: nil, method: nil,
-                     middleware: middleware.map(final2middleware)))
+                     middleware: middleware + [ final2middleware(final) ]))
     return self
   }
   
   @discardableResult
   @inlinable
   func use(id: String? = nil, _ pathPattern: String,
-           _ middleware: FinalMiddleware...) -> Self
+           _ middleware: Middleware..., final: @escaping FinalMiddleware) 
+       -> Self
   {
     add(route: Route(id: id, pattern: pathPattern, method: nil,
-                     middleware: middleware.map(final2middleware)))
+                     middleware: middleware + [ final2middleware(final) ]))
     return self
   }
   
   @discardableResult
   @inlinable
   func all(id: String? = nil, _ pathPattern: String,
-           _ middleware: FinalMiddleware...) -> Self
+           _ middleware: Middleware..., final: @escaping FinalMiddleware) 
+       -> Self
   {
     add(route: Route(id: id, pattern: pathPattern, method: nil,
-                     middleware: middleware.map(final2middleware)))
+                     middleware: middleware + [ final2middleware(final) ]))
     return self
   }
   
@@ -193,98 +197,122 @@ public extension RouteKeeper {
   @discardableResult
   @inlinable
   func get(id: String? = nil, _ pathPattern: String,
-           _ middleware: FinalMiddleware...) -> Self
+           _ middleware: Middleware..., final: @escaping FinalMiddleware) 
+       -> Self
   {
     add(route: Route(id: id, pattern: pathPattern, method: .GET,
-                     middleware: middleware.map(final2middleware)))
+                     middleware: middleware + [ final2middleware(final) ]))
     return self
   }
   @discardableResult
   @inlinable
   func post(id: String? = nil, _ pathPattern: String,
-            _ middleware: FinalMiddleware...) -> Self
+            _ middleware: Middleware..., final: @escaping FinalMiddleware) 
+        -> Self
   {
     add(route: Route(id: id, pattern: pathPattern, method: .POST,
-                     middleware: middleware.map(final2middleware)))
+                     middleware: middleware + [ final2middleware(final) ]))
     return self
   }
   @discardableResult
   @inlinable
   func head(id: String? = nil, _ pathPattern: String,
-            _ middleware: FinalMiddleware...) -> Self
+            _ middleware: Middleware..., final: @escaping FinalMiddleware) 
+        -> Self
   {
     add(route: Route(id: id, pattern: pathPattern, method: .HEAD,
-                     middleware: middleware.map(final2middleware)))
+                     middleware: middleware + [ final2middleware(final) ]))
     return self
   }
   @discardableResult
   @inlinable
   func put(id: String? = nil, _ pathPattern: String,
-           _ middleware: FinalMiddleware...) -> Self
+           _ middleware: Middleware..., final: @escaping FinalMiddleware) 
+       -> Self
   {
     add(route: Route(id: id, pattern: pathPattern, method: .PUT,
-                     middleware: middleware.map(final2middleware)))
+                     middleware: middleware + [ final2middleware(final) ]))
     return self
   }
   @discardableResult
   @inlinable
   func del(id: String? = nil, _ pathPattern: String,
-           _ middleware: FinalMiddleware...) -> Self
+           _ middleware: Middleware..., final: @escaping FinalMiddleware) 
+       -> Self
   {
     add(route: Route(id: id, pattern: pathPattern, method: .DELETE,
-                     middleware: middleware.map(final2middleware)))
+                     middleware: middleware + [ final2middleware(final) ]))
     return self
   }
   @discardableResult
   @inlinable
   func patch(id: String? = nil, _ pathPattern: String,
-             _ middleware: FinalMiddleware...) -> Self
+             _ middleware: Middleware..., final: @escaping FinalMiddleware) 
+         -> Self
   {
     add(route: Route(id: id, pattern: pathPattern, method: .PATCH,
-                     middleware: middleware.map(final2middleware)))
+                     middleware: middleware + [ final2middleware(final) ]))
     return self
   }
 
   @discardableResult
   @inlinable
-  func get(id: String? = nil, _ middleware: FinalMiddleware...) -> Self {
+  func get(id: String? = nil,
+           _ middleware: Middleware..., final: @escaping FinalMiddleware) 
+       -> Self
+  {
     add(route: Route(id: id, pattern: nil, method: .GET,
-                     middleware: middleware.map(final2middleware)))
+                     middleware: middleware + [ final2middleware(final) ]))
     return self
   }
   @discardableResult
   @inlinable
-  func post(id: String? = nil, _ middleware: FinalMiddleware...) -> Self {
+  func post(id: String? = nil,
+            _ middleware: Middleware..., final: @escaping FinalMiddleware) 
+        -> Self
+   {
     add(route: Route(id: id, pattern: nil, method: .POST,
-                     middleware: middleware.map(final2middleware)))
+                     middleware: middleware + [ final2middleware(final) ]))
     return self
   }
   @discardableResult
   @inlinable
-  func head(id: String? = nil, _ middleware: FinalMiddleware...) -> Self {
+  func head(id: String? = nil, 
+            _ middleware: Middleware..., final: @escaping FinalMiddleware) 
+        -> Self
+   {
     add(route: Route(id: id, pattern: nil, method: .HEAD,
-                     middleware: middleware.map(final2middleware)))
+                     middleware: middleware + [ final2middleware(final) ]))
     return self
   }
   @discardableResult
   @inlinable
-  func put(id: String? = nil, _ middleware: FinalMiddleware...) -> Self {
+  func put(id: String? = nil, 
+           _ middleware: Middleware..., final: @escaping FinalMiddleware) 
+       -> Self
+  {
     add(route: Route(id: id, pattern: nil, method: .PUT,
-                     middleware: middleware.map(final2middleware)))
+                     middleware: middleware + [ final2middleware(final) ]))
     return self
   }
   @discardableResult
   @inlinable
-  func del(id: String? = nil, _ middleware: FinalMiddleware...) -> Self {
+  func del(id: String? = nil, 
+           _ middleware: Middleware..., final: @escaping FinalMiddleware) 
+       -> Self
+  {
     add(route: Route(id: id, pattern: nil, method: .DELETE,
-                     middleware: middleware.map(final2middleware)))
+                     middleware: middleware + [ final2middleware(final) ]))
     return self
   }
   @discardableResult
   @inlinable
-  func patch(id: String? = nil, _ middleware: FinalMiddleware...) -> Self {
+  func patch(id: String? = nil,
+             _ middleware: Middleware..., final: @escaping FinalMiddleware) 
+         -> Self
+  {
     add(route: Route(id: id, pattern: nil, method: .PATCH,
-                     middleware: middleware.map(final2middleware)))
+                     middleware: middleware + [ final2middleware(final) ]))
     return self
   }
 }

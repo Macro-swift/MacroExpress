@@ -3,13 +3,18 @@
 //  MacroExpress / multer
 //
 //  Created by Helge Heß on 30/05/16.
-//  Copyright © 2021 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2021-2025 ZeeZide GmbH. All rights reserved.
 //
 
 import struct MacroCore.Buffer
 
 public extension multer {
   
+  /**
+   * Represents a file that got uploaded by ``multer``. It carries the field
+   * name, the filename, the mime type, and if the ``MemoryStorage`` was used,
+   * the file contents.
+   */
   final class File: Equatable {
     
     /// Name in form field
@@ -39,6 +44,17 @@ public extension multer {
      */
     public var buffer : Buffer?
     
+    /**
+     * Create a new multer file object.
+     * 
+     * - Parameters:
+     *   - fieldName:    Name of the form field that contains the file
+     *   - originalName: Name of file (filename in content-disposition)
+     *   - mimeType:     MIME type of the file, defaults to octet-stream if n/a.
+     *   - path:         Path to stored file on the server, if used w/ disk 
+     *                   storage.
+     *   - buffer:       Contents of file, if loaded into memory.
+     */
     @inlinable
     public init(fieldName    : String,
                 originalName : String,
@@ -51,6 +67,17 @@ public extension multer {
       self.mimeType     = mimeType
       self.path         = path
       self.buffer       = buffer
+    }
+    
+    /**
+     * Returns true if this has a nil ``path`` or ``buffer`` and no
+     * ``originalName`` set.
+     * 
+     * It may still have a ``mimeType`` set to `application/octet-stream`.
+     */
+    @inlinable
+    public var isEmpty: Bool {
+      originalName.isEmpty && path == nil && buffer == nil
     }
     
     @inlinable

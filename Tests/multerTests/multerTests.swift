@@ -180,6 +180,37 @@ final class multerTests: XCTestCase {
     
     waitForExpectations(timeout: 3)
   }
+
+  func testEmpty() throws {
+    typealias fixture = Fixtures.EmptyFile
+    
+    let loop = MacroCore.shared.fallbackEventLoop()
+    let sem  = expectation(description: "parsing body ...")
+    let req  = fixture.request
+
+    loop.execute {
+      let res = ServerResponse(unsafeChannel: nil, log: req.log)
+      
+      let mw = multer().array("file", 2)
+      do {
+        try mw(req, res) { ( args : Any...) in
+          XCTAssertEqual(args.count, 0)
+          sem.fulfill()
+        }
+      }
+      catch {
+        sem.fulfill()
+      }
+    }
+    
+    waitForExpectations(timeout: 3) { error in
+      if let error = error { XCTFail("expection returned \(error)") }
+
+      XCTAssertEqual(req.files.count, 1) // this still has an entry!
+      XCTAssertEqual(req.files["file"]?.count ?? 0, 0) // but no files
+      XCTAssertNil(req.files["file"]?.first)
+    }
+  }
   
   func testMultiOK() throws {
     typealias fixture = Fixtures.TwoFilesSubmit
