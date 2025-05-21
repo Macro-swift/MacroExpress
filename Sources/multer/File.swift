@@ -10,6 +10,11 @@ import struct MacroCore.Buffer
 
 public extension multer {
   
+  /**
+   * Represents a file that got uploaded by ``multer``. It carries the field
+   * name, the filename, the mime type, and if the ``MemoryStorage`` was used,
+   * the file contents.
+   */
   final class File: Equatable {
     
     /// Name in form field
@@ -39,6 +44,17 @@ public extension multer {
      */
     public var buffer : Buffer?
     
+    /**
+     * Create a new multer file object.
+     * 
+     * - Parameters:
+     *   - fieldName:    Name of the form field that contains the file
+     *   - originalName: Name of file (filename in content-disposition)
+     *   - mimeType:     MIME type of the file, defaults to octet-stream if n/a.
+     *   - path:         Path to stored file on the server, if used w/ disk 
+     *                   storage.
+     *   - buffer:       Contents of file, if loaded into memory.
+     */
     @inlinable
     public init(fieldName    : String,
                 originalName : String,

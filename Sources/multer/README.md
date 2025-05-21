@@ -19,6 +19,23 @@ package.
 
 **Note**: DiskStorage is prepared, but not working yet.
 
+### Example
+
+[Examples](https://github.com/Macro-swift/Examples/blob/main/Sources/express-simple/main.swift#L48)
+```swift
+app.post("/multer", multer().array("file", 10)) { req, res, _ in
+    req.log.info("Got files:", req.files["file"])
+    res.render("multer", [
+      "files": req.files["file"]?.map {
+         [ "name":     $0.originalName,
+           "size":     $0.buffer?.length ?? 0,
+           "mimeType": $0.mimeType ]
+      } ?? [],
+      "hasFiles": !(req.files["file"]?.isEmpty ?? true)
+    ])
+}
+```
+
 
 ### Links
 
