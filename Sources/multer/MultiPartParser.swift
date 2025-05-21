@@ -3,7 +3,7 @@
 //  MacroExpress / multer
 //
 //  Created by Helge Heß
-//  Copyright © 2021-2023 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2021-2025 ZeeZide GmbH. All rights reserved.
 //
 
 #if canImport(Foundation)
@@ -190,8 +190,11 @@ public final class MultiPartParser {
           }
 
         case .postamble:
-          let input = unstage(with: input)
-          if !input.isEmpty { handler(.postambleData(input)) }
+          let postamble = unstage(with: input)
+          input = Buffer() // consume everything
+          if !postamble.isEmpty { 
+            handler(.postambleData(postamble)) 
+          }
       }
     }
   }
