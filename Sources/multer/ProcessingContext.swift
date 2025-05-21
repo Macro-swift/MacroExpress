@@ -3,7 +3,7 @@
 //  MacroExpress / multer
 //
 //  Created by Helge Heß on 30/05/16.
-//  Copyright © 2021 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2021-2025 ZeeZide GmbH. All rights reserved.
 //
 
 import struct MacroCore.Buffer
@@ -85,7 +85,7 @@ internal extension multer {
     
     func finish() {
       parser.end(handler: handleEvent)
-      guard let next = next else { return }
+      guard let next = next else { return } // nothing will handle the result?
       
       switch request.body {
       
@@ -108,6 +108,14 @@ internal extension multer {
             request.log.warn(
               "Not storing multipart/form-data values, body already set!")
           }
+      }
+      
+      // Filter out empty files.
+      for ( field, fieldFiles ) in files where fieldFiles.count == 1 {
+        guard let fieldFile = fieldFiles.first, fieldFile.isEmpty else {
+          continue
+        }
+        files[field] = [] // this is an empty file
       }
       
       request.files = files

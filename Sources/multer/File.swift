@@ -3,7 +3,7 @@
 //  MacroExpress / multer
 //
 //  Created by Helge Heß on 30/05/16.
-//  Copyright © 2021 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2021-2025 ZeeZide GmbH. All rights reserved.
 //
 
 import struct MacroCore.Buffer
@@ -51,6 +51,17 @@ public extension multer {
       self.mimeType     = mimeType
       self.path         = path
       self.buffer       = buffer
+    }
+    
+    /**
+     * Returns true if this has a nil ``path`` or ``buffer`` and no
+     * ``originalName`` set.
+     * 
+     * It may still have a ``mimeType`` set to `application/octet-stream`.
+     */
+    @inlinable
+    public var isEmpty: Bool {
+      originalName.isEmpty && path == nil && buffer == nil
     }
     
     @inlinable

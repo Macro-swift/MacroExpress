@@ -141,6 +141,33 @@ enum Fixtures {
   }
   
   /**
+   * The payload submitted by Safari macOS for an empty file.
+   * 
+   * It has an empty filename and no content, but this still yields one, empty,
+   * File object!
+   */
+  enum EmptyFile {
+    static var request : IncomingMessage {
+      return .init(boundary: boundary, content: data)
+    }
+    
+    static let boundary : String = "----WebKitFormBoundary6IZBgSyyBffuIy5U"
+
+    static let filename = ""
+    static let data = Buffer(
+      """
+      --\(boundary)\r
+      Content-Disposition: form-data; name="file"; filename="\(filename)"\r
+      Content-Type: application/octet-stream\r
+      \r
+      \r
+      --\(boundary)--\r
+      \r\n
+      """
+    )
+  }
+  
+  /**
    * Contains:
    * - form field `title` with value `file.csv`
    * - file field `file`, filename `emptyfile.bin`, ~3MB of empty bytes
