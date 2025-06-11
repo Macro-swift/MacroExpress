@@ -3,7 +3,7 @@
 //  Noze.io / ExExpress / Macro
 //
 //  Created by Helge Heß on 6/2/16.
-//  Copyright © 2016-2024 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2025 ZeeZide GmbH. All rights reserved.
 //
 
 import struct   Logging.Logger
@@ -34,19 +34,20 @@ import class    http.ServerResponse
  * a `RouteKeeper`. That is, you case use `get`, `post`, etc methods to setup
  * routes of the application.
  * Example:
- *
- *     let app = Express()
- *     app.use("/index") {
- *       req, res in res.render("index")
- *     }
- *
+ * ```swift
+ * let app = Express()
+ * app.use("/index") {
+ *   req, res in res.render("index")
+ * }
+ * ```
  *
  * ## Template Engines
  *
  * Express objects have a mapping of file extensions to 'template engines'. Own
  * engines can be added by calling the `engine` function:
- *
- *     engine("mustache", mustacheExpress)
+ * ```swift
+ * engine("mustache", mustacheExpress)
+ * ```
  *
  * The would call the `mustacheExpress` template engine when templates with the
  * `.mustache` extensions need to be rendered.
@@ -64,9 +65,10 @@ import class    http.ServerResponse
  *
  * For example to mount an admin frontend into your main application, the code
  * would look like:
- *
- *     let app = express()
- *     app.use("/admin", AdminExpress.admin())
+ * ```swift
+ * let app = express()
+ * app.use("/admin", AdminExpress.admin())
+ * ```
  *
  * Where `admin` returns another Express instance representing the admin
  * application.

@@ -31,10 +31,11 @@ public extension IncomingMessage {
    * Contains the request parameters.
    *
    * Example:
-   * ```
+   * ```swift
    * app.use("/users/:id/view") { req, res, next in
-   *   guard let id = req.params[int: "id"]
-   *    else { return try res.sendStatus(400) }
+   *   guard let id = req.params[int: "id"] else {
+   *     return try res.sendStatus(400) 
+   *   }
    * }
    * ```
    */
