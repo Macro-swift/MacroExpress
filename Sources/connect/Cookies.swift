@@ -3,7 +3,7 @@
 //  Noze.io / Macro
 //
 //  Created by Helge Heß on 10/06/16.
-//  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2025 ZeeZide GmbH. All rights reserved.
 //
 
 import let   MacroCore.console
@@ -27,7 +27,7 @@ import class http.ServerResponse
 ///    cookies.set("theAnswer", "42")           // set a cookie
 ///    if let answer = cookies.get("theAnswer") // get a cookie
 ///
-public final class Cookies {
+public struct Cookies {
   
   public let res : ServerResponse?
   
