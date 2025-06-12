@@ -3,7 +3,7 @@
 //  Noze.io / MacroExpress
 //
 //  Created by Helge Heß on 30/05/16.
-//  Copyright © 2016-2024 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2025 ZeeZide GmbH. All rights reserved.
 //
 
 import MacroCore // for `|` operator
@@ -636,25 +636,27 @@ public extension bodyParser {
 public extension bodyParser {
   
   /**
-   * Returns a middleware for parsing form encoded POST bodies.
+   * Returns a middleware for parsing form encoded `POST` bodies.
    *
    * If the request has a content-type of `application/x-www-form-urlencoded`
    * this parser kicks in and parses the encoded values.
    * It either uses
-   * `qs.parse` if `extended` is enabled in the `Options`,
-   * or `querystring.parse` if not.
+   * ``qs/parse(_:separator:pairSeparator:depth:parameterLimit:arrayLimit:allowsDot:decodeURIComponent:)``
+   * if ``Options/extended`` is enabled in the ``Options``,
+   * or 
+   * `querystring/parse` if not.
    *
    * The results of the parsing are available using the `request.body` enum.
    * If the parsing fails, that will be set to the `.error` case.
    *
    * ## Usage
    *
-   * ```
-   * app.use(bodyParser.urlencoded()) // load an parse the request
+   * ```swift
+   * app.use(bodyParser.urlencoded()) // load and parse the request
    *
    * app.post("/post") { req, res, next in
-   *   console.log("Query is:", req.body[string: "query"])
-   *   console.log("Query is:", req.body.query)
+   *   req.log.log("Query is:", req.body[string: "query"])
+   *   req.log.log("Query is:", req.body.query)
    *   next()
    * }
    * ```

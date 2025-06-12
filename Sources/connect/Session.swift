@@ -3,7 +3,7 @@
 //  Noze.io / Macro
 //
 //  Created by Helge Heß on 6/16/16.
-//  Copyright © 2016-2024 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2025 ZeeZide GmbH. All rights reserved.
 //
 
 import let      MacroCore.console
@@ -13,7 +13,12 @@ import class    http.ServerResponse
 import struct   Foundation.UUID
 import struct   NIOConcurrencyHelpers.NIOLock
 
-fileprivate let sessionIdCookie = Cookie(name: "NzSID", maxAge: 3600)
+fileprivate let sessionIdCookie = Cookie(
+  name: "NzSID", 
+  path: "/",
+  httpOnly: true,
+  maxAge: 3600
+)
 
 fileprivate var sessionIdCounter = 0
 
@@ -21,6 +26,7 @@ public typealias SessionIdGenerator = ( IncomingMessage ) -> String
 
 func nextSessionID(msg: IncomingMessage) -> String {
   // https://github.com/SwiftWebUI/SwiftWebUI/issues/4
+  // https://neilmadden.blog/2018/08/30/moving-away-from-uuids/
   return UUID().uuidString
 }
 
