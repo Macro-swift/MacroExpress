@@ -3,7 +3,7 @@
 //  MacroExpress
 //
 //  Created by Helge Heß on 14.07.24.
-//  Copyright © 2024 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2024-2025 ZeeZide GmbH. All rights reserved.
 //
 
 /**
@@ -116,5 +116,13 @@ public extension ExpressWrappedDictionary {
     guard let v = self[key] else { return nil }
     if let s = (v as? String) { return s }
     return String(describing: v)
+  }
+}
+
+public extension BodyParserBody {
+  
+  @inlinable
+  static func urlEncoded(_ values: ExpressWrappedDictionary<Any>) -> Self {
+    return .urlEncoded(values.dictionary)
   }
 }
