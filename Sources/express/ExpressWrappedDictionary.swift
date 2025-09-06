@@ -99,6 +99,13 @@ public extension ExpressWrappedDictionary {
   subscript(dynamicMember k: String) -> Value? { return dictionary[k] }
 }
 
+extension ExpressWrappedDictionary: CustomStringConvertible {
+  
+  public var description: String {
+    dictionary.description
+  }
+}
+
 public extension ExpressWrappedDictionary {
 
   @inlinable
