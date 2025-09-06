@@ -364,7 +364,7 @@ public extension Dictionary where Key : ExpressibleByStringLiteral {
     guard let v = self[key] else { return nil }
     if let i = (v as? Int) { return i }
     #if swift(>=5.10)
-    if let i = (v as? any BinaryInteger) { return Int(i) }
+    if let i = (v as? any BinaryInteger) { return Int(clamping: i) }
     #endif
     return Int("\(v)")
   }
