@@ -10,6 +10,7 @@ import struct   Logging.Logger
 import enum     MacroCore.process
 import enum     MacroCore.EventListenerSet
 import protocol MacroCore.EnvironmentKey
+import struct   MacroCore.EnvironmentValues
 import class    http.IncomingMessage
 import class    http.ServerResponse
 
@@ -356,6 +357,39 @@ enum ExpressExtKey {
     static let loggingKey   = "locals"
   }
 }
+
+public extension EnvironmentValues {
+  
+  var app: Express? {
+    get { self[ExpressExtKey.App.self] }
+    set { self[ExpressExtKey.App.self] = newValue }
+  }
+  var request: IncomingMessage? {
+    get { self[ExpressExtKey.RequestKey.self] }
+    set { self[ExpressExtKey.RequestKey.self] = newValue }
+  }
+  var route: Route? {
+    get { self[ExpressExtKey.RouteKey.self] }
+    set { self[ExpressExtKey.RouteKey.self] = newValue }
+  }
+  var baseURL: String? {
+    get { self[ExpressExtKey.BaseURL.self] }
+    set { self[ExpressExtKey.BaseURL.self] = newValue }
+  }
+  var params: IncomingMessage.Params {
+    get { self[ExpressExtKey.Params.self] }
+    set { self[ExpressExtKey.Params.self] = newValue }
+  }
+  var query: IncomingMessage.Query? {
+    get { self[ExpressExtKey.Query.self] }
+    set { self[ExpressExtKey.Query.self] = newValue }
+  }
+  var locals: ServerResponse.Locals {
+    get { self[ExpressExtKey.Locals.self] }
+    set { self[ExpressExtKey.Locals.self] = newValue }
+  }
+}
+
 
 // MARK: - App access helper
 

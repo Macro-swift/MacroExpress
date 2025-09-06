@@ -3,7 +3,7 @@
 //  Macro
 //
 //  Created by Helge Heß on 6/3/16.
-//  Copyright © 2020-2023 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2020-2025 ZeeZide GmbH. All rights reserved.
 //
 
 #if canImport(Foundation)
@@ -11,6 +11,7 @@
 #endif
 import http
 import protocol MacroCore.EnvironmentKey
+import struct   MacroCore.EnvironmentValues
 
 public enum BasicAuthModule {}
 public typealias expressBasicAuth = BasicAuthModule
@@ -243,6 +244,14 @@ public extension BasicAuthModule {
 private enum BasicAuthUserKey: EnvironmentKey {
   static let defaultValue = ""
   static let loggingKey   = "user"
+}
+
+public extension EnvironmentValues {
+  
+  var authenticatedBasicAuthUser : String {
+    get { return self[BasicAuthUserKey.self] }
+    set { return self[BasicAuthUserKey.self] = newValue }
+  }
 }
 
 public extension IncomingMessage {
