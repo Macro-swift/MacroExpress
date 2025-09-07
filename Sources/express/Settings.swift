@@ -3,7 +3,7 @@
 //  Noze.io / Macro
 //
 //  Created by Helge Heß on 02/06/16.
-//  Copyright © 2016-2024 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2025 ZeeZide GmbH. All rights reserved.
 //
 
 /**
@@ -118,6 +118,11 @@ public struct ExpressSettings {
   subscript(dynamicMember key: String) -> Any? {
     return holder[setting: key]
   }
+
+  @inlinable
+  subscript(_ key: String) -> Any? {
+    return holder[setting: key]
+  }
 }
 
 public extension SettingsHolder {
@@ -127,8 +132,9 @@ public extension SettingsHolder {
    * MacroExpress app).
    *
    * Example:
-   *
-   *     if app.settings.env == "production" { ... }
+   * ```swift
+   * if app.settings.env == "production" { ... }
+   * ```
    */
   @inlinable
   var settings : ExpressSettings { return ExpressSettings(self) }
