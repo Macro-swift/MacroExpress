@@ -192,7 +192,8 @@ open class Express: SettingsHolder, MountableMiddlewareObject, MiddlewareObject,
   
   // MARK: - Engines
   
-  var engines = [ String : ExpressEngine ]()
+  /// Extension to engine, e.g. ".mustache" to MustacheEngine
+  private(set) var engines = [ String : ExpressEngine ]()
   
   /**
    * Sets a view engine implementation.
@@ -212,8 +213,10 @@ open class Express: SettingsHolder, MountableMiddlewareObject, MiddlewareObject,
    * - Returns:     self.
    */
   @discardableResult
-  public func engine(_ key: String, _ engine: @escaping ExpressEngine) -> Self {
-    engines[key] = engine
+  public func engine(_ extension: String, _ engine: @escaping ExpressEngine) 
+              -> Self 
+  {
+    engines[`extension`.first == "." ? `extension` : ".\(`extension`)"] = engine
     return self
   }
 

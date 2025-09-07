@@ -68,9 +68,9 @@ public extension Express {
    */
   func render(template: String, options: Any?, to res: ServerResponse) {
     let log = self.log
-    let viewEngine = (get("view engine") as? String) ?? "mustache"
+    let viewEngine = (get("view engine") as? String) ?? ".mustache"
     guard let engine = engines[viewEngine] else {
-      log.error("Did not find view engine: \(viewEngine)")
+      log.error("Did not find view engine for extension: \(viewEngine)")
       res.emit(error: ExpressRenderingError.unsupportedViewEngine(viewEngine))
       res.finishRender500IfNecessary()
       return
@@ -149,7 +149,10 @@ public extension Express {
         if let ext = preferredEngine { return [ ext ] + engines.keys }
         else                         { return Array(engines.keys) }
       }()
-      .map { "\(dir)/\(template).\($0)" }
+      .map { 
+        assert($0.hasPrefix("."))
+        return "\(dir)/\(template)\($0)" 
+      }
     
     guard !pathesToCheck.isEmpty else { return yield(nil) }
     
