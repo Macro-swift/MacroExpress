@@ -93,6 +93,21 @@ public extension SettingsHolder {
   }
   
   @inlinable
+  func enabled(_ key: String, default: Bool = false) -> Bool {
+    guard let value = get(key) else { return `default` }
+    switch value {
+      case let v as Bool: 
+        return v
+      case let v as String: 
+        return !(v == "" || v == "no" || v == "false" || v == "0")
+      case let v as Int: 
+        return v != 0
+      default:
+        return false
+    }
+  }
+  
+  @inlinable
   subscript(setting key : String) -> Any? {
     get { return get(key)    }
     set { set(key, newValue) }
@@ -107,7 +122,20 @@ public extension SettingsHolder {
  * settings.
  */
 @dynamicMemberLookup
-public struct ExpressSettings {
+public struct ExpressSettings: SettingsHolder {
+  
+  @inlinable
+  @discardableResult
+  public func set(_ key: String, _ value: Any?) -> Self {
+    holder.set(key, value)
+    return self
+  }
+
+  @inlinable
+  public func get(_ key: String) -> Any? {
+    return holder.get(key)
+  }
+
   
   public let holder : SettingsHolder
 
