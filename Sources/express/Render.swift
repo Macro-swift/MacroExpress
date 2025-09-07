@@ -59,21 +59,99 @@ public extension ServerResponse {
 public extension Express {
   
   /**
+   * Locate the rendering engine for a given path and render it with the options 
+   * that are passed in.
+   *
+   * Refer to the ``ServerResponse/render`` method for details.
+   * 
+   * - Parameters:
+   *   - path:    the filesystem path to a template.
+   *   - options: Any options passed to the rendering engine.
+   *   - res:     The response the rendering will be sent to.
+   */
+  func render(path: String, options: Any?, to res: ServerResponse) {
+    let log        = self.log
+    let ext        = fs.path.extname(path)
+    let viewEngine = ext.isEmpty ? defaultEngine : ext
+    
+    guard let engine = engines[viewEngine] else {
+      log.error("Did not find view engine for extension: \(viewEngine)")
+      res.emit(error: ExpressRenderingError.unsupportedViewEngine(viewEngine))
+      res.finishRender500IfNecessary()
+      return
+    }
+    
+    engine(path, options) { ( results: Any?... ) in
+      let rc = results.count
+      let v0 = rc > 0 ? results[0] : nil
+      let v1 = rc > 1 ? results[1] : nil
+      
+      if let error = v0 {
+        res.emit(error: ExpressRenderingError
+                          .templateError(error as? Swift.Error))
+        log.error("template error:", error)
+        res.writeHead(500)
+        res.end()
+        return
+      }
+      
+      guard let result = v1 else { // Hm?
+        log.warn("template returned no content: \(path) \(results)")
+        res.writeHead(204)
+        res.end()
+        return
+      }
+
+      // TBD: maybe support a stream as a result? (result.pipe(res))
+      // Or generators, there are many more options.
+      if !(result is String) {
+        log.warn("template rendering result is not a String:", result)
+      }
+      
+      let s = (result as? String) ?? "\(result)"
+      
+      // Wow, this is harder than it looks when we want to consider a MIMEType
+      // object as a value :-)
+      var setContentType = true
+      if let oldType = res.getHeader("Content-Type") {
+        let s = (oldType as? String) ?? String(describing: oldType) // FIXME
+        setContentType = (s == "httpd/unix-directory") // a hack for Apache
+      }
+      
+      if setContentType {
+        // FIXME: also consider extension of template (.html, .vcf etc)
+        res.setHeader("Content-Type", detectTypeForContent(string: s))
+      }
+      
+      res.writeHead(200)
+      res.write(s)
+      res.end()
+    }
+  }
+  
+  /**
    * Lookup a template with the given name, locate the rendering engine for it,
    * and render it with the options that are passed in.
    *
    * Refer to the ``ServerResponse/render`` method for details.
    */
   func render(template: String, options: Any?, to res: ServerResponse) {
-    let log = self.log
-
-    let defaultEngine  = self.defaultEngine
+    let log            = self.log
+    let cacheOn        = settings.enabled("view cache")
     let emptyOpts      : [ String : Any ] = [:]
     let appViewOptions = get("view options") ?? emptyOpts // Any?
     let viewOptions    = options ?? appViewOptions // TODO: merge if possible
       // not usually possible, because not guaranteed to be dicts!
 
-    let view = View(name: template, options: self)
+    if cacheOn, let view = viewCache.withLockedValue({ $0[template] }),
+       let path = view.path
+    {
+      log.trace("Using cached view:", template)
+      return self.render(path: path, options: viewOptions, to: res)
+    }
+    
+    let viewType : View.Type = (get("view") as? View.Type) ?? View.self
+    let view = viewType.init(name: template, options: self)
     let name = path.basename(template, path.extname(template))
     view.lookup(name) { pathOrNot in
       guard let path = pathOrNot else {
@@ -82,61 +160,15 @@ public extension Express {
         return
       }
       
-      let ext        = fs.path.extname(path)
-      let viewEngine = ext.isEmpty ? defaultEngine : ext
-      guard let engine = self.engines[viewEngine] else {
-        log.error("Did not find view engine for extension: \(viewEngine)")
-        res.emit(error: ExpressRenderingError.unsupportedViewEngine(viewEngine))
-        res.finishRender500IfNecessary()
-        return
+      view.path = path // cache path
+      if cacheOn {
+        log.trace("Caching view:", template)
+        self.viewCache.withLockedValue {
+          $0[template] = view
+        }
       }
       
-      engine(path, viewOptions) { ( results: Any?... ) in
-        let rc = results.count
-        let v0 = rc > 0 ? results[0] : nil
-        let v1 = rc > 1 ? results[1] : nil
-        
-        if let error = v0 {
-          res.emit(error: ExpressRenderingError
-                            .templateError(error as? Swift.Error))
-          log.error("template error:", error)
-          res.writeHead(500)
-          res.end()
-          return
-        }
-        
-        guard let result = v1 else { // Hm?
-          log.warn("template returned no content: \(template) \(results)")
-          res.writeHead(204)
-          res.end()
-          return
-        }
-
-        // TBD: maybe support a stream as a result? (result.pipe(res))
-        // Or generators, there are many more options.
-        if !(result is String) {
-          log.warn("template rendering result is not a String:", result)
-        }
-        
-        let s = (result as? String) ?? "\(result)"
-        
-        // Wow, this is harder than it looks when we want to consider a MIMEType
-        // object as a value :-)
-        var setContentType = true
-        if let oldType = res.getHeader("Content-Type") {
-          let s = (oldType as? String) ?? String(describing: oldType) // FIXME
-          setContentType = (s == "httpd/unix-directory") // a hack for Apache
-        }
-        
-        if setContentType {
-          // FIXME: also consider extension of template (.html, .vcf etc)
-          res.setHeader("Content-Type", detectTypeForContent(string: s))
-        }
-        
-        res.writeHead(200)
-        res.write(s)
-        res.end()
-      }
+      self.render(path: path, options: viewOptions, to: res)
     }
   }
   

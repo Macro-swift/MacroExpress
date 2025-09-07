@@ -13,6 +13,7 @@ import protocol MacroCore.EnvironmentKey
 import struct   MacroCore.EnvironmentValues
 import class    http.IncomingMessage
 import class    http.ServerResponse
+import NIOConcurrencyHelpers
 
 /**
  * # The Express application object
@@ -75,6 +76,15 @@ import class    http.ServerResponse
  * application.
  * The neat thing is that the routes used within the admin application are then
  * relative to "/admin", e.g. "/admin/index" for a route targetting "/index".
+ * 
+ * ## Thread Safety
+ * 
+ * Generally application setup has to be done before the stack is activated
+ * (e.g. listen is called). It generally is *not* thread safe after startup.
+ * I.e. routes, engines, settings cannot be added or modified.
+ * 
+ * Exception: The eventloop count is set to 1, in this case everything goes,
+ * just like in Node.js.
  */
 open class Express: SettingsHolder, MountableMiddlewareObject, MiddlewareObject,
                     RouteKeeper
@@ -101,9 +111,12 @@ open class Express: SettingsHolder, MountableMiddlewareObject, MiddlewareObject,
     
     // defaults
     set("view engine", "mustache")
-    
-    if let env = process.env["EXPRESS_ENV"], !env.isEmpty {
-      set("env", env)
+    set("view", Express.View.self)
+
+    let env = settings.env.lowercased() // this does the lookup
+    set("env", env) // which we want to cache
+    if env == "production" {
+      enable("view cache")
     }
   }
   
@@ -186,9 +199,10 @@ open class Express: SettingsHolder, MountableMiddlewareObject, MiddlewareObject,
   public func get(_ key: String) -> Any? {
     return settingsStore[key]
   }
-  
-  
+    
   // MARK: - Engines
+  
+  let viewCache = NIOLockedValueBox([ String : View ]())
   
   /// Extension to engine, e.g. ".mustache" to MustacheEngine
   private(set) var engines = [ String : ExpressEngine ]()

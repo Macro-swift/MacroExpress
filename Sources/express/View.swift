@@ -67,7 +67,7 @@ extension Express {
     /// The resolved path (for cached views)
     var path : String?
     
-    public init(name: String, options: Express) {
+    public required init(name: String, options: Express) {
       self.name          = name
       self.ext           = Macro.path.extname(name)
       self.engines       = options.engines
