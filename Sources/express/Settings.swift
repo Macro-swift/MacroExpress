@@ -186,6 +186,7 @@ public extension ExpressSettings {
   @inlinable
   var env : String {
     if let v = holder .get("env") as? String { return v }
+    if let v = process.env["EXPRESS_ENV"]    { return v }
     if let v = process.env["MACRO_ENV"]      { return v }
     
     #if DEBUG
