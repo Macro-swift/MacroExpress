@@ -21,18 +21,18 @@ import class    http.ServerResponse
  * application is essentially as set of routes, configuration, and templates.
  * Applications are 'mountable' and can be added to other applications.
  *
- * In ApacheExpress you need to use the `ApacheExpress` subclass as the main
- * entry point, but you can still hook up other Express applications as
- * subapplications (e.g. mount an admin frontend under the `/admin` path).
+ * In MacroExpress you can use ``Express`` class as the main entry point,
+ * but you can still hook up other Express applications as subapplications 
+ * (e.g. mount an admin frontend under the `/admin` path).
  *
  * To get access to the active application object, use the `app` property of
- * either `IncomingMessage` or `ServerResponse`.
+ * either ``IncomingMessage`` or ``ServerResponse``.
  *
  *
  * ## Routes
  *
  * An Express object wraps a Router and has itself all the methods attached to
- * a `RouteKeeper`. That is, you case use `get`, `post`, etc methods to setup
+ * a ``RouteKeeper``. That is, you case use `get`, `post`, etc methods to setup
  * routes of the application.
  * Example:
  * ```swift
@@ -45,9 +45,9 @@ import class    http.ServerResponse
  * ## Template Engines
  *
  * Express objects have a mapping of file extensions to 'template engines'. Own
- * engines can be added by calling the `engine` function:
+ * engines can be added by calling the ``engine`` function:
  * ```swift
- * engine("mustache", mustacheExpress)
+ * app.engine("mustache", mustacheExpress)
  * ```
  *
  * The would call the `mustacheExpress` template engine when templates with the
@@ -75,7 +75,6 @@ import class    http.ServerResponse
  * application.
  * The neat thing is that the routes used within the admin application are then
  * relative to "/admin", e.g. "/admin/index" for a route targetting "/index".
- *
  */
 open class Express: SettingsHolder, MountableMiddlewareObject, MiddlewareObject,
                     RouteKeeper
@@ -196,12 +195,21 @@ open class Express: SettingsHolder, MountableMiddlewareObject, MiddlewareObject,
   var engines = [ String : ExpressEngine ]()
   
   /**
-   * Sets an engine implementation.
+   * Sets a view engine implementation.
+   * 
+   * A view engine is used in ``ServerResponse/render`` calls. It is function
+   * matching the ``ExpressEngine`` signature.
    *
    * Example:
    * ```swift
    * app.engine("mustache", mustacheExpress)
    * ```
+   * 
+   * - Parameters:
+   *   - extension: The extension the engine is for, e.g. ".mustache". If no
+   *                leading dot is provided, it gets added.
+   *   - engine:    The rendering function for the extension.
+   * - Returns:     self.
    */
   @discardableResult
   public func engine(_ key: String, _ engine: @escaping ExpressEngine) -> Self {
