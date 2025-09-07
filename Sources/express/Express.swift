@@ -88,10 +88,8 @@ open class Express: SettingsHolder, MountableMiddlewareObject, MiddlewareObject,
   
   public init(id  : String? = nil, mount: String? = nil,
               log : Logger = .init(label: "μ.express.app"),
-              invokingSourceFilePath: StaticString = #file)
+              invokingSourceFilePath: StaticString = #filePath)
   {
-    // TODO: might need #filePath in Swift 5.4
-    
     self.invokingSourceFilePath = invokingSourceFilePath
     self.log                    = log
     self.router                 = Router(id: id, pattern: mount)
