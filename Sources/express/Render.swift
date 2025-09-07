@@ -20,18 +20,16 @@ public enum ExpressRenderingError: Swift.Error {
 
 public extension ServerResponse {
   
-  // TODO: How do we get access to the application?? Need to attach to the
-  //       request? We need to retrieve values.
-  
   /**
    * Lookup a template with the given name, locate the rendering engine for it,
    * and render it with the options that are passed in.
    *
    * Example:
-   *
-   *     app.get { _, res in
-   *       res.render('index', { "title": "Hello World!" })
-   *     }
+   * ```swift
+   * app.get { _, res in
+   *   res.render("index", [ "title": "Hello World!" ])
+   * }
+   * ```
    *
    * Assuming your 'views' directory contains an `index.mustache` file, this
    * would trigger the Mustache engine to render the template with the given
@@ -64,27 +62,31 @@ public extension Express {
    * Lookup a template with the given name, locate the rendering engine for it,
    * and render it with the options that are passed in.
    *
-   * Refer to the `ServerResponse.render` method for details.
+   * Refer to the ``ServerResponse/render`` method for details.
    */
   func render(template: String, options: Any?, to res: ServerResponse) {
     let log = self.log
-    let viewEngine = (get("view engine") as? String) ?? ".mustache"
-    guard let engine = engines[viewEngine] else {
-      log.error("Did not find view engine for extension: \(viewEngine)")
-      res.emit(error: ExpressRenderingError.unsupportedViewEngine(viewEngine))
-      res.finishRender500IfNecessary()
-      return
-    }
-    
-    let viewsPath      = viewDirectory(for: viewEngine, response: res)
+
+    let defaultEngine  = self.defaultEngine
     let emptyOpts      : [ String : Any ] = [:]
-    let appViewOptions = get("view options") ?? emptyOpts
+    let appViewOptions = get("view options") ?? emptyOpts // Any?
     let viewOptions    = options ?? appViewOptions // TODO: merge if possible
-    
-    lookupTemplatePath(template, in: viewsPath, preferredEngine: viewEngine) {
-      pathOrNot in
+      // not usually possible, because not guaranteed to be dicts!
+
+    let view = View(name: template, options: self)
+    let name = path.basename(template, path.extname(template))
+    view.lookup(name) { pathOrNot in
       guard let path = pathOrNot else {
         res.emit(error: ExpressRenderingError.didNotFindTemplate(template))
+        res.finishRender500IfNecessary()
+        return
+      }
+      
+      let ext        = fs.path.extname(path)
+      let viewEngine = ext.isEmpty ? defaultEngine : ext
+      guard let engine = self.engines[viewEngine] else {
+        log.error("Did not find view engine for extension: \(viewEngine)")
+        res.emit(error: ExpressRenderingError.unsupportedViewEngine(viewEngine))
         res.finishRender500IfNecessary()
         return
       }

@@ -243,19 +243,6 @@ open class Express: SettingsHolder, MountableMiddlewareObject, MiddlewareObject,
 
   // MARK: - Extension Point for Subclasses
   
-  open func viewDirectory(for engine: String, response: ServerResponse)
-            -> String
-  {
-    // Maybe that should be an array
-    // This should allow 'views' as a relative path.
-    // Also, in Apache it should be a configuration directive.
-    let viewsPath = (get("views") as? String)
-                 ?? process.env["EXPRESS_VIEWS"]
-             //  ?? apacheRequest.pathRelativeToServerRoot(filename: "views")
-                 ?? process.cwd()
-    return viewsPath
-  }
-
   /// The identifier used in the x-powered-by header
   open var productIdentifier : String {
     return "MacroExpress"
