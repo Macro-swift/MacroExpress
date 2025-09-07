@@ -2,10 +2,12 @@
 //  View.swift
 //  MacroExpress
 //
-//  Created by Helge Heß on 07.09.25.
+//  Created by Helge Heß on 09/07/25.
+//  Copyright © 2025 ZeeZide GmbH. All rights reserved.
 //
 
-import Macro
+import MacroCore
+import fs
 
 public extension SettingsHolder {
   
@@ -22,11 +24,10 @@ public extension SettingsHolder {
   /**
    * The views directory for templates set by `app.set("views", "views")`.
    */
-  @inlinable
   var views : [ String ] {
     switch settings["views"] {
       case .none:
-        return [ process.env["EXPRESS_VIEWS"] ??  __dirname() + "/views" ]
+        return [ process.env["EXPRESS_VIEWS"] ?? __dirname() + "/views" ]
       case let v as String: return [ v ]
       case let v as [ String ]: return v
       case .some(let v):
@@ -59,7 +60,7 @@ extension Express {
     
     /// The render function for the extension specified in ``ext`` (i.e. passed
     /// explicitly to the render function, like `render("index.mustache")`.
-    public let engine   : ExpressEngine?
+    public var engine   : ExpressEngine?
     
     /// All known engines
     private let engines : [ String : ExpressEngine ]
@@ -69,7 +70,7 @@ extension Express {
     
     public required init(name: String, options: Express) {
       self.name          = name
-      self.ext           = Macro.path.extname(name)
+      self.ext           = fs.path.extname(name)
       self.engines       = options.engines
       self.root          = options.views
       self.defaultEngine = options.defaultEngine

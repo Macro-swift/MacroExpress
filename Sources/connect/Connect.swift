@@ -3,7 +3,7 @@
 //  Noze.io / Macro
 //
 //  Created by Helge Heß on 5/3/16.
-//  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2025 ZeeZide GmbH. All rights reserved.
 //
 
 import class http.Server
@@ -194,6 +194,7 @@ public extension Connect {
 }
 
 import func MacroCore.__dirname
+// TBD: can we make those internal? They produce ambiguities.
 
 #if swift(>=5.3)
   @inlinable
