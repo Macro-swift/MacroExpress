@@ -1,9 +1,9 @@
 //
 //  Mustache.swift
-//  Noze.io / Macro
+//  Noze.io / MacroExpress
 //
 //  Created by Helge Heß on 02/06/16.
-//  Copyright © 2016-2024 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2025 ZeeZide GmbH. All rights reserved.
 //
 
 import func fs.readFile
@@ -14,8 +14,8 @@ import Mustache
 
 let mustacheExpress : ExpressEngine = { path, options, done in
   fs.readFile(path, "utf8") { err, str in
-    guard err == nil else {
-      done(err!)
+    if let error = err {
+      done(err)
       return
     }
     

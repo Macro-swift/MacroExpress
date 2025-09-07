@@ -296,6 +296,13 @@ extension Express: CustomStringConvertible {
 
 }
 
+/**
+ * If the done closure is called w/ arguments, the first one is considered
+ * the error and the second one the result.
+ * 
+ * I.e. to report an error: done(myError)
+ * To report a result:      done(nil, myValue)
+ */
 public typealias ExpressEngine = (
                    _ path:    String,
                    _ options: Any?,
