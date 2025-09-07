@@ -3,7 +3,7 @@
 //  Noze.io / Macro / ExExpress
 //
 //  Created by Helge Heß on 6/2/16.
-//  Copyright © 2016-2023 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2025 ZeeZide GmbH. All rights reserved.
 //
 
 import enum  MacroCore.process
@@ -42,7 +42,7 @@ public extension ServerResponse {
    */
   func render(_ template: String, _ options : Any? = nil) {
     guard let app = self.app else {
-      console.error("No app object assigned to response: \(self)")
+      log.error("No app object assigned to response: \(self)")
       emit(error: ExpressRenderingError.responseHasNoAppObject)
       finishRender500IfNecessary()
       return
@@ -67,9 +67,10 @@ public extension Express {
    * Refer to the `ServerResponse.render` method for details.
    */
   func render(template: String, options: Any?, to res: ServerResponse) {
+    let log = self.log
     let viewEngine = (get("view engine") as? String) ?? "mustache"
     guard let engine = engines[viewEngine] else {
-      console.error("Did not find view engine: \(viewEngine)")
+      log.error("Did not find view engine: \(viewEngine)")
       res.emit(error: ExpressRenderingError.unsupportedViewEngine(viewEngine))
       res.finishRender500IfNecessary()
       return
@@ -96,14 +97,14 @@ public extension Express {
         if let error = v0 {
           res.emit(error: ExpressRenderingError
                             .templateError(error as? Swift.Error))
-          console.error("template error:", error)
+          log.error("template error:", error)
           res.writeHead(500)
           res.end()
           return
         }
         
         guard let result = v1 else { // Hm?
-          console.warn("template returned no content: \(template) \(results)")
+          log.warn("template returned no content: \(template) \(results)")
           res.writeHead(204)
           res.end()
           return
@@ -112,7 +113,7 @@ public extension Express {
         // TBD: maybe support a stream as a result? (result.pipe(res))
         // Or generators, there are many more options.
         if !(result is String) {
-          console.warn("template rendering result is not a String:", result)
+          log.warn("template rendering result is not a String:", result)
         }
         
         let s = (result as? String) ?? "\(result)"
@@ -137,7 +138,6 @@ public extension Express {
     }
   }
   
-  // ExExpress variant - TODO: make it async
   func lookupTemplatePath(_ template: String, in dir: String,
                           preferredEngine: String? = nil,
                           yield: @escaping ( String? ) -> Void)
