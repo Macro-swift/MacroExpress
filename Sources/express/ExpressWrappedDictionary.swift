@@ -99,6 +99,13 @@ public extension ExpressWrappedDictionary {
   subscript(dynamicMember k: String) -> Value? { return dictionary[k] }
 }
 
+extension ExpressWrappedDictionary: CustomStringConvertible {
+  
+  public var description: String {
+    dictionary.description
+  }
+}
+
 public extension ExpressWrappedDictionary {
 
   @inlinable
@@ -106,7 +113,7 @@ public extension ExpressWrappedDictionary {
     guard let v = self[key] else { return nil }
     if let i = (v as? Int) { return i }
     #if swift(>=5.10)
-    if let i = (v as? any BinaryInteger) { return Int(i) }
+    if let i = (v as? any BinaryInteger) { return Int(clamping: i) }
     #endif
     return Int("\(v)")
   }

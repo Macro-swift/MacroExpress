@@ -247,7 +247,7 @@ public extension BodyParserBody {
       guard let value = self[key] else { return nil }
       switch value { // TBD
         case let v as Int    : return v
-        case let v as Int64  : return Int(v)
+        case let v as Int64  : return Int(clamping: v)
         case let v as String : return Int(v)
         case let v as Double : return Int(v)
         default: return nil

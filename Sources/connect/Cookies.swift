@@ -10,6 +10,7 @@ import let   MacroCore.console
 import class http.IncomingMessage
 import class http.ServerResponse
 
+
 // "Set-Cookie:" Name "=" Value *( ";" Attribute)
 // "Cookie:"     Name "=" Value *( ";" Name "=" Value)
 //
@@ -21,11 +22,12 @@ import class http.ServerResponse
 /// Module and object at the same time
 ///
 /// Usage:
-///
-///    let cookies = Cookies(req, res)
-///
-///    cookies.set("theAnswer", "42")           // set a cookie
-///    if let answer = cookies.get("theAnswer") // get a cookie
+/// ```swift
+/// let cookies = Cookies(req, res)
+/// 
+/// cookies.set("theAnswer", "42")           // set a cookie
+/// if let answer = cookies.get("theAnswer") // get a cookie
+/// ```
 ///
 public struct Cookies {
   
@@ -37,24 +39,33 @@ public struct Cookies {
     self.res = res
     
     // request values we care about
-    self.cookies  = req.extractStringCookieDictionary()
+    self.cookies = req.extractStringCookieDictionary()
   }
   
   
   // get/set funcs
   
+  @inlinable
   public func get(_ name: String) -> String? {
     return cookies[name]
   }
   
+  @inlinable
   public func set(cookie c: Cookie) {
-    guard res != nil else {
+    guard let res = res else {
       console.warn("attempt to set cookie, but got no response object!")
       return
     }
-    res!.setHeader("Set-Cookie", c.description)
+    res.setHeader("Set-Cookie", c.httpHeaderValue)
   }
   
+  @inlinable
+  public func set(_ cookie: Cookie) {
+    // TODO: convenience, deprecate one
+    set(cookie: cookie)
+  }
+  
+  @inlinable
   public func set(_ name: String, _ value: String,
                   path     : String? = "/",
                   httpOnly : Bool    = true,
@@ -73,12 +84,14 @@ public struct Cookies {
     set(cookie: cookie)
   }
   
+  @inlinable
   public func reset(_ name: String) {
     set(cookie: Cookie(name: name, maxAge: 0))
   }
   
   // subscript
   
+  @inlinable
   public subscript(name : String) -> String? {
     set {
       if let newValue = newValue {
@@ -88,13 +101,12 @@ public struct Cookies {
         console.error("attempt to set nil-value cookie: \(name), ignoring.")
       }
     }
-    get {
-      return get(name)
-    }
+    get { return get(name) }
   }
 }
 
 extension Cookies: CustomStringConvertible {
+  
   public var description: String {
     var ms = "<Cookies:"
     if cookies.isEmpty {
@@ -122,13 +134,17 @@ extension Cookies: CustomStringConvertible {
   }
 }
 
+// Expose the type under the "cookies" name for naming compat.
 public let cookies = Cookies.self
 
 // MARK: - Internals
 
+// TBD(2025-08-26): The new shared Foundation might have a proper Cookie parser?
+
 import struct Foundation.Date
 
 public struct Cookie {
+  
   public let name     : String
   public var value    : String
   public var path     : String?
@@ -263,8 +279,9 @@ extension String {
   }
 }
 
+/// "Cookie: a=10; b=20" => [ "a=10", "b=20" ]
 private func splitCookieFields(headerValue v: String) -> [ String ] {
-  return v.splitAndTrim(splitchar: 59) // semicolon
+  return v.splitAndTrim(splitchar: 59) // semicolon (multiple cookies in line)
 }
 
 private extension IncomingMessage {

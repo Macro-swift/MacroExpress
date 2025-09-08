@@ -10,8 +10,10 @@ import struct   Logging.Logger
 import enum     MacroCore.process
 import enum     MacroCore.EventListenerSet
 import protocol MacroCore.EnvironmentKey
+import struct   MacroCore.EnvironmentValues
 import class    http.IncomingMessage
 import class    http.ServerResponse
+import NIOConcurrencyHelpers
 
 /**
  * # The Express application object
@@ -20,18 +22,18 @@ import class    http.ServerResponse
  * application is essentially as set of routes, configuration, and templates.
  * Applications are 'mountable' and can be added to other applications.
  *
- * In ApacheExpress you need to use the `ApacheExpress` subclass as the main
- * entry point, but you can still hook up other Express applications as
- * subapplications (e.g. mount an admin frontend under the `/admin` path).
+ * In MacroExpress you can use ``Express`` class as the main entry point,
+ * but you can still hook up other Express applications as subapplications 
+ * (e.g. mount an admin frontend under the `/admin` path).
  *
  * To get access to the active application object, use the `app` property of
- * either `IncomingMessage` or `ServerResponse`.
+ * either ``IncomingMessage`` or ``ServerResponse``.
  *
  *
  * ## Routes
  *
  * An Express object wraps a Router and has itself all the methods attached to
- * a `RouteKeeper`. That is, you case use `get`, `post`, etc methods to setup
+ * a ``RouteKeeper``. That is, you case use `get`, `post`, etc methods to setup
  * routes of the application.
  * Example:
  * ```swift
@@ -44,9 +46,9 @@ import class    http.ServerResponse
  * ## Template Engines
  *
  * Express objects have a mapping of file extensions to 'template engines'. Own
- * engines can be added by calling the `engine` function:
+ * engines can be added by calling the ``engine`` function:
  * ```swift
- * engine("mustache", mustacheExpress)
+ * app.engine("mustache", mustacheExpress)
  * ```
  *
  * The would call the `mustacheExpress` template engine when templates with the
@@ -74,7 +76,15 @@ import class    http.ServerResponse
  * application.
  * The neat thing is that the routes used within the admin application are then
  * relative to "/admin", e.g. "/admin/index" for a route targetting "/index".
- *
+ * 
+ * ## Thread Safety
+ * 
+ * Generally application setup has to be done before the stack is activated
+ * (e.g. listen is called). It generally is *not* thread safe after startup.
+ * I.e. routes, engines, settings cannot be added or modified.
+ * 
+ * Exception: The eventloop count is set to 1, in this case everything goes,
+ * just like in Node.js.
  */
 open class Express: SettingsHolder, MountableMiddlewareObject, MiddlewareObject,
                     RouteKeeper
@@ -88,10 +98,8 @@ open class Express: SettingsHolder, MountableMiddlewareObject, MiddlewareObject,
   
   public init(id  : String? = nil, mount: String? = nil,
               log : Logger = .init(label: "μ.express.app"),
-              invokingSourceFilePath: StaticString = #file)
+              invokingSourceFilePath: StaticString = #filePath)
   {
-    // TODO: might need #filePath in Swift 5.4
-    
     self.invokingSourceFilePath = invokingSourceFilePath
     self.log                    = log
     self.router                 = Router(id: id, pattern: mount)
@@ -103,9 +111,12 @@ open class Express: SettingsHolder, MountableMiddlewareObject, MiddlewareObject,
     
     // defaults
     set("view engine", "mustache")
-    
-    if let env = process.env["EXPRESS_ENV"], !env.isEmpty {
-      set("env", env)
+    set("view", Express.View.self)
+
+    let env = settings.env.lowercased() // this does the lookup
+    set("env", env) // which we want to cache
+    if env == "production" {
+      enable("view cache")
     }
   }
   
@@ -188,23 +199,36 @@ open class Express: SettingsHolder, MountableMiddlewareObject, MiddlewareObject,
   public func get(_ key: String) -> Any? {
     return settingsStore[key]
   }
-  
-  
+    
   // MARK: - Engines
   
-  var engines = [ String : ExpressEngine ]()
+  let viewCache = NIOLockedValueBox([ String : View ]())
+  
+  /// Extension to engine, e.g. ".mustache" to MustacheEngine
+  private(set) var engines = [ String : ExpressEngine ]()
   
   /**
-   * Sets an engine implementation.
+   * Sets a view engine implementation.
+   * 
+   * A view engine is used in ``ServerResponse/render`` calls. It is function
+   * matching the ``ExpressEngine`` signature.
    *
    * Example:
    * ```swift
    * app.engine("mustache", mustacheExpress)
    * ```
+   * 
+   * - Parameters:
+   *   - extension: The extension the engine is for, e.g. ".mustache". If no
+   *                leading dot is provided, it gets added.
+   *   - engine:    The rendering function for the extension.
+   * - Returns:     self.
    */
   @discardableResult
-  public func engine(_ key: String, _ engine: @escaping ExpressEngine) -> Self {
-    engines[key] = engine
+  public func engine(_ extension: String, _ engine: @escaping ExpressEngine) 
+              -> Self 
+  {
+    engines[`extension`.first == "." ? `extension` : ".\(`extension`)"] = engine
     return self
   }
 
@@ -233,19 +257,6 @@ open class Express: SettingsHolder, MountableMiddlewareObject, MiddlewareObject,
 
   // MARK: - Extension Point for Subclasses
   
-  open func viewDirectory(for engine: String, response: ServerResponse)
-            -> String
-  {
-    // Maybe that should be an array
-    // This should allow 'views' as a relative path.
-    // Also, in Apache it should be a configuration directive.
-    let viewsPath = (get("views") as? String)
-                 ?? process.env["EXPRESS_VIEWS"]
-             //  ?? apacheRequest.pathRelativeToServerRoot(filename: "views")
-                 ?? process.cwd()
-    return viewsPath
-  }
-
   /// The identifier used in the x-powered-by header
   open var productIdentifier : String {
     return "MacroExpress"
@@ -285,6 +296,13 @@ extension Express: CustomStringConvertible {
 
 }
 
+/**
+ * If the done closure is called w/ arguments, the first one is considered
+ * the error and the second one the result.
+ * 
+ * I.e. to report an error: done(myError)
+ * To report a result:      done(nil, myValue)
+ */
 public typealias ExpressEngine = (
                    _ path:    String,
                    _ options: Any?,
@@ -357,6 +375,39 @@ enum ExpressExtKey {
   }
 }
 
+public extension EnvironmentValues {
+  
+  var app: Express? {
+    get { self[ExpressExtKey.App.self] }
+    set { self[ExpressExtKey.App.self] = newValue }
+  }
+  var request: IncomingMessage? {
+    get { self[ExpressExtKey.RequestKey.self] }
+    set { self[ExpressExtKey.RequestKey.self] = newValue }
+  }
+  var route: Route? {
+    get { self[ExpressExtKey.RouteKey.self] }
+    set { self[ExpressExtKey.RouteKey.self] = newValue }
+  }
+  var baseURL: String? {
+    get { self[ExpressExtKey.BaseURL.self] }
+    set { self[ExpressExtKey.BaseURL.self] = newValue }
+  }
+  var params: IncomingMessage.Params {
+    get { self[ExpressExtKey.Params.self] }
+    set { self[ExpressExtKey.Params.self] = newValue }
+  }
+  var query: IncomingMessage.Query? {
+    get { self[ExpressExtKey.Query.self] }
+    set { self[ExpressExtKey.Query.self] = newValue }
+  }
+  var locals: ServerResponse.Locals {
+    get { self[ExpressExtKey.Locals.self] }
+    set { self[ExpressExtKey.Locals.self] = newValue }
+  }
+}
+
+
 // MARK: - App access helper
 
 public extension Dictionary where Key : ExpressibleByStringLiteral {
@@ -364,7 +415,7 @@ public extension Dictionary where Key : ExpressibleByStringLiteral {
     guard let v = self[key] else { return nil }
     if let i = (v as? Int) { return i }
     #if swift(>=5.10)
-    if let i = (v as? any BinaryInteger) { return Int(i) }
+    if let i = (v as? any BinaryInteger) { return Int(clamping: i) }
     #endif
     return Int("\(v)")
   }

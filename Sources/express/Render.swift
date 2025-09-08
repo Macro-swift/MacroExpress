@@ -3,7 +3,7 @@
 //  Noze.io / Macro / ExExpress
 //
 //  Created by Helge Heß on 6/2/16.
-//  Copyright © 2016-2023 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2025 ZeeZide GmbH. All rights reserved.
 //
 
 import enum  MacroCore.process
@@ -20,18 +20,16 @@ public enum ExpressRenderingError: Swift.Error {
 
 public extension ServerResponse {
   
-  // TODO: How do we get access to the application?? Need to attach to the
-  //       request? We need to retrieve values.
-  
   /**
    * Lookup a template with the given name, locate the rendering engine for it,
    * and render it with the options that are passed in.
    *
    * Example:
-   *
-   *     app.get { _, res in
-   *       res.render('index', { "title": "Hello World!" })
-   *     }
+   * ```swift
+   * app.get { _, res in
+   *   res.render("index", [ "title": "Hello World!" ])
+   * }
+   * ```
    *
    * Assuming your 'views' directory contains an `index.mustache` file, this
    * would trigger the Mustache engine to render the template with the given
@@ -42,13 +40,29 @@ public extension ServerResponse {
    */
   func render(_ template: String, _ options : Any? = nil) {
     guard let app = self.app else {
-      console.error("No app object assigned to response: \(self)")
+      log.error("No app object assigned to response: \(self)")
       emit(error: ExpressRenderingError.responseHasNoAppObject)
       finishRender500IfNecessary()
       return
     }
     
-    app.render(template: template, options: options, to: self)
+    app.render(template, options) { errorMaybe, contentMaybe in
+      if let error = errorMaybe {
+        self.emit(error: error)
+        return self.finishRender500IfNecessary()
+      }
+      
+      guard let content = contentMaybe else { 
+        return self.sendStatus(204) 
+      }
+      
+      // Wow, this is harder than it looks. we may want to consider a MIMEType
+      // object as a value :-)
+      // FIXME: also consider extension of template (.html, .vcf etc)
+      self.setHeader("Content-Type", detectTypeForContent(string: content))
+      
+      self.send(content)
+    }
   }
   
   fileprivate func finishRender500IfNecessary() {
@@ -59,123 +73,109 @@ public extension ServerResponse {
 }
 
 public extension Express {
-  
+
   /**
    * Lookup a template with the given name, locate the rendering engine for it,
    * and render it with the options that are passed in.
    *
-   * Refer to the `ServerResponse.render` method for details.
+   * Example:
+   * ```swift
+   * app.render("index", [ "title": "Hello World!" ]) { error, html in
+   *   ...
+   * }
+   * ```
+   *
+   * Assuming your 'views' directory contains an `index.mustache` file, this
+   * would trigger the Mustache engine to render the template with the given
+   * dictionary as input.
+   *
+   * When no options are passed in, render will fallback to the `view options`
+   * setting in the application (TODO: merge the two contexts).
    */
-  func render(template: String, options: Any?, to res: ServerResponse) {
-    let viewEngine = (get("view engine") as? String) ?? "mustache"
-    guard let engine = engines[viewEngine] else {
-      console.error("Did not find view engine: \(viewEngine)")
-      res.emit(error: ExpressRenderingError.unsupportedViewEngine(viewEngine))
-      res.finishRender500IfNecessary()
-      return
+  func render(_ template: String, _ options : Any? = nil,
+              yield: @escaping ( Error?, String? ) -> Void)
+  {
+    let log            = self.log
+    let cacheOn        = settings.enabled("view cache")
+    let emptyOpts      : [ String : Any ] = [:]
+    let appViewOptions = get("view options") ?? emptyOpts // Any?
+    let viewOptions    = options ?? appViewOptions // TODO: merge if possible
+      // not usually possible, because not guaranteed to be dicts!
+
+    if cacheOn, let view = viewCache.withLockedValue({ $0[template] }),
+       let path = view.path
+    {
+      log.trace("Using cached view:", template)
+      return self.render(path: path, options: viewOptions, yield: yield)
     }
     
-    let viewsPath      = viewDirectory(for: viewEngine, response: res)
-    let emptyOpts      : [ String : Any ] = [:]
-    let appViewOptions = get("view options") ?? emptyOpts
-    let viewOptions    = options ?? appViewOptions // TODO: merge if possible
-    
-    lookupTemplatePath(template, in: viewsPath, preferredEngine: viewEngine) {
-      pathOrNot in
+    let viewType : View.Type = (get("view") as? View.Type) ?? View.self
+    let view = viewType.init(name: template, options: self)
+    let name = path.basename(template, path.extname(template))
+    view.lookup(name) { pathOrNot in
       guard let path = pathOrNot else {
-        res.emit(error: ExpressRenderingError.didNotFindTemplate(template))
-        res.finishRender500IfNecessary()
-        return
+        return yield(ExpressRenderingError.didNotFindTemplate(template), nil)
       }
       
-      engine(path, viewOptions) { ( results: Any?... ) in
-        let rc = results.count
-        let v0 = rc > 0 ? results[0] : nil
-        let v1 = rc > 1 ? results[1] : nil
-        
-        if let error = v0 {
-          res.emit(error: ExpressRenderingError
-                            .templateError(error as? Swift.Error))
-          console.error("template error:", error)
-          res.writeHead(500)
-          res.end()
-          return
+      view.path = path // cache path
+      if cacheOn {
+        log.trace("Caching view:", template)
+        self.viewCache.withLockedValue {
+          $0[template] = view
         }
-        
-        guard let result = v1 else { // Hm?
-          console.warn("template returned no content: \(template) \(results)")
-          res.writeHead(204)
-          res.end()
-          return
-        }
-
-        // TBD: maybe support a stream as a result? (result.pipe(res))
-        // Or generators, there are many more options.
-        if !(result is String) {
-          console.warn("template rendering result is not a String:", result)
-        }
-        
-        let s = (result as? String) ?? "\(result)"
-        
-        // Wow, this is harder than it looks when we want to consider a MIMEType
-        // object as a value :-)
-        var setContentType = true
-        if let oldType = res.getHeader("Content-Type") {
-          let s = (oldType as? String) ?? String(describing: oldType) // FIXME
-          setContentType = (s == "httpd/unix-directory") // a hack for Apache
-        }
-        
-        if setContentType {
-          // FIXME: also consider extension of template (.html, .vcf etc)
-          res.setHeader("Content-Type", detectTypeForContent(string: s))
-        }
-        
-        res.writeHead(200)
-        res.write(s)
-        res.end()
       }
+      
+      self.render(path: path, options: viewOptions, yield: yield)
     }
   }
   
-  // ExExpress variant - TODO: make it async
-  func lookupTemplatePath(_ template: String, in dir: String,
-                          preferredEngine: String? = nil,
-                          yield: @escaping ( String? ) -> Void)
+  /**
+   * Locate the rendering engine for a given path and render it with the options 
+   * that are passed in.
+   *
+   * Refer to the ``ServerResponse/render`` method for details.
+   * 
+   * - Parameters:
+   *   - path:    the filesystem path to a template.
+   *   - options: Any options passed to the rendering engine.
+   *   - yield:   The result of template being rendered.
+   */
+  func render(path: String, options: Any?, 
+              yield: @escaping ( Error?, String? ) -> Void) 
   {
-    // Hm, Swift only has pathComponents on URL?
-    // FIXME
+    let log        = self.log
+    let ext        = fs.path.extname(path)
+    let viewEngine = ext.isEmpty ? defaultEngine : ext
     
-    let pathesToCheck : [ String ] = { () -> [ String ] in
-        if let ext = preferredEngine { return [ ext ] + engines.keys }
-        else                         { return Array(engines.keys) }
-      }()
-      .map { "\(dir)/\(template).\($0)" }
-    
-    guard !pathesToCheck.isEmpty else { return yield(nil) }
-    
-    final class State {
-      var pending : ArraySlice<String>
-      let yield   : ( String? ) -> Void
-      
-      init(_ pathesToCheck: [ String ], yield: @escaping ( String? ) -> Void) {
-        pending = pathesToCheck[...]
-        self.yield = yield
-      }
-      
-      func step() {
-        guard let pathToCheck = pending.popFirst() else { return yield(nil) }
-        fs.stat(pathToCheck) { error, stat in
-          guard let stat = stat, stat.isFile() else {
-            return self.step()
-          }
-          self.yield(pathToCheck)
-        }
-      }
+    guard let engine = engines[viewEngine] else {
+      log.error("Did not find view engine for extension: \(viewEngine)")
+      return yield(ExpressRenderingError.unsupportedViewEngine(viewEngine), nil)
     }
     
-    let state = State(pathesToCheck, yield: yield)
-    state.step()
+    engine(path, options) { ( results: Any?... ) in
+      if let value = results.first, let error = value {
+        log.error("view engine error:", error)
+        yield(ExpressRenderingError.templateError(error as? Swift.Error), nil)
+        return
+      }
+      
+      guard let input = results.dropFirst().first, let result = input else {
+        log.warn("View engine returned no content for:", path, results)
+        return yield(nil, nil)
+      }
+
+      // TBD: maybe support a stream as a result? (result.pipe(res))
+      // Or generators, there are many more options.
+      if !(result is String) {
+        log.warn("template rendering result is not a String:", result)
+        assertionFailure("Non-template rendering result \(type(of: result))")
+      }
+      
+      let s = (result as? String) ?? "\(result)"
+      yield(nil, s)
+    }
   }
+  
 }
 
 
