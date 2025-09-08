@@ -115,40 +115,54 @@ extension Express {
         }
       }
       
-      lookupFilePath(pathesToCheck, yield: yield)
+      FileSystemModule.findExistingFile(pathesToCheck, where: { $0.isFile() },
+                                        yield: yield)
     }
-    
-    /**
-     * This asynchronously finds the first path in the given set of pathes that
-     * exists.
-     */
-    public func lookupFilePath(_ pathesToCheck: [ String ], 
+  }
+}
+
+import xsys
+
+public extension FileSystemModule {
+  
+  /**
+   * This asynchronously finds the first path in the given set of pathes that
+   * exists.
+   */
+  static func findExistingFile(_ pathesToCheck: [ String ],
+                               where statCondition: @escaping 
+                                 ( stat_struct ) -> Bool,
                                yield: @escaping ( String? ) -> Void)
-    {
-      guard !pathesToCheck.isEmpty else { return yield(nil) }
+  {
+    guard !pathesToCheck.isEmpty else { return yield(nil) }
+    
+    final class State {
+      var pending       : ArraySlice<String>
+      let statCondition : ( stat_struct ) -> Bool
+      let yield         : ( String? ) -> Void
       
-      final class State {
-        var pending : ArraySlice<String>
-        let yield   : ( String? ) -> Void
-        
-        init(_ pathesToCheck: [ String ], yield: @escaping ( String? ) -> Void) {
-          pending = pathesToCheck[...]
-          self.yield = yield
-        }
-        
-        func step() {
-          guard let pathToCheck = pending.popFirst() else { return yield(nil) }
-          fs.stat(pathToCheck) { error, stat in
-            guard let stat = stat, stat.isFile() else {
-              return self.step()
-            }
-            self.yield(pathToCheck)
-          }
-        }
+      init(_ pathesToCheck: [ String ], 
+           statCondition: @escaping ( stat_struct ) -> Bool, 
+           yield: @escaping ( String? ) -> Void) 
+      {
+        pending            = pathesToCheck[...]
+        self.statCondition = statCondition
+        self.yield         = yield
       }
       
-      let state = State(pathesToCheck, yield: yield)
-      state.step()
+      func step() {
+        let statCondition = self.statCondition
+        guard let pathToCheck = pending.popFirst() else { return yield(nil) }
+        fs.stat(pathToCheck) { error, stat in
+          guard let stat = stat, statCondition(stat) else {
+            return self.step()
+          }
+          self.yield(pathToCheck)
+        }
+      }
     }
+    
+    let state = State(pathesToCheck, statCondition: statCondition, yield: yield)
+    state.step()
   }
 }

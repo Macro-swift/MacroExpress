@@ -171,48 +171,6 @@ public extension Express {
       self.render(path: path, options: viewOptions, to: res)
     }
   }
-  
-  func lookupTemplatePath(_ template: String, in dir: String,
-                          preferredEngine: String? = nil,
-                          yield: @escaping ( String? ) -> Void)
-  {
-    // Hm, Swift only has pathComponents on URL?
-    // FIXME
-    
-    let pathesToCheck : [ String ] = { () -> [ String ] in
-        if let ext = preferredEngine { return [ ext ] + engines.keys }
-        else                         { return Array(engines.keys) }
-      }()
-      .map { 
-        assert($0.hasPrefix("."))
-        return "\(dir)/\(template)\($0)" 
-      }
-    
-    guard !pathesToCheck.isEmpty else { return yield(nil) }
-    
-    final class State {
-      var pending : ArraySlice<String>
-      let yield   : ( String? ) -> Void
-      
-      init(_ pathesToCheck: [ String ], yield: @escaping ( String? ) -> Void) {
-        pending = pathesToCheck[...]
-        self.yield = yield
-      }
-      
-      func step() {
-        guard let pathToCheck = pending.popFirst() else { return yield(nil) }
-        fs.stat(pathToCheck) { error, stat in
-          guard let stat = stat, stat.isFile() else {
-            return self.step()
-          }
-          self.yield(pathToCheck)
-        }
-      }
-    }
-    
-    let state = State(pathesToCheck, yield: yield)
-    state.step()
-  }
 }
 
 
