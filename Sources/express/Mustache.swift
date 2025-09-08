@@ -14,20 +14,20 @@ import Mustache
 
 let mustacheExpress : ExpressEngine = { path, options, done in
   fs.readFile(path, "utf8") { err, str in
-    if let error = err {
-      done(err)
-      return
-    }
+    if let error = err { return done(err) }
     
     guard let template = str else {
-      console.error("read file return no error but no string either: \(path)")
-      done("Got no string?")
-      return
+      console.error("read file return no error but no string either:", path)
+      return done("Got no string?")
     }
     
     var parser = MustacheParser()
     let tree   = parser.parse(string: template)
-    
+
+    // An engine doesn't get the actual app object, unfortunately. Due to this
+    // we cannot recurse into the view engine to resolve partials as arbitrary
+    // templates.
+    // TBD: We could pass in a special object to enable this usage.
     let ctx = ExpressMustacheContext(path: path, object: options)
     tree.render(inContext: ctx) { result in
       done(nil, result)
