@@ -3,7 +3,7 @@
 //  Noze.io / Macro
 //
 //  Created by Helge Heß on 6/2/16.
-//  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2025 ZeeZide GmbH. All rights reserved.
 //
 
 import enum      NIOHTTP1.HTTPMethod
@@ -21,10 +21,11 @@ private let debugMatcher = process.getenvflag("macro.router.matcher.debug")
 private let debugWalker  = process.getenvflag("macro.router.walker.debug")
 
 /**
- * A Route is a middleware which wraps another middleware and guards it by a
+ * A ``Route`` is a middleware which wraps another middleware and guards it by a
  * condition. For example:
- *
- *     app.get("/index") { req, res, next in ... }
+ * ```swift
+ * app.get("/index") { req, res, next in ... }
+ * ```
  *
  * This creates a Route wrapping the closure given. It only runs the
  * embedded closure if:
@@ -45,8 +46,14 @@ private let debugWalker  = process.getenvflag("macro.router.walker.debug")
  * - otherwise the text is matched AS IS
  *
  * Variables can be extracted using:
- *
- *     req.params[int: "id"]
+ * ```swift
+ * app.get("/user/:id/view") { req, res in
+ *   guard let id = req.params[int: "id"] else {
+ *     return res.sendStatus(404) // TBD: or 400?
+ *   }
+ *   ...
+ * }
+ * ```
  *
  * and companions.
  */
