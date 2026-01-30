@@ -48,6 +48,8 @@
 
 @_exported import struct    multer.multer
 
+@_exported import func      compression.compression
+
 // We need to import those fully, because they contain query a few extensions,
 // which we can't import selectively :-/
 @_exported import MacroCore

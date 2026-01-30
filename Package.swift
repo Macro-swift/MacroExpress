@@ -10,6 +10,7 @@ let package = Package(
     .library(name: "MacroExpress", targets: [ "MacroExpress" ]),
     .library(name: "express",      targets: [ "express"      ]),
     .library(name: "connect",      targets: [ "connect"      ]),
+    .library(name: "compression",  targets: [ "compression"  ]),
     .library(name: "mime",         targets: [ "mime"         ]),
     .library(name: "dotenv",       targets: [ "dotenv"       ]),
     .library(name: "multer",       targets: [ "multer"       ])
@@ -19,14 +20,24 @@ let package = Package(
     .package(url: "https://github.com/Macro-swift/Macro.git",
              from: "1.0.10"),
     .package(url: "https://github.com/AlwaysRightInstitute/mustache.git",
-             from: "1.0.2")
+             from: "1.0.2"),
+    .package(url: "https://github.com/apple/swift-nio.git",
+             from: "2.80.0"),
+    .package(url: "https://github.com/apple/swift-nio-extras.git",
+             from: "1.24.0")
   ],
   
   targets: [
     .target(name: "mime",   dependencies: []),
-    .target(name: "dotenv", dependencies: [ 
-      .product(name: "MacroCore", package: "Macro"), 
-      .product(name: "fs", package: "Macro") 
+    .target(name: "compression", dependencies: [
+      .product(name: "http",    package: "Macro"),
+      .product(name: "NIOCore", package: "swift-nio"),
+      .product(name: "NIOHTTPCompression", package: "swift-nio-extras"),
+      "connect"
+    ]),
+    .target(name: "dotenv", dependencies: [
+      .product(name: "MacroCore", package: "Macro"),
+      .product(name: "fs", package: "Macro")
     ]),
     .target(name: "multer", dependencies: [ 
       .product(name: "MacroCore", package: "Macro"), 
@@ -47,12 +58,12 @@ let package = Package(
       "connect", "mime", 
       .product(name: "Mustache",  package: "Mustache")
     ], exclude: [ "README.md" ]),
-    .target(name: "MacroExpress", dependencies: [ 
-      .product(name: "MacroCore", package: "Macro"), 
+    .target(name: "MacroExpress", dependencies: [
+      .product(name: "MacroCore", package: "Macro"),
       .product(name: "fs",        package: "Macro"),
       .product(name: "http",      package: "Macro"),
       .product(name: "xsys",      package: "Macro"),
-      "dotenv", "mime", "connect", "express", "multer"
+      "dotenv", "mime", "connect", "compression", "express", "multer"
     ], exclude: [ "README.md" ]),
 
     .testTarget(name: "mimeTests",       dependencies: [ "mime"    ]),
