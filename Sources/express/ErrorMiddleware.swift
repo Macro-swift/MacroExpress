@@ -3,7 +3,7 @@
 //  Noze.io / Macro
 //
 //  Created by Helge Heß on 6/2/16.
-//  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2025 ZeeZide GmbH. All rights reserved.
 //
 
 import class     http.IncomingMessage
@@ -12,16 +12,16 @@ import typealias connect.Next
 
 /**
  * Middleware are just functions that deal with HTTP transactions.
- * The Express "ErrorMiddleware" enhances the concepts with special middleware
+ * The Express ``ErrorMiddleware`` enhances the concepts with special middleware
  * functions which also take a `Swift.Error` value as the first parameter.
  *
- * As soon as the middleware stack encounters and error (the regular middleware
+ * As soon as the middleware stack encounters an error (the regular middleware
  * either threw an error, or passed an error object to the `next` handler),
  * an Express router will switch to process the stack of error middleware.
  *
- * They take a request (`IncomingMessage`) and response (`ServerResponse`)
+ * They take a request (``IncomingMessage``) and response (``ServerResponse``)
  * object as well as a closure to signal whether they fully handled the request
- * or whether the respective "Router" (e.g. Connect) should run the next
+ * or whether the respective ``Router`` (e.g. Connect) should run the next
  * middleware.
  *
  * Call `Next` when the request processing needs to continue, just return if the

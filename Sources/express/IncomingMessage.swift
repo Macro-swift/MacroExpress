@@ -90,8 +90,56 @@ public extension IncomingMessage {
     set { environment[ExpressExtKey.RouteKey.self] = newValue }
     get { return environment[ExpressExtKey.RouteKey.self] }
   }
-  
-  
+
+  /**
+   * Looks up a parameter by checking route params, the request body,
+   * then the query string.
+   *
+   * Returns `nil` when not found or when the value is
+   * an empty string.
+   *
+   * Example:
+   * ```swift
+   * app.post("/users/:id") { req, res, next in
+   *   let id   = req.param("id")
+   *   let name = req.param("name") // body or query
+   * }
+   * ```
+   */
+  @inlinable
+  func param(_ name: String) -> Any? {
+    if let v = params[name], !v.isEmpty { return v }
+    if let v = body[name] {
+      if let s = v as? String { if !s.isEmpty { return s } }
+      else { return v }
+    }
+    if let v = query[name] {
+      if let s = v as? String { if !s.isEmpty { return s } }
+      else { return v }
+    }
+    return nil
+  }
+
+  /**
+   * Looks up a parameter by checking route params, the request body,
+   * then the query string.
+   *
+   * Returns a default string when not found.
+   *
+   * Example:
+   * ```swift
+   * app.post("/users/:id") { req, res, next in
+   *   let id   = req.param("id")
+   *   let name = req.param("name") // body or query
+   * }
+   * ```
+   */
+  @inlinable
+  func param(string name: String, default: String = "") -> String {
+    guard let v = param(name) else { return `default` }
+    return String(describing: v)
+  }
+
   /**
    * Checks whether the Accept header of the client indicates that the client
    * can deal with the given type, and returns the Accept pattern which matched

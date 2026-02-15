@@ -65,7 +65,7 @@ public extension BasicAuthModule {
    * authentication is successful.
    *
    * Basic usage:
-   * ```
+   * ```swift
    * app.use(expressBasicAuth.basicAuth(users: [
    *   "admin": "supersecret"
    * ]))
@@ -76,14 +76,14 @@ public extension BasicAuthModule {
    * ```
    *
    * Using a custom authenticator:
-   * ```
+   * ```swift
    * app.use(expressBasicAuth.basicAuth { login, password in
    *   return login == "admin" && password == "supersecret"
    * })
    * ```
    *
    * Asynchronous authentication:
-   * ```
+   * ```swift
    * app.use(expressBasicAuth.basicAuth { login, password, yield in
    *   yield(nil, login == "admin" && password == "supersecret")
    * })
@@ -113,27 +113,29 @@ public extension BasicAuthModule {
    * authentication is successful.
    *
    * Basic usage:
+   * ```swift
+   * app.use(expressBasicAuth.basicAuth(users: [
+   *   "admin": "supersecret"
+   * ]))
    *
-   *     app.use(expressBasicAuth.basicAuth(users: [
-   *       "admin": "supersecret"
-   *     ]))
-   *
-   *     app.use { req, res, next in
-   *       console.log("user is authorized:", req.authenticatedBasicAuthUser)
-   *     }
+   * app.use { req, res, next in
+   *   console.log("user is authorized:", req.authenticatedBasicAuthUser)
+   * }
+   * ```
    *
    * Using a custom authenticator:
-   *
-   *     app.use(expressBasicAuth.basicAuth { login, password in
-   *       return login == "admin" && password == "supersecret"
-   *     })
+   * ```swift
+   * app.use(expressBasicAuth.basicAuth { login, password in
+   *   return login == "admin" && password == "supersecret"
+   * })
+   * ```
    *
    * Asynchronous authentication:
-   *
-   *     app.use(expressBasicAuth.basicAuth { login, password, yield in
-   *       yield(nil, login == "admin" && password == "supersecret")
-   *     })
-   *
+   * ```swift
+   * app.use(expressBasicAuth.basicAuth { login, password, yield in
+   *   yield(nil, login == "admin" && password == "supersecret")
+   * })
+   * ```
    */
   @inlinable
   static func basicAuth(_ options  : Options,
