@@ -138,6 +138,17 @@ public extension ExpressWrappedDictionary {
       default: return false
     }
   }
+
+  @inlinable
+  subscript(double key: Key) -> Double? {
+    guard let v = self[key] else { return nil }
+    if let d = (v as? Double) { return d }
+    if let i = (v as? Int)    { return Double(i) }
+    if let i = (v as? any BinaryInteger) {
+      return Double(Int(clamping: i))
+    }
+    return Double(String(describing: v))
+  }
 }
 
 public extension BodyParserBody {
