@@ -430,8 +430,11 @@ import func  http.createServer
 public extension Express {
   
   /**
-   * Create an HTTP server (using http.server) with the `Express` instance
-   * as the handler, and then start listening.
+   * Create an HTTP server (using `http.createServer`) with the ``Express`` 
+   * instance as the handler, and then start listening.
+   *
+   * Returns the `http.Server`, so that additional event handlers
+   * can be registered (e.g. `onError`, `onListening`).
    *
    * - Parameters:
    *   - port        : The port the server should listen on.
@@ -445,16 +448,22 @@ public extension Express {
   @discardableResult
   func listen(_ port: Int? = nil, _ host: String = "0.0.0.0",
               backlog: Int = 512,
-              onListening execute: (( http.Server ) -> Void)? = nil) -> Self
+              onListening execute: (( http.Server ) -> Void)? = nil)
+       -> http.Server
   {
     let server = http.createServer(handler: requestHandler)
-    _ = server.listen(port, host, backlog: backlog, onListening: execute)
-    return self
+    _ = server.listen(port, host, backlog: backlog,
+                      onListening: execute)
+    return server
   }
   
   /**
-   * Create an HTTP server (using http.server) with the `Express` instance
-   * as the handler, and then start listening.
+   * Create an HTTP server (using `http.createServer`) with the ``Express`` 
+   * instance as the handler, and then start listening.
+   *
+   * Returns the `http.Server`, so that additional event handlers
+   * can be registered (e.g. `onError`, `onListening`).
+   *
    *
    * - Parameters:
    *   - port        : The port the server should listen on.
@@ -467,7 +476,7 @@ public extension Express {
   @inlinable
   @discardableResult
   func listen(_ port: Int?, _ host: String = "0.0.0.0", backlog: Int = 512,
-              onListening execute: @escaping () -> Void) -> Self
+              onListening execute: @escaping () -> Void) -> http.Server
   {
     return listen(port, host, backlog: backlog) { _ in execute() }
   }
