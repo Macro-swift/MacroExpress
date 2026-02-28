@@ -37,7 +37,7 @@ import NIOCore
  * ```
  */
 public typealias AsyncMiddleware =
-                   ( IncomingMessage, ServerResponse, @escaping @Sendable Next )
+                   ( IncomingMessage, ServerResponse, @escaping Next )
                    async throws -> Void
 
 /**
