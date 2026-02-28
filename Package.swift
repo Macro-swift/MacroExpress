@@ -6,6 +6,8 @@ let package = Package(
   
   name: "MacroExpress",
 
+  platforms: [ .macOS(.v12), .iOS(.v15) ],
+
   products: [
     .library(name: "MacroExpress", targets: [ "MacroExpress" ]),
     .library(name: "express",      targets: [ "express"      ]),
@@ -17,7 +19,7 @@ let package = Package(
   
   dependencies: [
     .package(url: "https://github.com/Macro-swift/Macro.git",
-             from: "1.0.14"),
+             from: "1.0.16"),
     .package(url: "https://github.com/AlwaysRightInstitute/mustache.git",
              from: "1.0.2")
   ],
@@ -61,7 +63,8 @@ let package = Package(
     .testTarget(name: "dotenvTests",     dependencies: [ "dotenv"  ]),
     .testTarget(name: "RouteTests", dependencies: [
       .product(name: "MacroTestUtilities", package: "Macro"),
-      "express"
+      .product(name: "MacroCore",          package: "Macro"),
+      "connect", "express"
     ])
   ]
 )
