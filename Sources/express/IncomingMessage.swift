@@ -3,26 +3,98 @@
 //  Noze.io / Macro
 //
 //  Created by Helge Heß on 6/2/16.
-//  Copyright © 2016-2024 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2026 ZeeZide GmbH. All rights reserved.
 //
 
 #if canImport(Foundation)
   import Foundation
 #endif
-import class http.IncomingMessage
+import http
 import NIOHTTP1
-
+import NIOCore
 
 public extension IncomingMessage {
   
   typealias Params = ExpressWrappedDictionary<String>
   typealias Query  = ExpressWrappedDictionary<Any>
 
-  // TODO: baseUrl, originalUrl, path
-  // TODO: hostname, ip, ips, protocol
+  /// The hostname from the `Host` header, or
+  /// `X-Forwarded-Host` when trust proxy is enabled.
+  @inlinable
+  var hostname: String? {
+    let host: String
+    if app?.settings.trustProxy ?? false,
+       let fh = headers["X-Forwarded-Host"].first
+    {
+      if let i = fh.firstIndex(of: ",") { host = String(fh[..<i]) }
+      else { host = fh }
+    }
+    else if let h = headers["Host"].first { host = h }
+    else { return nil }
+    
+    // IPv6 bracket notation: strip port after `]`
+    if host.hasPrefix("[") {
+      guard let b = host.firstIndex(of: "]") else { return host }
+      let a = host.index(after: b)
+      if a < host.endIndex, host[a] == ":" { return String(host[..<a]) }
+      return String(host[...b])
+    }
+    if let i = host.firstIndex(of: ":") {
+      return String(host[..<i])
+    }
+    return host
+  }
   
-  // TODO: originalUrl, path
-  // TODO: hostname, ip, ips, protocol
+  /// The client IP. Uses `X-Forwarded-For` when trust
+  /// proxy is enabled.
+  @inlinable
+  var ip: String? {
+    if app?.settings.trustProxy ?? false,
+       let xff = headers["X-Forwarded-For"].first
+    {
+      if let i = xff.firstIndex(of: ",") { return String(xff[..<i]) }
+      return xff
+    }
+    return socket?.remoteAddress?.ipAddress
+  }
+
+  /// All IPs from `X-Forwarded-For` when trust proxy
+  /// is enabled, empty otherwise.
+  @inlinable
+  var ips: [ String ] {
+    guard app?.settings.trustProxy ?? false,
+          let xff = headers["X-Forwarded-For"].first else { return [] }
+    return xff.split(separator: ",").map { part in
+      String(part.drop(while: { $0.isWhitespace }))
+    }
+  }
+
+  /**
+   * `"https"` when behind a trusted proxy setting
+   * `X-Forwarded-Proto`, `"http"` otherwise.
+   */
+  @inlinable
+  var `protocol`: String {
+    if app?.settings.trustProxy ?? false,
+       let proto = headers["X-Forwarded-Proto"].first
+    {
+      if let i = proto.firstIndex(of: ",") {
+        return String(proto[..<i])
+      }
+      return proto
+    }
+    return "http"
+  }
+
+  /// The URL path without the query string.
+  @inlinable
+  var path: String {
+    guard let qIdx = url.firstIndex(of: "?") else {
+      return url.isEmpty ? "/" : url
+    }
+    let p = String(url[..<qIdx])
+    return p.isEmpty ? "/" : p
+  }
 
   /// A reference to the active application. Updated when subapps are triggered.
   var app : Express? { return environment[ExpressExtKey.App.self] }
@@ -62,12 +134,12 @@ public extension IncomingMessage {
     // FIXME: improve parser (fragments?!)
     // TBD: just use Foundation?!
     guard let idx = url.firstIndex(of: "?") else {
-      environment[ExpressExtKey.Query.self] = .init([:])
+      environment[ExpressExtKey.Query.self] = Query([:])
       return Query([:])
     }
     let q  = url[url.index(after: idx)...]
     let qp = qs.parse(String(q))
-    environment[ExpressExtKey.Query.self] = .init(qp)
+    environment[ExpressExtKey.Query.self] = Query(qp)
     return Query(qp)
   }
   
