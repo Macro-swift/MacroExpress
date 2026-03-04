@@ -3,7 +3,7 @@
 //  Noze.io / Macro
 //
 //  Created by Helge Heß on 02/06/16.
-//  Copyright © 2016-2025 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2026 ZeeZide GmbH. All rights reserved.
 //
 
 /**
@@ -181,7 +181,8 @@ public extension ExpressSettings {
    *
    * This first checks for an explicit `env` setting in the SettingsHolder
    * (i.e. Express application object).
-   * If that's missing, it checks the `MACRO_ENV` environment variable.
+   * If that's missing, it checks the `EXPRESS_ENV` and `MACRO_ENV` environment 
+   * variable.
    */
   @inlinable
   var env : String {
@@ -202,8 +203,15 @@ public extension ExpressSettings {
    */
   @inlinable
   var xPoweredBy : Bool {
-    guard let v = holder.get("x-powered-by") else { return true }
-    return boolValue(v)
+    set { holder.set("x-powered-by", true) }
+    get { return boolValue(holder.get("x-powered-by")) }
+  }
+
+  /// Whether to trust `X-Forwarded-*` proxy headers.
+  @inlinable
+  var trustProxy : Bool {
+    set { holder.set("trust proxy", true) }
+    get { return boolValue(holder.get("trust proxy")) }
   }
 }
 
@@ -211,13 +219,16 @@ public extension ExpressSettings {
 // MARK: - Helpers
 
 @usableFromInline
-func boolValue(_ v : Any) -> Bool {
+func boolValue(_ v : Any?) -> Bool {
   // TODO: this should be some Foundation like thing
-  if let b = v as? Bool   { return b      }
-  if let b = v as? Int    { return b != 0 }
+  guard let v = v else { return false }
+  if let b = v as? Bool { return b      }
+  if let b = v as? Int  { return b != 0 }
+  
   #if swift(>=5.10)
   if let i = (v as? any BinaryInteger) { return Int(i) != 0 }
   #endif
+  
   if let s = v as? String {
     switch s.lowercased() {
       case "no", "false", "0", "disable": return false
