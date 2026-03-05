@@ -3,7 +3,7 @@
 //  Noze.io / Macro / ExExpress
 //
 //  Created by Helge Heß on 6/2/16.
-//  Copyright © 2016-2021 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2026 ZeeZide GmbH. All rights reserved.
 //
 
 import enum MacroCore.process
@@ -112,6 +112,7 @@ public enum RoutePattern: Hashable {
    */
   static func match(pattern p: [ RoutePattern ],
                     against escapedPathComponents: [ String ],
+                    exact: Bool = false,
                     variables: inout IncomingMessage.Params) -> String?
   {
     // Note: Express does a prefix match, which is important for mounting.
@@ -201,7 +202,7 @@ public enum RoutePattern: Hashable {
     }
     
     if escapedPathComponents.count > pattern.count {
-      //if !lastWasWildcard { return nil }
+      if exact && !lastWasWildcard { return nil }
       if lastWasEOL { return nil } // all should have been consumed
     }
     

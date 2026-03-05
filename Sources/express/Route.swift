@@ -3,7 +3,7 @@
 //  Noze.io / Macro
 //
 //  Created by Helge Heß on 6/2/16.
-//  Copyright © 2016-2025 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2026 ZeeZide GmbH. All rights reserved.
 //
 
 import enum      NIOHTTP1.HTTPMethod
@@ -36,13 +36,13 @@ private let debugWalker  = process.getenvflag("macro.router.walker.debug")
  * ## Path Patterns
  *
  * The Route accepts a pattern for the path:
- * - the "*" string is considered a match-all.
- * - otherwise the string is split into path components (on '/')
- * - if it starts with a "/", the pattern will start with a Root symbol
- * - "*" (like in `/users/ * / view`) matches any component (spaces added)
+ * - the `*` string is considered a match-all.
+ * - otherwise the string is split into path components (on `/`)
+ * - if it starts with a `/`, the pattern will start with a Root symbol
+ * - `*` (like in `/users/ * / view`) matches any component (spaces added)
  * - if the component starts with `:`, it is considered a variable.
  *   Example: `/users/:id/view`
- * - "text*", "*text*", "*text" creates hasPrefix/hasSuffix/contains patterns
+ * - `text*`, `*text*`, `*text` creates hasPrefix/hasSuffix/contains patterns
  * - otherwise the text is matched AS IS
  *
  * Variables can be extracted using:
@@ -66,6 +66,7 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
   
   var id             : String?
   let methods        : ContiguousArray<HTTPMethod>?
+  let exact          : Bool
 
   @inlinable
   public var isEmpty : Bool {
@@ -81,14 +82,18 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
   public init(id              : String?             = nil,
               pattern         : String?             = nil,
               method          : HTTPMethod?         = nil,
+              exact           : Bool?               = nil,
               middleware      : [ Middleware      ] = [],
               errorMiddleware : [ ErrorMiddleware ] = [])
   {
     self.id = id
     
-    if let m = method { self.methods = [ m ] }
-    else { self.methods = nil }
-    
+    if let m = method { self.methods = [ m ] } else { self.methods = nil }
+
+    // Unless the user explicitly set `exact`, we are exact if a method is
+    // specified, otherwise not.
+    self.exact = exact ?? (method != nil)
+
     self.middleware      = middleware
     self.errorMiddleware = errorMiddleware
 
@@ -102,14 +107,15 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
   }
   
   @inlinable
-  public convenience init(id              : String?             = nil,
-                          pattern         : String?             = nil,
-                          method          : HTTPMethod?         = nil,
-                          middleware      : [ MiddlewareObject ])
+  public convenience init(id         : String?     = nil,
+                          pattern    : String?     = nil,
+                          method     : HTTPMethod? = nil,
+                          exact      : Bool?       = nil,
+                          middleware : [ MiddlewareObject ])
   {
     // In ExExpress we use an enum to hold the different variants, which might
     // be a little more efficient
-    self.init(id: id, pattern: pattern, method: method,
+    self.init(id: id, pattern: pattern, method: method, exact: exact,
               middleware: middleware.map { $0.middleware })
   }
   
@@ -185,8 +191,9 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
         let mountPath = String(reqPath[base.endIndex..<reqPath.endIndex])
         let comps     = split(urlPath: mountPath)
 
-        let mountMatchPath = RoutePattern.match(pattern   : pattern,
-                                                against   : comps,
+        let mountMatchPath = RoutePattern.match(pattern : pattern,
+                                                against : comps,
+                                                exact   : exact,
                                                 variables : &newParams)
         guard let match = mountMatchPath else {
           if debug {
@@ -203,11 +210,11 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
         
         guard let mp = RoutePattern.match(pattern   : pattern,
                                           against   : comps,
+                                          exact     : exact,
                                           variables : &newParams)
          else {
           if debug {
-            console.log("\(ids) route path does not match, next:",
-              self)
+            console.log("\(ids) route path does not match, next:", self)
           }
           if let error = error { throw error }
           return upperNext()
