@@ -44,7 +44,7 @@ public extension RouteKeeper {
            _ middleware: Middleware...) -> Self
   {
     add(route: Route(id: id, pattern: pathPattern, method: nil,
-                     middleware: middleware))
+                     exact: true, middleware: middleware))
     return self
   }
   
@@ -187,10 +187,11 @@ public extension RouteKeeper {
   @discardableResult
   @inlinable
   func all(id: String? = nil, _ pathPattern: String,
-           _ middleware: Middleware..., final: @escaping FinalMiddleware) 
+           _ middleware: Middleware..., final: @escaping FinalMiddleware)
        -> Self
   {
     add(route: Route(id: id, pattern: pathPattern, method: nil,
+                     exact: true,
                      middleware: middleware + [ final2middleware(final) ]))
     return self
   }
@@ -352,7 +353,7 @@ public extension RouteKeeper {
            _ errorMiddleware: ErrorMiddleware...) -> Self
   {
     add(route: Route(id: id, pattern: pathPattern, method: nil,
-                     errorMiddleware: errorMiddleware))
+                     exact: true, errorMiddleware: errorMiddleware))
     return self
   }
 
@@ -499,6 +500,7 @@ public extension RouteKeeper {
            async lastMiddleware: @escaping AsyncMiddleware) -> Self
   {
     add(route: Route(id: id, pattern: pathPattern, method: nil,
+                     exact: true,
                      middleware: middleware
                        + asyncMiddleware.map(async)
                        + [ async(lastMiddleware) ]))
@@ -702,6 +704,7 @@ public extension RouteKeeper {
            asyncFinal: @escaping AsyncFinalMiddleware) -> Self
   {
     add(route: Route(id: id, pattern: pathPattern, method: nil,
+                     exact: true,
                      middleware: middleware
                        + asyncMiddleware.map(async)
                        + [ async(asyncFinal) ]))

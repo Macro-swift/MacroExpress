@@ -6,7 +6,8 @@ public func allTests() -> [ XCTestCaseEntry ] {
     testCase(AsyncMiddlewareTests .allTests),
     testCase(ErrorMiddlewareTests.allTests),
     testCase(SimpleRouteTests    .allTests),
-    testCase(RouteMountingTests  .allTests)
+    testCase(RouteMountingTests  .allTests),
+    testCase(ExactMatchTests     .allTests)
   ]
 }
 #endif
