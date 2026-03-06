@@ -144,18 +144,6 @@ public extension IncomingMessage {
   }
   
   /**
-   * The original URL as received from the client, before
-   * any URL rewriting by mounted middleware.
-   *
-   * Unlike ``url``, this is never modified by routing.
-   * Falls back to ``url`` if not yet set by Express.
-   */
-  var originalURL : String {
-    get { environment[ExpressExtKey.OriginalURL.self] ?? url }
-    set { environment[ExpressExtKey.OriginalURL.self] = newValue }
-  }
-
-  /**
    * Contains the part of the URL which matched the current
    * route. Example:
    * ```

@@ -33,15 +33,16 @@ public func logger(_ format: String = "default") -> Middleware {
     let fmt     = formats[format] ?? format
     
     func printLog() {
+      let url   = req.originalURL
       let endTS = timespec.monotonic()
       let diff  = (endTS - startTS).milliseconds
-      let info  = LogInfoProvider(req: req, res: res, diff: diff)
+      let info  = LogInfoProvider(req: req, res: res, url: url, diff: diff)
       var msg   = ""
       
       switch fmt {
         case formats["short"]!:
           msg += "\(info.remoteAddr) -"
-          msg += " \"\(req.method) \(req.url) HTTP/\(req.httpVersion)\""
+          msg += " \"\(req.method) \(url) HTTP/\(req.httpVersion)\""
           msg += " \(info.status) \(info.clen)"
           msg += " - \(info.responseTime) ms"
         
@@ -55,7 +56,7 @@ public func logger(_ format: String = "default") -> Middleware {
           msg += " - \(rt) ms"
         
         case formats["tiny"]!:
-          msg += "\(req.method) \(req.url)"
+          msg += "\(req.method) \(url)"
           msg += " \(info.status) \(info.clen)"
           msg += " - \(info.responseTime) ms"
         
@@ -63,7 +64,7 @@ public func logger(_ format: String = "default") -> Middleware {
           fallthrough
         default:
           msg += "\(info.remoteAddr) - - [\(info.date)]"
-          msg += " \"\(req.method) \(req.url) HTTP/\(req.httpVersion)\""
+          msg += " \"\(req.method) \(url) HTTP/\(req.httpVersion)\""
           msg += " \(info.status) \(info.clen)"
           msg += " \(info.qReferrer) \(info.qUA)"
       }
@@ -95,6 +96,7 @@ private struct LogInfoProvider {
   
   let req   : IncomingMessage
   let res   : ServerResponse
+  let url   : String
   let diff  : Int
   let noval = "-"
   
@@ -156,7 +158,6 @@ private struct LogInfoProvider {
   
   static var urlPadLen = 28
   var paddedURL : String {
-    let url       = req.url
     let oldLength = url.count
     if oldLength > LogInfoProvider.urlPadLen {
       LogInfoProvider.urlPadLen = oldLength + ( oldLength % 2)

@@ -337,11 +337,6 @@ enum ExpressExtKey {
     static let loggingKey   = "baseurl"
   }
 
-  enum OriginalURL: EnvironmentKey {
-    static let defaultValue : String? = nil
-    static let loggingKey   = "originalurl"
-  }
-
   /**
    * Request parameters.
    *

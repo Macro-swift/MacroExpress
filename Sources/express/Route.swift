@@ -6,13 +6,11 @@
 //  Copyright © 2016-2026 ZeeZide GmbH. All rights reserved.
 //
 
-import enum      NIOHTTP1.HTTPMethod
-import let       MacroCore.console
-import enum      MacroCore.process
-import class     http.IncomingMessage
-import class     http.ServerResponse
-import typealias connect.Next
-import struct    Foundation.URL
+import Foundation // URL
+import NIOHTTP1   // HTTPMethod
+import MacroCore  // console, process
+import http       // IncomingMessage, ServerResponse
+import connect
 
 private let patternMarker : UInt8 = 58 // ':'
 
@@ -159,8 +157,8 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
     if debug { console.log("\(ids) > enter route:", self) }
 
     // Capture the original URL before any rewriting
-    if req.environment[ExpressExtKey.OriginalURL.self] == nil {
-      req.environment[ExpressExtKey.OriginalURL.self] = req.url
+    if req.environment[IncomingMessage.OriginalURLKey.self] == nil {
+      req.originalURL = req.url
     }
 
     if let methods = self.methods, !methods.isEmpty {
