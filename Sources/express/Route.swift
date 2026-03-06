@@ -159,8 +159,8 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
     if debug { console.log("\(ids) > enter route:", self) }
 
     // Capture the original URL before any rewriting
-    if req.environment[ExpressExtKey.OriginalURL.self] == nil {
-      req.environment[ExpressExtKey.OriginalURL.self] = req.url
+    if req.environment[IncomingMessage.OriginalURLKey.self] == nil {
+      req.originalURL = req.url
     }
 
     if let methods = self.methods, !methods.isEmpty {
