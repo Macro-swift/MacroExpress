@@ -8,8 +8,8 @@
 
 import XCTest
 import MacroTestUtilities
-import class     http.IncomingMessage
-import func      MacroCore.disableAtExitHandler
+import http      // IncomingMessage, ServerResponse
+import MacroCore // disableAtExitHandler
 @testable import connect
 @testable import express
 
