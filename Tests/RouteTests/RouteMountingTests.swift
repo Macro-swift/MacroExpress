@@ -59,7 +59,7 @@ final class RouteMountingTests: XCTestCase {
     
     // test
     
-    let req = IncomingMessage(url: "/admin/view?answer=42"))
+    let req = IncomingMessage(url: "/admin/view?answer=42")
     let res = TestServerResponse()
     
     var didCallNext = false
