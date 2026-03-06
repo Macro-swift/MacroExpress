@@ -157,7 +157,12 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
   {
     let ids = debug ? logPrefix : ""
     if debug { console.log("\(ids) > enter route:", self) }
-    
+
+    // Capture the original URL before any rewriting
+    if req.environment[ExpressExtKey.OriginalURL.self] == nil {
+      req.environment[ExpressExtKey.OriginalURL.self] = req.url
+    }
+
     if let methods = self.methods, !methods.isEmpty {
       guard case .request(let head) = req.head,
             methods.contains(head.method) else {
@@ -169,59 +174,35 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
       }
     }
 
-    // FIXME: Could also be a full URL! (CONNECT)
+    // TBD: Could also be a full URL! (CONNECT)
+    // req.url is relative to the current mount point
     let reqPath = req.url.isEmpty ? "/" : {
-      // Strip of query parameters and such. This is the raw URL,
-      // but we need to match just the path.
       let s = req.url
       if let idx = s.firstIndex(where: { $0 == "#" || $0 == "?" }) {
         return String(s[..<idx])
       }
-      else {
-        return s
-      }
+      else { return s }
     }()
     
     let params    : IncomingMessage.Params
     let matchPath : String?
-    if let pattern = urlPattern { // this route has a path pattern assigned
-      var newParams = req.params // TBD
-      
-      if let base = req.baseURL {
-        let mountPath = String(reqPath[base.endIndex..<reqPath.endIndex])
-        let comps     = split(urlPath: mountPath)
+    if let pattern = urlPattern {
+      var newParams = req.params
+      let comps = split(urlPath: reqPath)
 
-        let mountMatchPath = RoutePattern.match(pattern : pattern,
-                                                against : comps,
-                                                exact   : exact,
-                                                variables : &newParams)
-        guard let match = mountMatchPath else {
-          if debug {
-            console.log("\(ids) mount route path does not match, next:", self)
-          }
-          if let error = error { throw error }
-          return upperNext()
+      guard let mp = RoutePattern.match(pattern: pattern, against: comps,
+                                        exact: exact, variables: &newParams)
+       else {
+        if debug {
+          console.log(
+            "\(ids) route path does not match, next:",
+            self)
         }
-        
-        matchPath = base + match
+        if let error = error { throw error }
+        return upperNext()
       }
-      else {
-        let comps = split(urlPath: reqPath)
-        
-        guard let mp = RoutePattern.match(pattern   : pattern,
-                                          against   : comps,
-                                          exact     : exact,
-                                          variables : &newParams)
-         else {
-          if debug {
-            console.log("\(ids) route path does not match, next:", self)
-          }
-          if let error = error { throw error }
-          return upperNext()
-         }
-        matchPath = mp
-      }
-      
+      matchPath = mp
+
       if debug { console.log("\(ids)     path match:", matchPath) }
       
       params = newParams
@@ -235,18 +216,31 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
       guard !self.errorMiddleware.isEmpty else { throw error }
     }
     else {
-      guard !self.middleware     .isEmpty else { return upperNext() }
+      guard !self.middleware.isEmpty else { return upperNext() }
     }
     
     // push route state
     let oldParams = req.params
     let oldRoute  = req.route
     let oldBase   = req.baseURL
-    req.params  = params
-    req.route   = self
+    let oldUrl    = req.url
+    req.params = params
+    req.route  = self
     if let mp = matchPath {
-      req.baseURL = mp
-      if debug { console.log("\(ids)   push baseURL:", req.baseURL) }
+      req.baseURL = (oldBase ?? "") + mp
+      if !exact {
+        // Rewrite req.url like Node.js Express:
+        // strip the matched prefix, keep query/fragment.
+        var newUrl = String(req.url.dropFirst(mp.count))
+        if newUrl.isEmpty { newUrl = "/" }
+        else if newUrl.first == "?" || newUrl.first == "#" {
+          newUrl = "/" + newUrl
+        }
+        req.url = newUrl
+      }
+      if debug {
+        console.log("\(ids)   push baseURL:", req.baseURL, "url:", req.url)
+      }
     }
 
     final class MiddlewareWalker {
@@ -340,6 +334,7 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
       req.params  = oldParams
       req.route   = oldRoute
       req.baseURL = oldBase
+      req.url     = oldUrl
       
       if let arg = args.first { // lame 1-object spread to pass on errors
         upperNext(arg)

@@ -1,6 +1,6 @@
 import XCTest
 import MacroTestUtilities
-import class     http.IncomingMessage
+import http // IncomingMessage
 @testable import express
 
 final class RouteMountingTests: XCTestCase {
@@ -13,15 +13,15 @@ final class RouteMountingTests: XCTestCase {
     outerRoute.route("/admin")
       .get("/view") { req, res, next in
         XCTAssertEqual(req.baseURL, "/admin/view", "baseURL does not match")
-        XCTAssertEqual(req.url,     "/admin/view", "HTTP URL does not match")
+        XCTAssertEqual(req.url,     "/view", "url should be relative to mount")
+        XCTAssertEqual(req.originalURL, "/admin/view",
+                       "originalURL should be the full path")
         didCallRoute = true
       }
     
     // test
     
-    let req = IncomingMessage(
-      .init(version: .init(major: 1, minor: 1), method: .GET,
-            uri: "/admin/view"))
+    let req = IncomingMessage(url: "/admin/view")
     let res = TestServerResponse()
     
     var didCallNext = false
@@ -46,7 +46,10 @@ final class RouteMountingTests: XCTestCase {
     outerRoute.route(id: "outer", "/admin")
       .get(id: "error", "/view") { error, req, res, next in
         XCTAssertEqual(req.baseURL, "/admin/view", "baseURL does not match")
-        XCTAssertEqual(req.url,     "/admin/view", "HTTP URL does not match")
+        XCTAssertEqual(req.url,     "/view?answer=42",
+                       "url should be relative to mount")
+        XCTAssertEqual(req.originalURL, "/admin/view?answer=42",
+                       "originalURL should be the full path")
         didCallErrorMiddleware = true
       }
       .use(id: "thrower") { req, res, next in
@@ -56,9 +59,7 @@ final class RouteMountingTests: XCTestCase {
     
     // test
     
-    let req = IncomingMessage(
-      .init(version: .init(major: 1, minor: 1), method: .GET,
-            uri: "/admin/view"))
+    let req = IncomingMessage(url: "/admin/view?answer=42"))
     let res = TestServerResponse()
     
     var didCallNext = false

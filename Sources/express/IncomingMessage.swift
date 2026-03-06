@@ -92,8 +92,8 @@ public extension IncomingMessage {
     guard let qIdx = url.firstIndex(of: "?") else {
       return url.isEmpty ? "/" : url
     }
-    let p = String(url[..<qIdx])
-    return p.isEmpty ? "/" : p
+    if url.startIndex == qIdx { return "/" } // empty
+    return String(url[..<qIdx])
   }
 
   /// A reference to the active application. Updated when subapps are triggered.
@@ -144,13 +144,26 @@ public extension IncomingMessage {
   }
   
   /**
-   * Contains the part of the URL which matched the current route. Example:
+   * The original URL as received from the client, before
+   * any URL rewriting by mounted middleware.
+   *
+   * Unlike ``url``, this is never modified by routing.
+   * Falls back to ``url`` if not yet set by Express.
+   */
+  var originalURL : String {
+    get { environment[ExpressExtKey.OriginalURL.self] ?? url }
+    set { environment[ExpressExtKey.OriginalURL.self] = newValue }
+  }
+
+  /**
+   * Contains the part of the URL which matched the current
+   * route. Example:
    * ```
    * app.get("/admin/index") { ... }
    * ```
    *
-   * when this is invoked with "/admin/index/hello/world", the baseURL will
-   * be "/admin/index".
+   * when this is invoked with "/admin/index/hello/world",
+   * the baseURL will be "/admin/index".
    */
   var baseURL : String? {
     set { environment[ExpressExtKey.BaseURL.self] = newValue }
