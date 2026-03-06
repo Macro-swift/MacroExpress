@@ -6,13 +6,11 @@
 //  Copyright © 2016-2026 ZeeZide GmbH. All rights reserved.
 //
 
-import enum      NIOHTTP1.HTTPMethod
-import let       MacroCore.console
-import enum      MacroCore.process
-import class     http.IncomingMessage
-import class     http.ServerResponse
-import typealias connect.Next
-import struct    Foundation.URL
+import Foundation // URL
+import NIOHTTP1   // HTTPMethod
+import MacroCore  // console, process
+import http       // IncomingMessage, ServerResponse
+import connect
 
 private let patternMarker : UInt8 = 58 // ':'
 
