@@ -3,11 +3,10 @@
 //  Noze.io / Macro
 //
 //  Created by Helge Heß on 5/3/16.
-//  Copyright © 2016-2025 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2026 ZeeZide GmbH. All rights reserved.
 //
 
-import class http.Server
-import func  http.createServer
+import http // Server/createServer
 
 @_exported import class http.IncomingMessage
 @_exported import class http.ServerResponse
@@ -164,8 +163,10 @@ public extension Connect {
    */
   @inlinable
   @discardableResult
-  func listen(_ port: Int?, _ host: String = "0.0.0.0", backlog: Int = 512,
-              onListening execute: (( http.Server ) -> Void)? = nil) -> Self
+  func listen(_ port: Int?, _ host: String = "0.0.0.0",
+              backlog: Int = 512,
+              onListening execute: (@Sendable ( http.Server ) -> Void)? = nil)
+       -> Self
   {
     let server = http.createServer(handler: self.handle)
     _ = server.listen(port, "0.0.0.0", backlog: backlog, onListening: execute)
@@ -187,7 +188,8 @@ public extension Connect {
   @inlinable
   @discardableResult
   func listen(_ port: Int?, _ host: String = "0.0.0.0", backlog: Int = 512,
-              onListening execute: @escaping () -> Void) -> Self
+              onListening execute: @escaping @Sendable () -> Void)
+       -> Self
   {
     return listen(port, host, backlog: backlog) { _ in execute() }
   }

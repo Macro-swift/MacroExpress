@@ -3,16 +3,12 @@
 //  Noze.io / ExExpress / Macro
 //
 //  Created by Helge Heß on 6/2/16.
-//  Copyright © 2016-2025 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2026 ZeeZide GmbH. All rights reserved.
 //
 
-import struct   Logging.Logger
-import enum     MacroCore.process
-import enum     MacroCore.EventListenerSet
-import protocol MacroCore.EnvironmentKey
-import struct   MacroCore.EnvironmentValues
-import class    http.IncomingMessage
-import class    http.ServerResponse
+import Logging   // Logger
+import MacroCore // process,EventListenerSet,EnvironmentKey/Values
+import http      // IncomingMessage,ServerResponse
 import NIOConcurrencyHelpers
 
 /**
@@ -448,12 +444,11 @@ public extension Express {
   @discardableResult
   func listen(_ port: Int? = nil, _ host: String = "0.0.0.0",
               backlog: Int = 512,
-              onListening execute: (( http.Server ) -> Void)? = nil)
+              onListening execute: (@Sendable ( http.Server ) -> Void)? = nil)
        -> http.Server
   {
     let server = http.createServer(handler: requestHandler)
-    _ = server.listen(port, host, backlog: backlog,
-                      onListening: execute)
+    _ = server.listen(port, host, backlog: backlog, onListening: execute)
     return server
   }
   
@@ -476,7 +471,8 @@ public extension Express {
   @inlinable
   @discardableResult
   func listen(_ port: Int?, _ host: String = "0.0.0.0", backlog: Int = 512,
-              onListening execute: @escaping () -> Void) -> http.Server
+              onListening execute: @escaping @Sendable () -> Void)
+       -> http.Server
   {
     return listen(port, host, backlog: backlog) { _ in execute() }
   }
