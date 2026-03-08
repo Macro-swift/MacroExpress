@@ -58,13 +58,29 @@ public extension ServerResponse {
     return self
   }
   
-  /// Set the HTTP status code and send the status description as the body.
+  /// Set the HTTP status code and send the status
+  /// description as the body.
   ///
+  /// If the headers have already been sent, only `end()`
+  /// is called (no body). Otherwise `Content-Length` is
+  /// set to match the reason phrase so a previously set
+  /// `Content-Length: 0` is corrected.
   @inlinable
   func sendStatus(_ code: Int) {
-    let status = HTTPResponseStatus(statusCode: code)
+    if headersSent {
+      if statusCode != code {
+        log.error("sendStatus(\(code)) called but headers already sent with status \(statusCode)")
+      }
+      else {
+        log.warning("sendStatus(\(code)) called but headers already sent")
+      }
+      return end()
+    }
     statusCode = code
-    send(status.reasonPhrase)
+    let reason = HTTPResponseStatus(statusCode: code)
+                   .reasonPhrase
+    setHeader("Content-Length", reason.utf8.count)
+    send(reason)
   }
   
   
