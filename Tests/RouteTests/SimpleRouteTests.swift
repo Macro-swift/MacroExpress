@@ -52,7 +52,7 @@ final class SimpleRouteTests: XCTestCase {
     XCTAssertTrue(didCallNext,  "next not called as expected")
   }
 
-  static var allTests = [
+  static let allTests = [
     ( "testSimpleEndingRoute"    , testSimpleEndingRoute    ),
     ( "testSimpleNonEndingRoute" , testSimpleNonEndingRoute )
   ]

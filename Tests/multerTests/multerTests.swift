@@ -309,7 +309,7 @@ final class multerTests: XCTestCase {
     print("TOOK:", duration)
   }
 
-  static var allTests = [
+  static let allTests = [
     ( "testSimpleAny"      , testSimpleAny      ),
     ( "testSimpleNoneFail" , testSimpleNoneFail ),
     ( "testSimpleSingleOK" , testSimpleSingleOK ),

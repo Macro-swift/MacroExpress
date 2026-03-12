@@ -176,7 +176,7 @@ final class ExactMatchTests: XCTestCase {
     XCTAssertTrue(didCallNext, "should call next")
   }
 
-  static var allTests = [
+  static let allTests = [
     ( "testGetRootDoesNotMatchSubpath",      testGetRootDoesNotMatchSubpath   ),
     ( "testGetRootMatchesExactRoot",         testGetRootMatchesExactRoot      ),
     ( "testUseRootMatchesSubpath",           testUseRootMatchesSubpath        ),

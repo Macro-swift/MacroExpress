@@ -87,7 +87,7 @@ final class ErrorMiddlewareTests: XCTestCase {
     }
   }
 
-  static var allTests = [
+  static let allTests = [
     ( "testSimpleThrowErrorHandler" , testSimpleThrowErrorHandler ),
     ( "testSimpleNextErrorHandler"  , testSimpleNextErrorHandler  ),
   ]

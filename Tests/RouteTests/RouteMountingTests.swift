@@ -72,7 +72,7 @@ final class RouteMountingTests: XCTestCase {
     XCTAssertFalse(didCallNext,  "not handled by middleware (did call next)")
   }
 
-  static var allTests = [
+  static let allTests = [
     ( "testSimpleMountMatch"      , testSimpleMountMatch      ),
     ( "testSimpleErrorMountMatch" , testSimpleErrorMountMatch )
   ]

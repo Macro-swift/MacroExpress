@@ -221,7 +221,7 @@ final class AsyncMiddlewareTests: XCTestCase {
     }
   }
 
-  static var allTests = [
+  static let allTests = [
     ( "testAsyncMiddlewareCallsNext"          ,
       testAsyncMiddlewareCallsNext            ),
     ( "testAsyncMiddlewareDoesNotCallNext"    ,

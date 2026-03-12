@@ -222,7 +222,7 @@ final class MultiPartParserTests: XCTestCase {
     print("DONE:")
   }
 
-  static var allTests = [
+  static let allTests = [
     ( "testSimpleFormData"           , testSimpleFormData           ),
     ( "testSimpleFormDataFragmented" , testSimpleFormDataFragmented ),
     ( "testImageSubmitData"          , testImageSubmitData          ),

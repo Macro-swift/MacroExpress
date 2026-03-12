@@ -8,7 +8,7 @@ final class mimeTests: XCTestCase {
     XCTAssert(mime.lookup("index.html") == "text/html; charset=UTF-8")
   }
 
-  static var allTests = [
+  static let allTests = [
     ( "testLookup", testLookup ),
   ]
 }
