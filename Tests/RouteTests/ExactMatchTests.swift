@@ -13,7 +13,7 @@ final class ExactMatchTests: XCTestCase {
     var didCallRoute = false
     route.get("/") { _, _, _ in didCallRoute = true }
 
-    let req = IncomingMessage(method: .GET, url: "/foo")
+    let req = IncomingMessage(url: "/foo")
     let res = TestServerResponse()
 
     var didCallNext = false
@@ -21,7 +21,7 @@ final class ExactMatchTests: XCTestCase {
       didCallNext = true
     }
     XCTAssertFalse(didCallRoute, "should not match /foo")
-    XCTAssertTrue(didCallNext, "should call next")
+    XCTAssertTrue (didCallNext,  "should call next")
   }
 
   func testGetRootMatchesExactRoot() throws {
@@ -29,15 +29,15 @@ final class ExactMatchTests: XCTestCase {
     var didCallRoute = false
     route.get("/") { _, _, _ in didCallRoute = true }
 
-    let req = IncomingMessage(method: .GET, url: "/")
+    let req = IncomingMessage(url: "/")
     let res = TestServerResponse()
 
     var didCallNext = false
     try route.handle(request: req, response: res) { ( args : Any... ) in
       didCallNext = true
     }
-    XCTAssertTrue(didCallRoute, "should match /")
-    XCTAssertFalse(didCallNext, "should not call next")
+    XCTAssertTrue (didCallRoute, "should match /")
+    XCTAssertFalse(didCallNext,  "should not call next")
   }
 
   // MARK: - use() still does prefix matching
@@ -47,7 +47,7 @@ final class ExactMatchTests: XCTestCase {
     var didCallRoute = false
     route.use("/") { _, _, _ in didCallRoute = true }
 
-    let req = IncomingMessage(method: .GET, url: "/foo")
+    let req = IncomingMessage(url: "/foo")
     let res = TestServerResponse()
 
     try route.handle(request: req, response: res) { ( args : Any... ) in }
@@ -106,7 +106,7 @@ final class ExactMatchTests: XCTestCase {
     var didCallRoute = false
     route.all("/api/*") { _, _, _ in didCallRoute = true }
 
-    let req = IncomingMessage(method: .GET, url: "/api/users/42")
+    let req = IncomingMessage(url: "/api/users/42")
     let res = TestServerResponse()
 
     try route.handle(request: req, response: res) { _ in }
@@ -120,7 +120,7 @@ final class ExactMatchTests: XCTestCase {
     var didCallRoute = false
     route.get("/todos/*") { _, _, _ in didCallRoute = true }
 
-    let req = IncomingMessage(method: .GET, url: "/todos/1/details")
+    let req = IncomingMessage(url: "/todos/1/details")
     let res = TestServerResponse()
 
     try route.handle(request: req, response: res) { ( args : Any... ) in }
@@ -134,7 +134,7 @@ final class ExactMatchTests: XCTestCase {
     var didCallRoute = false
     route.get("/users/:id") { _, _, _ in didCallRoute = true }
 
-    let req = IncomingMessage(method: .GET, url: "/users/42/profile")
+    let req = IncomingMessage(url: "/users/42/profile")
     let res = TestServerResponse()
 
     var didCallNext = false
@@ -150,7 +150,7 @@ final class ExactMatchTests: XCTestCase {
     var didCallRoute = false
     route.get("/users/:id") { _, _, _ in didCallRoute = true }
 
-    let req = IncomingMessage(method: .GET, url: "/users/42")
+    let req = IncomingMessage(url: "/users/42")
     let res = TestServerResponse()
 
     try route.handle(request: req, response: res) { ( args : Any... ) in }
@@ -165,7 +165,7 @@ final class ExactMatchTests: XCTestCase {
     outerRoute.route("/admin")
       .get("/view") { _, _, _ in didCallRoute = true }
 
-    let req = IncomingMessage(method: .GET, url: "/admin/view/extra")
+    let req = IncomingMessage(url: "/admin/view/extra")
     let res = TestServerResponse()
 
     var didCallNext = false
@@ -173,6 +173,72 @@ final class ExactMatchTests: XCTestCase {
       didCallNext = true
     }
     XCTAssertFalse(didCallRoute, "should not match /admin/view/extra")
+    XCTAssertTrue(didCallNext, "should call next")
+  }
+
+  // MARK: - Parenthesized wildcard: path(*)
+
+  func testParenWildcardMatchesExactPrefix() throws {
+    let route = Route(id: "root")
+    var didCallRoute = false
+    route.get("/api(*)") { _, _, _ in didCallRoute = true }
+
+    let req = IncomingMessage(url: "/api")
+    let res = TestServerResponse()
+
+    try route.handle(request: req, response: res) { _ in }
+    XCTAssertTrue(didCallRoute, "/api(*) should match /api")
+  }
+
+  func testParenWildcardMatchesPrefixExtension() throws {
+    let route = Route(id: "root")
+    var didCallRoute = false
+    route.get("/api(*)") { _, _, _ in didCallRoute = true }
+
+    let req = IncomingMessage(url: "/api2")
+    let res = TestServerResponse()
+
+    try route.handle(request: req, response: res) { _ in }
+    XCTAssertTrue(didCallRoute, "/api(*) should match /api2")
+  }
+
+  func testParenWildcardMatchesSubpath() throws {
+    let route = Route(id: "root")
+    var didCallRoute = false
+    route.get("/api(*)") { _, _, _ in didCallRoute = true }
+
+    let req = IncomingMessage(url: "/api/users")
+    let res = TestServerResponse()
+
+    try route.handle(request: req, response: res) { _ in }
+    XCTAssertTrue(didCallRoute,"/api(*) should match /api/users")
+  }
+
+  func testParenWildcardMatchesDeepSubpath() throws {
+    let route = Route(id: "root")
+    var didCallRoute = false
+    route.get("/api(*)") { _, _, _ in didCallRoute = true }
+
+    let req = IncomingMessage(url: "/api/users/42/profile")
+    let res = TestServerResponse()
+
+    try route.handle(request: req, response: res) { _ in }
+    XCTAssertTrue(didCallRoute, "/api(*) should match /api/users/42/profile")
+  }
+
+  func testParenWildcardDoesNotMatchDifferentPrefix() throws {
+    let route = Route(id: "root")
+    var didCallRoute = false
+    route.get("/api(*)") { _, _, _ in didCallRoute = true }
+
+    let req = IncomingMessage(url: "/web")
+    let res = TestServerResponse()
+
+    var didCallNext = false
+    try route.handle(request: req, response: res) {
+      ( args : Any... ) in didCallNext = true
+    }
+    XCTAssertFalse(didCallRoute, "/api(*) should not match /web")
     XCTAssertTrue(didCallNext, "should call next")
   }
 
@@ -188,6 +254,16 @@ final class ExactMatchTests: XCTestCase {
     ( "testGetWithVariableMatchesExact",     testGetWithVariableMatchesExact  ),
     ( "testMountedGetExactMatch",            testMountedGetExactMatch         ),
     ( "testGetWithVariableDoesNotMatchExtra", 
-      testGetWithVariableDoesNotMatchExtra )
+      testGetWithVariableDoesNotMatchExtra ),
+    ( "testParenWildcardMatchesExactPrefix",
+      testParenWildcardMatchesExactPrefix ),
+    ( "testParenWildcardMatchesPrefixExtension",
+      testParenWildcardMatchesPrefixExtension ),
+    ( "testParenWildcardMatchesSubpath",
+      testParenWildcardMatchesSubpath ),
+    ( "testParenWildcardMatchesDeepSubpath",
+      testParenWildcardMatchesDeepSubpath ),
+    ( "testParenWildcardDoesNotMatchDifferentPrefix",
+      testParenWildcardDoesNotMatchDifferentPrefix )
   ]
 }
