@@ -68,7 +68,7 @@ public extension ServerResponse {
   /// set to match the reason phrase so a previously set
   /// `Content-Length: 0` is corrected.
   @inlinable
-  func sendStatus(_ code: Int) {
+  func sendStatus(_ code: Int, _ headers: HTTPHeaders = [:]) {
     if headersSent {
       if statusCode != code {
         log.error(
@@ -79,10 +79,12 @@ public extension ServerResponse {
       }
       return end()
     }
+    for ( name, value ) in headers { self.setHeader(name, value) }
     statusCode = code
     let reason = HTTPResponseStatus(statusCode: code).reasonPhrase
     setHeader("Content-Length", reason.utf8.count)
-    send(reason)
+    write(reason)
+    end()
   }
   
   
