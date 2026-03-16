@@ -67,7 +67,7 @@ public func logger(_ format: String? = nil, level: Logger.Level = .info,
   }()
   if format == "dev" {
     // Do not log timestamps in dev handler
-    LoggingSystem.bootstrap { DevLogHandler(label: $0) }                                               
+    LoggingSystem.bootstrap { DevLogHandler(label: $0) }
   }
   
   return { req, res, next in
