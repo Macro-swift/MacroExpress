@@ -7,11 +7,9 @@
 //
 
 import Logging
-import enum   NIOHTTP1.HTTPResponseStatus
-import struct MacroCore.Buffer
-import class  http.IncomingMessage
-import class  http.ServerResponse
-import struct Foundation.Data
+import NIOHTTP1   // HTTPResponseStatus/HTTPHeaders
+import MacroCore  // Buffer
+import http       // IncomingMessage/ServerResponse
 
 public extension ServerResponse {
   
@@ -46,11 +44,14 @@ public extension ServerResponse {
   
   // MARK: - Status Handling
   
-  /// Set the HTTP status, returns self
+  /// Set the HTTP status, returns self.
   ///
   /// Example:
-  ///
-  ///     res.status(404).send("didn't find it")
+  /// ```swift
+  /// res
+  ///   .status(404)
+  ///   .send("I looked, but couldn't find it!")
+  /// ```
   ///
   @discardableResult
   @inlinable
@@ -70,7 +71,8 @@ public extension ServerResponse {
   func sendStatus(_ code: Int) {
     if headersSent {
       if statusCode != code {
-        log.error("sendStatus(\(code)) called but headers already sent with status \(statusCode)")
+        log.error(
+          "sendStatus(\(code)) called but headers already sent with status \(statusCode)")
       }
       else {
         log.warning("sendStatus(\(code)) called but headers already sent")
@@ -78,8 +80,7 @@ public extension ServerResponse {
       return end()
     }
     statusCode = code
-    let reason = HTTPResponseStatus(statusCode: code)
-                   .reasonPhrase
+    let reason = HTTPResponseStatus(statusCode: code).reasonPhrase
     setHeader("Content-Length", reason.utf8.count)
     send(reason)
   }
@@ -204,9 +205,7 @@ public extension ServerResponse {
   // MARK: - Header Accessor Renames
   
   @inlinable
-  func get(_ header: String) -> Any? {
-    return getHeader(header)
-  }
+  func get(_ header: String) -> Any? { return getHeader(header) }
   @inlinable
   func set(_ header: String, _ value: Any?) {
     if let v = value { setHeader(header, v) }

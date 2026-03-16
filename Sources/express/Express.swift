@@ -337,12 +337,12 @@ enum ExpressExtKey {
    * Request parameters.
    *
    * Example:
-   *
-   *     app.use(/users/:id/view) { req, res, next in
-   *       guard let id = req.params[int: "id"]
-   *        else { return try res.sendStatus(400) }
-   *     }
-   *
+   * ```swift
+   * app.use(/users/:id/view) { req, res, next in
+   *   guard let id = req.params[int: "id"]
+   *    else { return try res.sendStatus(400) }
+   * }
+   * ```
    */
   enum Params: EnvironmentKey {
     // TBD: Should the value be `Any`?

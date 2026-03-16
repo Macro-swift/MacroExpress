@@ -3,18 +3,19 @@
 //  Noze.io / Macro
 //
 //  Created by Helge Heß on 31/05/16.
-//  Copyright © 2016-2024 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2026 ZeeZide GmbH. All rights reserved.
 //
 
-import enum  MacroCore.process
-import let   MacroCore.console
-import class http.IncomingMessage
-import class http.ServerResponse
-import xsys // timespec and extensions
-#if os(Linux)
-  import func Glibc.isatty
+import Logging
+import MacroCore // process/console
+import http      // IncomingMessage/ServerResponse
+import xsys      // timespec and extensions
+#if os(Windows)
+  import WinSDK // strcmp
+#elseif os(Linux)
+  import Glibc  // strcmp/isatty
 #else
-  import func Darwin.isatty
+  import Darwin // strcmp/isatty
 #endif
 
 // TODO: do some actual parsing of formats :-)
@@ -169,14 +170,6 @@ private struct LogInfoProvider {
     return url + String(s)
   }
 }
-
-#if os(Windows)
-  import func WinSDK.strcmp
-#elseif os(Linux)
-  import func Glibc.strcmp
-#else
-  import func Darwin.strcmp
-#endif
 
 fileprivate let shouldDoColorLogging : Bool = {
   // TODO: Add `isTTY` from Noze
