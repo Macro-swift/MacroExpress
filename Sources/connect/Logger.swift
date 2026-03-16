@@ -18,20 +18,56 @@ import xsys      // timespec and extensions
   import Darwin // strcmp/isatty
 #endif
 
+
 // TODO: do some actual parsing of formats :-)
 
-/// Logging middleware.
-///
-/// Currently accepts four formats:
-/// - default
-/// - short
-/// - tiny
-/// - dev    (colorized status)
-///
-public func logger(_ format: String = "default") -> Middleware {
+private struct DevLogHandler: LogHandler {
+  var metadata = Logger.Metadata()                                                                
+  var logLevel : Logger.Level = .info                                                              
+  let label    : String                                                                               
+                                                                                                  
+  subscript(metadataKey key: String) -> Logger.Metadata.Value? {                                  
+    get { metadata[key] }
+    set { metadata[key] = newValue }                                                              
+  }                                                                                               
+  func log(level: Logger.Level, message: Logger.Message,                                          
+           metadata: Logger.Metadata?, source: String,
+           file: String, function: String, line: UInt)                                            
+  {
+    if level == .info {
+      if label == "μ.http" { print(message) }
+      else                 { print("\(label): \(message)") }
+    }
+    else {
+      print("[\(level)] \(label): \(message)")                                                      
+    }
+  }                                                                                               
+}
+
+/**
+ * Logging middleware.
+ *
+ * Currently accepts four formats:
+ * - default
+ * - short
+ * - tiny
+ * - dev    (colorized status, but not on Xcode)
+ */
+public func logger(_ format: String? = nil, level: Logger.Level = .info,
+                   file: String = #fileID, function: String = #function,
+                   line: UInt = #line) 
+            -> Middleware 
+{
+  let format = format ?? "default" // TBD: toggle default?
+  if format == "dev" {
+    // Do not log timestamps in dev handler
+    LoggingSystem.bootstrap { DevLogHandler(label: $0) }                                               
+  }
+  
   return { req, res, next in
     let startTS = timespec.monotonic()
     let fmt     = formats[format] ?? format
+    let logger  = res.log
     
     func printLog() {
       let url   = req.originalURL
@@ -70,8 +106,11 @@ public func logger(_ format: String = "default") -> Middleware {
           msg += " \(info.qReferrer) \(info.qUA)"
       }
       
-      // let msg = res.statusMessage ?? HTTPStatus.text(forStatus: res.statusCode!)
-      console.log(msg)
+      // let msg = res.statusMessage
+      //        ?? HTTPStatus.text(forStatus: res.statusCode!)
+      logger.log(level: level, 
+                 Logger.Message(stringLiteral: msg), metadata: nil,
+                 source: nil, file: file, function: function, line: line)
     }
     
     _ = res.onceFinish { printLog() }
