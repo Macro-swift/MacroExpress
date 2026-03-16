@@ -3,14 +3,13 @@
 //  Noze.io / Macro
 //
 //  Created by Helge Heß on 6/2/16.
-//  Copyright © 2016-2020 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2026 ZeeZide GmbH. All rights reserved.
 //
 
-import enum   NIOHTTP1.HTTPResponseStatus
-import struct MacroCore.Buffer
-import class  http.IncomingMessage
-import class  http.ServerResponse
-import struct Foundation.Data
+import Logging
+import NIOHTTP1   // HTTPResponseStatus/HTTPHeaders
+import MacroCore  // Buffer
+import http       // IncomingMessage/ServerResponse
 
 public extension ServerResponse {
   
@@ -45,11 +44,14 @@ public extension ServerResponse {
   
   // MARK: - Status Handling
   
-  /// Set the HTTP status, returns self
+  /// Set the HTTP status, returns self.
   ///
   /// Example:
-  ///
-  ///     res.status(404).send("didn't find it")
+  /// ```swift
+  /// res
+  ///   .status(404)
+  ///   .send("I looked, but couldn't find it!")
+  /// ```
   ///
   @discardableResult
   @inlinable
@@ -66,21 +68,23 @@ public extension ServerResponse {
   /// set to match the reason phrase so a previously set
   /// `Content-Length: 0` is corrected.
   @inlinable
-  func sendStatus(_ code: Int) {
+  func sendStatus(_ code: Int, _ headers: HTTPHeaders = [:]) {
     if headersSent {
       if statusCode != code {
-        log.error("sendStatus(\(code)) called but headers already sent with status \(statusCode)")
+        log.error(
+          "sendStatus(\(code)) called but headers already sent with status \(statusCode)")
       }
       else {
         log.warning("sendStatus(\(code)) called but headers already sent")
       }
       return end()
     }
+    for ( name, value ) in headers { self.setHeader(name, value) }
     statusCode = code
-    let reason = HTTPResponseStatus(statusCode: code)
-                   .reasonPhrase
+    let reason = HTTPResponseStatus(statusCode: code).reasonPhrase
     setHeader("Content-Length", reason.utf8.count)
-    send(reason)
+    write(reason)
+    end()
   }
   
   
@@ -148,14 +152,10 @@ public extension ServerResponse {
     write(data)
     end()
   }
+  
   @inlinable
-  func send(_ data: Data) {
-    if canAssignContentType {
-      setHeader("Content-Type", "application/octet-stream")
-    }
-    
-    write(data)
-    end()
+  func send<T>(_ data: T) where T: Collection, T.Element == UInt8 {
+    self.send(Buffer(data))
   }
 
   @inlinable
@@ -203,9 +203,7 @@ public extension ServerResponse {
   // MARK: - Header Accessor Renames
   
   @inlinable
-  func get(_ header: String) -> Any? {
-    return getHeader(header)
-  }
+  func get(_ header: String) -> Any? { return getHeader(header) }
   @inlinable
   func set(_ header: String, _ value: Any?) {
     if let v = value { setHeader(header, v) }

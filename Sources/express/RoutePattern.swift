@@ -44,6 +44,7 @@ public enum RoutePattern: Hashable {
    * - if the component starts with `:`, it is considered a variable.
    *   Example: `/users/:id/view`
    * - "text*", "*text*", "*text" creates hasPrefix/hasSuffix/contains patterns
+   * - "text(*)" appends a prefix+wildcard pair (like Express.js catch-all)
    * - otherwise the text is matched AS IS
    */
   static func parse(_ s: String) -> [ RoutePattern ]? {
@@ -74,6 +75,15 @@ public enum RoutePattern: Hashable {
         continue
       }
       
+      if c.hasSuffix("(*)") {
+        let prefixEnd = c.index(c.endIndex, offsetBy: -3)
+        if prefixEnd > c.startIndex {
+          pattern.append(.prefix(String(c[c.startIndex..<prefixEnd])))
+        }
+        pattern.append(.wildcard)
+        continue
+      }
+
       if c.hasPrefix("*") {
         let vIdx = c.index(after: c.startIndex)
         let cLen = c.count

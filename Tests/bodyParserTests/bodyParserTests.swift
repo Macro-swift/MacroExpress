@@ -119,7 +119,7 @@ final class bodyParserTests: XCTestCase {
     }
   }
 
-  static var allTests = [
+  static let allTests = [
     ( "testStringParser"         , testStringParser         ),
     ( "testArrayFormValueParser" , testArrayFormValueParser )
   ]

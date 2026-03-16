@@ -38,7 +38,7 @@ final class dotenvTests: XCTestCase {
                    "When the same key appears more than once its value is appended")
   }
 
-  static var allTests = [
+  static let allTests = [
     ( "testConfig" , testConfig ),
     ( "testParse"  , testParse  )
   ]
