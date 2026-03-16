@@ -152,14 +152,10 @@ public extension ServerResponse {
     write(data)
     end()
   }
+  
   @inlinable
-  func send(_ data: Data) {
-    if canAssignContentType {
-      setHeader("Content-Type", "application/octet-stream")
-    }
-    
-    write(data)
-    end()
+  func send<T>(_ data: T) where T: Collection, T.Element == UInt8 {
+    self.send(Buffer(data))
   }
 
   @inlinable
