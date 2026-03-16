@@ -58,7 +58,13 @@ public func logger(_ format: String? = nil, level: Logger.Level = .info,
                    line: UInt = #line) 
             -> Middleware 
 {
-  let format = format ?? "default" // TBD: toggle default?
+  let format = format ?? {
+    // Do sth w/ app.get("env") == "production"? We don't have the app here.
+    #if DEBUG
+    if process.isRunningInXCode { return "dev" }
+    #endif
+    return "default" // TBD: toggle default?
+  }()
   if format == "dev" {
     // Do not log timestamps in dev handler
     LoggingSystem.bootstrap { DevLogHandler(label: $0) }                                               
