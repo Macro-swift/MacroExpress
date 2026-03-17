@@ -294,4 +294,44 @@ public extension IncomingMessage {
     guard let h = headers["X-Requested-With"].first else { return false }
     return h.contains("XMLHttpRequest")
   }
+
+  /// Shorthand for `protocol == "https"`.
+  @inlinable
+  var secure : Bool { return `protocol` == "https" }
+
+  /**
+   * Returns the subdomain array of the hostname in reverse order (rightmost
+   * subdomain first). The last two parts (TLD + domain) are stripped. A
+   * trailing dot (FQDN) is ignored.
+   *
+   * `"a.b.example.com"` returns `["b", "a"]`.
+   */
+  @inlinable
+  var subdomains : [ String ] {
+    guard var host = hostname?[...] else { return [] }
+    if host.hasSuffix(".") { host = host.dropLast() }
+
+    // Find the last two dots to locate the domain boundary
+    guard let lastDot = host.lastIndex(of: ".") else { return [] }
+    let beforeLast = host[..<lastDot]
+    guard let secondDot = beforeLast.lastIndex(of: ".") else { return [] }
+
+    // Everything before secondDot is subdomains.
+    // Walk backwards to produce reversed order per Express.js
+    // convention (rightmost subdomain first).
+    let sub    = host[host.startIndex..<secondDot]
+    var result = [ String ]()
+    var end    = sub.endIndex
+    while end > sub.startIndex {
+      if let dot = sub[sub.startIndex..<end].lastIndex(of: ".") {
+        result.append(String(sub[sub.index(after: dot)..<end]))
+        end = dot
+      }
+      else {
+        result.append(String(sub[sub.startIndex..<end]))
+        break
+      }
+    }
+    return result
+  }
 }
