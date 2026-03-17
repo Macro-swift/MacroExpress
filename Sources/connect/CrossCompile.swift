@@ -38,7 +38,7 @@ internal extension timespec {
 
 #if os(Windows)
 #elseif os(Linux)
-  typealias timespec = Glibc.timespec
+  public typealias timespec = Glibc.timespec
 
   extension timespec {
     
@@ -51,8 +51,8 @@ internal extension timespec {
     
   }
 #else // Darwin
-  typealias timespec = Darwin.timespec
-  typealias timeval  = Darwin.timeval
+  public typealias timespec = Darwin.timespec
+  public typealias timeval  = Darwin.timeval
 
   internal extension timespec {
     
