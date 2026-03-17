@@ -77,8 +77,10 @@ public extension ServerResponse {
       else {
         log.warning("sendStatus(\(code)) called but headers already sent")
       }
+      addTrailers(headers)
       return end()
     }
+    
     for ( name, value ) in headers { self.setHeader(name, value) }
     statusCode = code
     let reason = HTTPResponseStatus(statusCode: code).reasonPhrase
