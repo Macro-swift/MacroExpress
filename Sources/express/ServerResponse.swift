@@ -212,3 +212,138 @@ public extension ServerResponse {
     else             { removeHeader(header) }
   }
 }
+
+// MARK: - Content-Type
+public extension ServerResponse { 
+
+  /**
+   * Sets the `Content-Type` header using MIME lookup.
+   *
+   * Short types like `"json"` or `"html"` are resolved via `mime.lookup()`. 
+   * Full MIME types are set as-is.
+   *
+   * Example:
+   * ```swift
+   * res.type("json") // application/json; charset=UTF-8
+   * res.type("html") // text/html; charset=UTF-8
+   * res.type("text/plain") // text/plain
+   * ```
+   */
+  @discardableResult
+  @inlinable
+  func type(_ type: String) -> Self {
+    if      type.contains("/")         { setHeader("Content-Type", type) }
+    else if let ct = mime.lookup(type) { setHeader("Content-Type", ct)   }
+    else                               { setHeader("Content-Type", type) }
+    return self
+  }
+
+  /**
+   * Sets the `Content-Type` header using MIME lookup.
+   *
+   * Short types like `"json"` or `"html"` are resolved via `mime.lookup()`. 
+   * Full MIME types are set as-is.
+   *
+   * Example:
+   * ```swift
+   * res.type("json") // application/json; charset=UTF-8
+   * res.type("html") // text/html; charset=UTF-8
+   * res.type("text/plain") // text/plain
+   * ```
+   */
+  @discardableResult
+  @inlinable
+  func contentType(_ type: String) -> Self { return self.type(type) }
+
+}
+
+// MARK: - Cookies
+public extension ServerResponse { 
+
+  /**
+   * Sets a cookie on the response.
+   *
+   * Example:
+   * ```swift
+   * res.cookie("session", token, httpOnly: true, secure: true,
+   *            sameSite: .strict)
+   * ```
+   */
+  @inlinable
+  func cookie(_ name: String, _ value: String,
+              path: String? = "/", httpOnly: Bool = true,
+              domain: String? = nil, maxAge: Int? = nil,
+              expires: Date? = nil, secure: Bool = false,
+              sameSite: Cookie.SameSite? = nil)
+  {
+    let c = Cookie(name: name, value: value, path: path,
+                   httpOnly: httpOnly, domain: domain,
+                   maxAge: maxAge, expires: expires,
+                   secure: secure, sameSite: sameSite)
+    var existing = [ String ]()
+    for v in headers["Set-Cookie"] { existing.append(v) }
+    existing.append(c.httpHeaderValue)
+    setHeader("Set-Cookie", existing)
+  }
+
+  /**
+   * Clears a cookie by setting its `Max-Age` to 0.
+   *
+   * The `path` and `domain` must match the original cookie.
+   */
+  @inlinable
+  func clearCookie(_ name: String, path: String? = "/", domain: String? = nil) {
+    let c = Cookie(name: name, value: "", path: path,
+                   httpOnly: false, domain: domain,
+                   maxAge: 0)
+    var existing = [ String ]()
+    for v in headers["Set-Cookie"] { existing.append(v) }
+    existing.append(c.httpHeaderValue)
+    setHeader("Set-Cookie", existing)
+  }
+}
+
+// MARK: - Downloads
+public extension ServerResponse {
+
+  /**
+   * Sets the `Content-Disposition` header to `attachment`.
+   *
+   * If a filename is given, sets the filename parameter and the `Content-Type` 
+   * based on the file extension.
+   */
+  @inlinable
+  func attachment(_ filename: String? = nil) {
+    if let filename = filename {
+      let base = path.basename(filename)
+      setHeader("Content-Disposition", "attachment; filename=\"\(base)\"")
+      if canAssignContentType, let ct = mime.lookup(filename) {
+        setHeader("Content-Type", ct)
+      }
+    }
+    else { setHeader("Content-Disposition", "attachment") }
+  }
+
+  /**
+   * Streams a file as a download attachment.
+   *
+   * Sets `Content-Disposition` and `Content-Type`, then pipes the file to the 
+   * response.
+   *
+   * Example:
+   * ```swift
+   * res.download("/path/to/report.pdf")
+   * res.download("/path/to/data.csv", "export.csv")
+   * ```
+   */
+  func download(_ filePath: String, _ filename: String? = nil,
+                _ callback: (( Swift.Error? ) -> Void)? = nil)
+  {
+    let name = filename ?? path.basename(filePath)
+    attachment(name)
+    let stream = fs.createReadStream(filePath)
+    stream.onError { error in callback?(error) }
+    _ = stream.pipe(self)
+    if let cb = callback { _ = onceFinish { cb(nil) } }
+  }
+}
