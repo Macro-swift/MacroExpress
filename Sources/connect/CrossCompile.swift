@@ -3,7 +3,7 @@
 //  Macro
 //
 //  Created by Helge Heß
-//  Copyright © 2016-2021 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2026 ZeeZide GmbH. All rights reserved.
 //
 
 // Dupes to support:
@@ -26,6 +26,7 @@ import xsys
 
 #if !os(Windows)
 internal extension timespec {
+  @inlinable    
   var milliseconds : Int {
     return (tv_sec * 1000) + (tv_nsec / 1000000)
   }
@@ -41,6 +42,7 @@ internal extension timespec {
 
   extension timespec {
     
+    @inlinable    
     static func monotonic() -> timespec {
       var ts = timespec()
       clock_gettime(CLOCK_MONOTONIC, &ts)
@@ -54,10 +56,9 @@ internal extension timespec {
 
   internal extension timespec {
     
+    @inlinable    
     init(_ mts: mach_timespec_t) {
-      #if swift(>=4.1)
-        self.init()
-      #endif
+      self.init()
       tv_sec  = __darwin_time_t(mts.tv_sec)
       tv_nsec = Int(mts.tv_nsec)
     }
@@ -128,20 +129,12 @@ internal extension xsys.struct_tm {
     var capacity = attempt1Capacity
     
     var buf = UnsafeMutablePointer<CChar>.allocate(capacity: capacity)
-    #if swift(>=4.1)
-      defer { buf.deallocate() }
-    #else
-      defer { buf.deallocate(capacity: capacity) }
-    #endif
+    defer { buf.deallocate() }
   
     let rc = xsys.strftime(buf, capacity, sf, &tm)
   
     if rc == 0 {
-      #if swift(>=4.1)
-        buf.deallocate()
-      #else
-        buf.deallocate(capacity: capacity)
-      #endif
+      buf.deallocate()
       capacity = attempt2Capacity
       buf = UnsafeMutablePointer<CChar>.allocate(capacity: capacity)
   
