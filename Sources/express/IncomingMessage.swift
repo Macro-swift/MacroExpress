@@ -18,6 +18,11 @@ public extension IncomingMessage {
   typealias Params = ExpressWrappedDictionary<String>
   typealias Query  = ExpressWrappedDictionary<Any>
 
+  /// The associated response (set by Express).
+  var response : ServerResponse? {
+    return environment[ExpressExtKey.ResponseKey.self]
+  }
+
   /// The hostname from the `Host` header, or
   /// `X-Forwarded-Host` when trust proxy is enabled.
   @inlinable
