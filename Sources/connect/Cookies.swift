@@ -3,12 +3,12 @@
 //  Noze.io / Macro
 //
 //  Created by Helge Heß on 10/06/16.
-//  Copyright © 2016-2025 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2026 ZeeZide GmbH. All rights reserved.
 //
 
-import let   MacroCore.console
-import class http.IncomingMessage
-import class http.ServerResponse
+import Logging
+import MacroCore // console
+import http      // IncomingMessage,ServerResponse
 
 
 // "Set-Cookie:" Name "=" Value *( ";" Attribute)
@@ -29,7 +29,7 @@ import class http.ServerResponse
 /// if let answer = cookies.get("theAnswer") // get a cookie
 /// ```
 ///
-public struct Cookies {
+public struct Cookies: Sendable {
   
   public let res : ServerResponse?
   
@@ -53,8 +53,7 @@ public struct Cookies {
   @inlinable
   public func set(cookie c: Cookie) {
     guard let res = res else {
-      console.warn("attempt to set cookie, but got no response object!")
-      return
+      return console.warn("attempt to set cookie, but got no response object!")
     }
     res.setHeader("Set-Cookie", c.httpHeaderValue)
   }
@@ -67,12 +66,14 @@ public struct Cookies {
   
   @inlinable
   public func set(_ name: String, _ value: String,
-                  path     : String? = "/",
-                  httpOnly : Bool    = true,
-                  domain   : String? = nil,
-                  comment  : String? = nil,
-                  expires  : Date?   = nil,
-                  maxAge   : Int?    = nil)
+                  path     : String?          = "/",
+                  httpOnly : Bool             = true,
+                  domain   : String?          = nil,
+                  comment  : String?          = nil,
+                  expires  : Date?            = nil,
+                  maxAge   : Int?             = nil,
+                  secure   : Bool             = false,
+                  sameSite : Cookie.SameSite? = nil)
   {
     // TODO:
     // - check `secure`. Node has `req.protocol` == https ?
@@ -80,7 +81,8 @@ public struct Cookies {
     let cookie = Cookie(name:   name,   value:    value,
                         path:   path,   httpOnly: httpOnly,
                         domain: domain, comment:  comment,
-                        maxAge: maxAge, expires:  expires)
+                        maxAge: maxAge, expires:  expires,
+                        secure: secure, sameSite: sameSite)
     set(cookie: cookie)
   }
   
@@ -94,12 +96,11 @@ public struct Cookies {
   @inlinable
   public subscript(name : String) -> String? {
     set {
-      if let newValue = newValue {
-        set(name, newValue)
+      guard let newValue = newValue else {
+        let log = res?.log ?? console
+        return log.error("attempt to set nil-value cookie: \(name), ignoring.")
       }
-      else {
-        console.error("attempt to set nil-value cookie: \(name), ignoring.")
-      }
+      set(name, newValue)
     }
     get { return get(name) }
   }
@@ -143,8 +144,14 @@ public let cookies = Cookies.self
 
 import struct Foundation.Date
 
-public struct Cookie {
-  
+public struct Cookie: Hashable, Sendable {
+
+  public enum SameSite: String, Hashable, Sendable {
+    case strict = "Strict"
+    case lax    = "Lax"
+    case none   = "None"
+  }
+
   public let name     : String
   public var value    : String
   public var path     : String?
@@ -153,15 +160,18 @@ public struct Cookie {
   public var comment  : String?
   public var maxAge   : Int?    // in seconds
   public var expires  : Date?
-  // let secure : Bool
-  
+  public var secure   : Bool
+  public var sameSite : SameSite?
+
   public init(name: String, value: String = "",
-              path     : String? = "/",
-              httpOnly : Bool    = true,
-              domain   : String? = nil,
-              comment  : String? = nil,
-              maxAge   : Int?    = nil,
-              expires  : Date?   = nil)
+              path     : String?   = "/",
+              httpOnly : Bool      = true,
+              domain   : String?   = nil,
+              comment  : String?   = nil,
+              maxAge   : Int?      = nil,
+              expires  : Date?     = nil,
+              secure   : Bool      = false,
+              sameSite : SameSite? = nil)
   {
     self.name     = name
     self.value    = value
@@ -171,6 +181,8 @@ public struct Cookie {
     self.comment  = comment
     self.maxAge   = maxAge
     self.expires  = expires
+    self.secure   = secure
+    self.sameSite = sameSite
   }
 }
 
@@ -182,11 +194,14 @@ public extension Cookie {
     // TODO: quoting
     var s = "\(name)=\(value)"
     
-    if let v = path    { s += "; Path=\(v)"    }
-    if let v = domain  { s += "; Domain=\(v)"  }
-    if let v = comment { s += "; Comment=\(v)" }
-    if let v = maxAge  { s += "; Max-Age=\(v)" }
-    
+    if let v = path     { s += "; Path=\(v)"              }
+    if let v = domain   { s += "; Domain=\(v)"            }
+    if let v = comment  { s += "; Comment=\(v)"           }
+    if let v = maxAge   { s += "; Max-Age=\(v)"           }
+    if secure           { s += "; Secure"                 }
+    if let v = sameSite { s += "; SameSite=\(v.rawValue)" }
+    if httpOnly         { s += "; HttpOnly"               }
+
     if let v = expires {
       s += "; expires="
       
@@ -204,9 +219,9 @@ public extension Cookie {
 }
 
 extension Cookie : CustomStringConvertible {
-  public var description: String {
-    return httpHeaderValue
-  }
+  
+  @inlinable
+  public var description: String { return httpHeaderValue }
 }
 
 import let xsys.strchr

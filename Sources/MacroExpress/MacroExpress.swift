@@ -40,6 +40,8 @@
 @_exported import func      connect.session
 @_exported import func      connect.typeIs
 @_exported import func      connect.nocache
+@_exported import let       connect.helmet
+@_exported import func      connect.responseTime
 
 @_exported import class     express.Express
 @_exported import typealias express.ExpressEngine

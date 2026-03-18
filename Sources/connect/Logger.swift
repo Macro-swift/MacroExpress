@@ -67,7 +67,7 @@ public func logger(_ format: String? = nil, level: Logger.Level = .info,
   }()
   if format == "dev" {
     // Do not log timestamps in dev handler
-    LoggingSystem.bootstrap { DevLogHandler(label: $0) }                                               
+    LoggingSystem.bootstrap { DevLogHandler(label: $0) }
   }
   
   return { req, res, next in
@@ -90,13 +90,9 @@ public func logger(_ format: String? = nil, level: Logger.Level = .info,
           msg += " - \(info.responseTime) ms"
         
         case formats["dev"]!:
-          msg += "\(req.method) \(info.paddedURL)"
-          msg += " \(info.colorStatus) \(info.clen)"
-          let rts = "\(info.responseTime)"
-          let rt = rts.count < 3
-            ? rts.padding(toLength: 3, withPad: " ", startingAt: 0)
-            : rts
-          msg += " - \(rt) ms"
+          msg += "\(info.paddedMethod) \(info.paddedURL)"
+          msg += " \(info.colorStatus) \(info.paddedClen)"
+          msg += " - \(info.paddedResponseTime) ms"
         
         case formats["tiny"]!:
           msg += "\(req.method) \(url)"
@@ -202,17 +198,45 @@ private struct LogInfoProvider {
     return colorStatus
   }
   
+  static var methodPadLen = 4
+  var paddedMethod : String {
+    let m = "\(req.method)"
+    let len = m.count
+    if len > LogInfoProvider.methodPadLen { LogInfoProvider.methodPadLen = len }
+    let padlen = LogInfoProvider.methodPadLen
+    let pad    = String(repeating: " ", count: max(padlen - len, 0))
+    return "\(req.method)\(pad)"
+  }
+
   static var urlPadLen = 28
   var paddedURL : String {
-    let oldLength = url.count
-    if oldLength > LogInfoProvider.urlPadLen {
-      LogInfoProvider.urlPadLen = oldLength + ( oldLength % 2)
+    let len = url.count
+    if len > LogInfoProvider.urlPadLen {
+      LogInfoProvider.urlPadLen = len + (len % 2)
     }
     let padlen = LogInfoProvider.urlPadLen
-    
-    // right pad :-)
-    let s = Array<Character>(repeating: " ", count: (padlen - oldLength))
-    return url + String(s)
+    let pad = String(repeating: " ", count: max(padlen - len, 0))
+    return "\(url)\(pad)"
+  }
+
+  static var clenPadLen = 4
+  var paddedClen : String {
+    let s   = clen
+    let len = s.count
+    if len > LogInfoProvider.clenPadLen { LogInfoProvider.clenPadLen = len }
+    let padlen = LogInfoProvider.clenPadLen
+    let pad    = String(repeating: " ", count: max(padlen - len, 0))
+    return "\(pad)\(s)"
+  }
+
+  static var rtPadLen = 3
+  var paddedResponseTime : String {
+    let s   = responseTime
+    let len = s.count
+    if len > LogInfoProvider.rtPadLen { LogInfoProvider.rtPadLen = len }
+    let padlen = LogInfoProvider.rtPadLen
+    let pad    = String(repeating: " ", count: max(padlen - len, 0))
+    return "\(pad)\(s)"
   }
 }
 

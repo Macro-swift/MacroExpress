@@ -124,9 +124,10 @@ open class Express: SettingsHolder, MountableMiddlewareObject, MiddlewareObject,
   {
     let oldApp = req.app
     let oldReq = res.request
-    req.environment[ExpressExtKey.App.self]        = self
-    res.environment[ExpressExtKey.App.self]        = self
-    res.environment[ExpressExtKey.RequestKey.self] = req
+    req.environment[ExpressExtKey.App.self]         = self
+    res.environment[ExpressExtKey.App.self]         = self
+    res.environment[ExpressExtKey.RequestKey.self]  = req
+    req.environment[ExpressExtKey.ResponseKey.self] = res
     
     if settings.xPoweredBy, req.getHeader("X-Powered-By") == nil {
       res.setHeader("X-Powered-By", productIdentifier)
@@ -143,9 +144,10 @@ open class Express: SettingsHolder, MountableMiddlewareObject, MiddlewareObject,
   open func clearAttachedState(request  req : IncomingMessage,
                                response res : ServerResponse)
   { // break cycles
-    req.environment[ExpressExtKey.App.self]        = nil
-    res.environment[ExpressExtKey.App.self]        = nil
-    res.environment[ExpressExtKey.RequestKey.self] = nil
+    req.environment[ExpressExtKey.App.self]         = nil
+    res.environment[ExpressExtKey.App.self]         = nil
+    res.environment[ExpressExtKey.RequestKey.self]  = nil
+    req.environment[ExpressExtKey.ResponseKey.self] = nil
   }
   
 
@@ -321,6 +323,12 @@ enum ExpressExtKey {
     static let defaultValue : IncomingMessage? = nil
     static let loggingKey   = "request"
   }
+
+  /// A reference to the response associated with a request.
+  enum ResponseKey: EnvironmentKey {
+    static let defaultValue : ServerResponse? = nil
+    static let loggingKey   = "response"
+  }
   
   /// The active route.
   enum RouteKey: EnvironmentKey {
@@ -380,6 +388,10 @@ public extension EnvironmentValues {
   var request: IncomingMessage? {
     get { self[ExpressExtKey.RequestKey.self] }
     set { self[ExpressExtKey.RequestKey.self] = newValue }
+  }
+  var response: ServerResponse? {
+    get { self[ExpressExtKey.ResponseKey.self] }
+    set { self[ExpressExtKey.ResponseKey.self] = newValue }
   }
   var route: Route? {
     get { self[ExpressExtKey.RouteKey.self] }

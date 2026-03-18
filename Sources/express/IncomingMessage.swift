@@ -18,6 +18,11 @@ public extension IncomingMessage {
   typealias Params = ExpressWrappedDictionary<String>
   typealias Query  = ExpressWrappedDictionary<Any>
 
+  /// The associated response (set by Express).
+  var response : ServerResponse? {
+    return environment[ExpressExtKey.ResponseKey.self]
+  }
+
   /// The hostname from the `Host` header, or
   /// `X-Forwarded-Host` when trust proxy is enabled.
   @inlinable
@@ -289,4 +294,316 @@ public extension IncomingMessage {
     guard let h = headers["X-Requested-With"].first else { return false }
     return h.contains("XMLHttpRequest")
   }
+
+  /// Shorthand for `protocol == "https"`.
+  @inlinable
+  var secure : Bool { return `protocol` == "https" }
+
+  /**
+   * Returns the subdomain array of the hostname in reverse order (rightmost
+   * subdomain first). The last two parts (TLD + domain) are stripped. A
+   * trailing dot (FQDN) is ignored.
+   *
+   * `"a.b.example.com"` returns `["b", "a"]`.
+   */
+  @inlinable
+  var subdomains : [ String ] {
+    guard var host = hostname?[...] else { return [] }
+    if host.hasSuffix(".") { host = host.dropLast() }
+
+    // Find the last two dots to locate the domain boundary
+    guard let lastDot = host.lastIndex(of: ".") else { return [] }
+    let beforeLast = host[..<lastDot]
+    guard let secondDot = beforeLast.lastIndex(of: ".") else { return [] }
+
+    // Everything before secondDot is subdomains.
+    // Walk backwards to produce reversed order per Express.js
+    // convention (rightmost subdomain first).
+    let sub    = host[host.startIndex..<secondDot]
+    var result = [ String ]()
+    var end    = sub.endIndex
+    while end > sub.startIndex {
+      if let dot = sub[sub.startIndex..<end].lastIndex(of: ".") {
+        result.append(String(sub[sub.index(after: dot)..<end]))
+        end = dot
+      }
+      else {
+        result.append(String(sub[sub.startIndex..<end]))
+        break
+      }
+    }
+    return result
+  }
 }
+
+// MARK: - Conditional Requests
+public extension IncomingMessage {
+  /**
+   * Whether the request is "fresh" (304-eligible).
+   *
+   * Per RFC 9110 Section 13.2.2, `If-None-Match` takes precedence:
+   * when present, `If-Modified-Since` is ignored. `If-None-Match` is
+   * a list header -- all header lines are combined and any ETag match
+   * (weak comparison) means fresh. `If-Modified-Since` is a singleton
+   * and only evaluated when `If-None-Match` is absent.
+   *
+   * Only meaningful for GET / HEAD with a 2xx or 304 status.
+   */
+  var fresh : Bool {
+    guard method == "GET" || method == "HEAD" else { return false }
+    guard let res = response else { return false }
+
+    let sc = res.statusCode
+    guard (sc >= 200 && sc < 300) || sc == 304 else { return false }
+
+    // If-None-Match is a list field; collect all header lines.
+    let inmHeaders = headers["If-None-Match"]
+    if !inmHeaders.isEmpty {
+      guard let etag = res.getHeader("ETag") as? String else { return false }
+      let sv = etag.hasPrefix("W/") ? etag.dropFirst(2) : etag[...]
+
+      // Any match across all header lines means fresh (OR).
+      for line in inmHeaders {
+        let trimmed = trimSpaces(line)
+        if trimmed == "*" { return true }
+        for tag in line.split(separator: ",") {
+          let t = trimSpaces(tag)
+          let cv = t.hasPrefix("W/") ? t.dropFirst(2) : t[...]
+          if cv == sv { return true }
+        }
+      }
+      // If-None-Match present but no match => stale.
+      return false
+    }
+
+    // If-Modified-Since: singleton, only when If-None-Match
+    // is absent (RFC 9110 Section 13.1.3).
+    // Fresh if Last-Modified <= If-Modified-Since.
+    if let ims = headers["If-Modified-Since"].first,
+       let lm = res.getHeader("Last-Modified") as? String
+    {
+      if lm == ims { return true }
+      guard let imsDate = parseHTTPDate(ims),
+            let lmDate  = parseHTTPDate(lm) else { return false }
+      return lmDate <= imsDate
+    }
+
+    return false
+  }
+
+  /// Inverse of ``fresh``.
+  @inlinable
+  var stale : Bool { return !fresh }
+}
+
+// MARK: - Content Negotiation
+public extension IncomingMessage {
+  
+  /**
+   * Checks whether the client accepts one of the given languages based on the 
+   * `Accept-Language` header.
+   *
+   * Returns the first matched language, or `nil`.
+   */
+  @inlinable
+  func acceptsLanguages(_ languages: String...) -> String? {
+    return acceptsHeader("Accept-Language", languages)
+  }
+
+  /**
+   * Checks whether the client accepts one of the given charsets based on the 
+   * `Accept-Charset` header.
+   *
+   * Returns the first matched charset, or `nil`.
+   */
+  @inlinable
+  func acceptsCharsets(_ charsets: String...) -> String? {
+    return acceptsHeader("Accept-Charset", charsets)
+  }
+
+  /**
+   * Checks whether the client accepts one of the given encodings based on the
+   * `Accept-Encoding` header.
+   *
+   * Returns the first matched encoding, or `nil`.
+   */
+  @inlinable
+  func acceptsEncodings(_ encodings: String...) -> String? {
+    return acceptsHeader("Accept-Encoding", encodings)
+  }
+
+  /**
+   * Generic Accept- header negotiation.
+   *
+   * Parses the specified header and returns the first candidate that matches,
+   * respecting q-values for preference ordering.
+   */
+  @usableFromInline
+  internal func acceptsHeader(_ headerName: String, _ candidates: [ String ]) 
+                -> String?
+  {
+    let allHeaders = headers[headerName]
+    guard !allHeaders.isEmpty else { return candidates.first }
+
+    var entries = [ ( value: Substring, quality: Double ) ]()
+    for header in allHeaders {
+      for raw in header.split(separator: ",") {
+        let parts = raw.split(separator: ";")
+        let value = parts.first.map(trimSpaces) ?? raw[...]
+        var q     = 1.0
+        for part in parts.dropFirst() {
+          let p = trimSpaces(part)
+          if p.hasPrefix("q=") { q = Double(p.dropFirst(2)) ?? 1.0 }
+        }
+        entries.append((value: value, quality: q))
+      }
+    }
+
+    // Only sort when qualities actually differ.
+    if entries.count > 1 {
+      let firstQ = entries[0].quality
+      if entries.contains(where: { $0.quality != firstQ }) {
+        entries.sort { $0.quality > $1.quality }
+      }
+    }
+
+    for candidate in candidates {
+      for entry in entries {
+        let ev = entry.value
+        if ev == "*" { return candidate }
+        if ev.caseInsensitiveCompare(candidate) == .orderedSame {
+          return candidate
+        }
+        // prefix: "en" matches "en-US" and vice versa
+        if candidate.count < ev.count {
+          let endIdx = ev.index(ev.startIndex, offsetBy: candidate.count)
+          let range  = ev.startIndex..<endIdx
+          if ev[range].caseInsensitiveCompare(candidate) == .orderedSame { 
+            return candidate 
+          }
+        }
+        else if ev.count < candidate.count {
+          let endIdx = candidate.index(candidate.startIndex, offsetBy: ev.count)
+          let range = candidate.startIndex..<endIdx
+          if candidate[range].caseInsensitiveCompare(ev) == .orderedSame { 
+            return candidate 
+          }
+        }
+      }
+    }
+    return nil
+  }
+}
+
+// MARK: - Range
+public extension IncomingMessage {
+  
+  /**
+   * Parses the `Range` request header against the given resource size.
+   *
+   * Returns an array of byte ranges, or `nil` if the header is missing or 
+   * malformed.
+   *
+   * Example:
+   * ```swift
+   * if let ranges = req.range(fileSize) {
+   *   // serve partial content
+   * }
+   * ```
+   */
+  func range(_ size: Int) -> [ ClosedRange<Int> ]? {
+    guard let header = headers["Range"].first else { return nil }
+    guard header.hasPrefix("bytes=") else {
+      log.warning("Unsupported range unit: \(header)")
+      return nil
+    }
+
+    let spec = header.dropFirst(6) // "bytes="
+    var ranges = [ ClosedRange<Int> ]()
+    for part in spec.split(separator: ",") {
+      let t = trimSpaces(part)
+      guard let dash = t.firstIndex(of: "-") else {
+        log.warning("Malformed range part (no dash): \(t) in \(header)")
+        return nil
+      }
+      let before = t[t.startIndex..<dash]
+      let after  = t[t.index(after: dash)...]
+      if before.isEmpty { // suffix: "-500"
+        guard let suffix = Int(after), suffix > 0 else {
+          log.warning("Invalid suffix range: \(t) in \(header)")
+          return nil
+        }
+        ranges.append(max(0, size - suffix)...(size - 1))
+      }
+      else if after.isEmpty { // open: "500-"
+        guard let start = Int(before), start < size else {
+          log.warning("Unsatisfiable range: \(t) (size=\(size)) in \(header)")
+          return nil
+        }
+        ranges.append(start...(size - 1))
+      }
+      else {
+        guard let start = Int(before), let end = Int(after),
+              start <= end, end < size else {
+          log.warning("Unsatisfiable range: \(t) (size=\(size)) in \(header)")
+          return nil
+        }
+        ranges.append(start...end)
+      }
+    }
+    return ranges.isEmpty ? nil : ranges
+  }
+}
+
+@usableFromInline
+internal func trimSpaces<S>(_ s: S) -> Substring
+  where S: StringProtocol, S.SubSequence == Substring
+{
+  var start = s.startIndex, end = s.endIndex
+  while start < end && s[start] == " " { s.formIndex(after: &start) }
+  while end > start {
+    let prev = s.index(before: end)
+    guard s[prev] == " " else { break }
+    end = prev
+  }
+  return s[start..<end]
+}
+
+
+// MARK: - HTTP Date Parsing
+
+#if canImport(Foundation)
+import Foundation
+
+/// Parses an HTTP-date (RFC 9110 Section 5.6.7).
+/// Supports IMF-fixdate, obsolete RFC 850, and asctime formats.
+@usableFromInline
+internal func parseHTTPDate(_ string: String) -> Date? {
+  for fmt in httpDateFormatters {
+    if let date = fmt.date(from: string) { return date }
+  }
+  return nil
+}
+
+private let httpDateFormatters: [ DateFormatter ] = {
+  let gmt   = TimeZone(identifier: "GMT")
+  let posix = Locale(identifier: "en_US_POSIX")
+
+  func make(_ format: String) -> DateFormatter {
+    let f = DateFormatter()
+    f.locale   = posix
+    f.timeZone = gmt
+    f.dateFormat = format
+    return f
+  }
+
+  return [
+    // IMF-fixdate: Sun, 06 Nov 1994 08:49:37 GMT
+    make("EEE, dd MMM yyyy HH:mm:ss zzz"),
+    // obsolete RFC 850: Sunday, 06-Nov-94 08:49:37 GMT
+    make("EEEE, dd-MMM-yy HH:mm:ss zzz"),
+    // ANSI C asctime(): Sun Nov  6 08:49:37 1994
+    make("EEE MMM d HH:mm:ss yyyy")
+  ]
+}()
+#endif
