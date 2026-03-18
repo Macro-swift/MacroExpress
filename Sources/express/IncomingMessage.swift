@@ -336,6 +336,66 @@ public extension IncomingMessage {
   }
 }
 
+// MARK: - Conditional Requests
+public extension IncomingMessage {
+  /**
+   * Whether the request is "fresh" (304-eligible).
+   *
+   * Per RFC 9110 Section 13.2.2, `If-None-Match` takes precedence:
+   * when present, `If-Modified-Since` is ignored. `If-None-Match` is
+   * a list header -- all header lines are combined and any ETag match
+   * (weak comparison) means fresh. `If-Modified-Since` is a singleton
+   * and only evaluated when `If-None-Match` is absent.
+   *
+   * Only meaningful for GET / HEAD with a 2xx or 304 status.
+   */
+  var fresh : Bool {
+    guard method == "GET" || method == "HEAD" else { return false }
+    guard let res = response else { return false }
+
+    let sc = res.statusCode
+    guard (sc >= 200 && sc < 300) || sc == 304 else { return false }
+
+    // If-None-Match is a list field; collect all header lines.
+    let inmHeaders = headers["If-None-Match"]
+    if !inmHeaders.isEmpty {
+      guard let etag = res.getHeader("ETag") as? String else { return false }
+      let sv = etag.hasPrefix("W/") ? etag.dropFirst(2) : etag[...]
+
+      // Any match across all header lines means fresh (OR).
+      for line in inmHeaders {
+        let trimmed = trimSpaces(line)
+        if trimmed == "*" { return true }
+        for tag in line.split(separator: ",") {
+          let t = trimSpaces(tag)
+          let cv = t.hasPrefix("W/") ? t.dropFirst(2) : t[...]
+          if cv == sv { return true }
+        }
+      }
+      // If-None-Match present but no match => stale.
+      return false
+    }
+
+    // If-Modified-Since: singleton, only when If-None-Match
+    // is absent (RFC 9110 Section 13.1.3).
+    // Fresh if Last-Modified <= If-Modified-Since.
+    if let ims = headers["If-Modified-Since"].first,
+       let lm = res.getHeader("Last-Modified") as? String
+    {
+      if lm == ims { return true }
+      guard let imsDate = parseHTTPDate(ims),
+            let lmDate  = parseHTTPDate(lm) else { return false }
+      return lmDate <= imsDate
+    }
+
+    return false
+  }
+
+  /// Inverse of ``fresh``.
+  @inlinable
+  var stale : Bool { return !fresh }
+}
+
 @usableFromInline
 internal func trimSpaces<S>(_ s: S) -> Substring
   where S: StringProtocol, S.SubSequence == Substring
