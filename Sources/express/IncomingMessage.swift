@@ -396,6 +396,67 @@ public extension IncomingMessage {
   var stale : Bool { return !fresh }
 }
 
+
+// MARK: - Range
+public extension IncomingMessage {
+  
+  /**
+   * Parses the `Range` request header against the given resource size.
+   *
+   * Returns an array of byte ranges, or `nil` if the header is missing or 
+   * malformed.
+   *
+   * Example:
+   * ```swift
+   * if let ranges = req.range(fileSize) {
+   *   // serve partial content
+   * }
+   * ```
+   */
+  func range(_ size: Int) -> [ ClosedRange<Int> ]? {
+    guard let header = headers["Range"].first else { return nil }
+    guard header.hasPrefix("bytes=") else {
+      log.warning("Unsupported range unit: \(header)")
+      return nil
+    }
+
+    let spec = header.dropFirst(6) // "bytes="
+    var ranges = [ ClosedRange<Int> ]()
+    for part in spec.split(separator: ",") {
+      let t = trimSpaces(part)
+      guard let dash = t.firstIndex(of: "-") else {
+        log.warning("Malformed range part (no dash): \(t) in \(header)")
+        return nil
+      }
+      let before = t[t.startIndex..<dash]
+      let after  = t[t.index(after: dash)...]
+      if before.isEmpty { // suffix: "-500"
+        guard let suffix = Int(after), suffix > 0 else {
+          log.warning("Invalid suffix range: \(t) in \(header)")
+          return nil
+        }
+        ranges.append(max(0, size - suffix)...(size - 1))
+      }
+      else if after.isEmpty { // open: "500-"
+        guard let start = Int(before), start < size else {
+          log.warning("Unsatisfiable range: \(t) (size=\(size)) in \(header)")
+          return nil
+        }
+        ranges.append(start...(size - 1))
+      }
+      else {
+        guard let start = Int(before), let end = Int(after),
+              start <= end, end < size else {
+          log.warning("Unsatisfiable range: \(t) (size=\(size)) in \(header)")
+          return nil
+        }
+        ranges.append(start...end)
+      }
+    }
+    return ranges.isEmpty ? nil : ranges
+  }
+}
+
 @usableFromInline
 internal func trimSpaces<S>(_ s: S) -> Substring
   where S: StringProtocol, S.SubSequence == Substring
