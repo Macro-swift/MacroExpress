@@ -335,3 +335,17 @@ public extension IncomingMessage {
     return result
   }
 }
+
+@usableFromInline
+internal func trimSpaces<S>(_ s: S) -> Substring
+  where S: StringProtocol, S.SubSequence == Substring
+{
+  var start = s.startIndex, end = s.endIndex
+  while start < end && s[start] == " " { s.formIndex(after: &start) }
+  while end > start {
+    let prev = s.index(before: end)
+    guard s[prev] == " " else { break }
+    end = prev
+  }
+  return s[start..<end]
+}
