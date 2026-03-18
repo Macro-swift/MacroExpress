@@ -573,37 +573,32 @@ internal func trimSpaces<S>(_ s: S) -> Substring
 // MARK: - HTTP Date Parsing
 
 #if canImport(Foundation)
-import Foundation
+import Foundation // just for Date
 
 /// Parses an HTTP-date (RFC 9110 Section 5.6.7).
 /// Supports IMF-fixdate, obsolete RFC 850, and asctime formats.
 @usableFromInline
 internal func parseHTTPDate(_ string: String) -> Date? {
-  for fmt in httpDateFormatters {
-    if let date = fmt.date(from: string) { return date }
+  string.withCString { cstr in
+    var tm = tm()
+    for fmt in httpDateFormats {
+      if strptime(cstr, fmt, &tm) != nil {
+        let time = timegm(&tm)
+        if time != -1 {
+          return Date(timeIntervalSince1970: TimeInterval(time))
+        }
+      }
+    }
+    return nil
   }
-  return nil
 }
 
-private let httpDateFormatters: [ DateFormatter ] = {
-  let gmt   = TimeZone(identifier: "GMT")
-  let posix = Locale(identifier: "en_US_POSIX")
-
-  func make(_ format: String) -> DateFormatter {
-    let f = DateFormatter()
-    f.locale   = posix
-    f.timeZone = gmt
-    f.dateFormat = format
-    return f
-  }
-
-  return [
-    // IMF-fixdate: Sun, 06 Nov 1994 08:49:37 GMT
-    make("EEE, dd MMM yyyy HH:mm:ss zzz"),
-    // obsolete RFC 850: Sunday, 06-Nov-94 08:49:37 GMT
-    make("EEEE, dd-MMM-yy HH:mm:ss zzz"),
-    // ANSI C asctime(): Sun Nov  6 08:49:37 1994
-    make("EEE MMM d HH:mm:ss yyyy")
-  ]
-}()
+private let httpDateFormats = [
+  // IMF-fixdate: Sun, 06 Nov 1994 08:49:37 GMT
+  "%a, %d %b %Y %H:%M:%S GMT",
+  // obsolete RFC 850: Sunday, 06-Nov-94 08:49:37 GMT
+  "%A, %d-%b-%y %H:%M:%S GMT",
+  // ANSI C asctime(): Sun Nov  6 08:49:37 1994
+  "%a %b %e %H:%M:%S %Y"
+]
 #endif
