@@ -572,21 +572,23 @@ internal func trimSpaces<S>(_ s: S) -> Substring
 
 // MARK: - HTTP Date Parsing
 
-#if canImport(Foundation)
-import Foundation // just for Date
+#if canImport(Darwin)
+  import Darwin
+#elseif canImport(Glibc)
+  import Glibc
+#endif
 
-/// Parses an HTTP-date (RFC 9110 Section 5.6.7).
-/// Supports IMF-fixdate, obsolete RFC 850, and asctime formats.
+/// Parses an HTTP-date (RFC 9110 Section 5.6.7) to a Unix
+/// timestamp. Supports IMF-fixdate, obsolete RFC 850, and
+/// asctime formats.
 @usableFromInline
-internal func parseHTTPDate(_ string: String) -> Date? {
+internal func parseHTTPDate(_ string: String) -> time_t? {
   string.withCString { cstr in
     var tm = tm()
     for fmt in httpDateFormats {
       if strptime(cstr, fmt, &tm) != nil {
         let time = timegm(&tm)
-        if time != -1 {
-          return Date(timeIntervalSince1970: TimeInterval(time))
-        }
+        if time != -1 { return time }
       }
     }
     return nil
@@ -601,4 +603,3 @@ private let httpDateFormats = [
   // ANSI C asctime(): Sun Nov  6 08:49:37 1994
   "%a %b %e %H:%M:%S %Y"
 ]
-#endif
