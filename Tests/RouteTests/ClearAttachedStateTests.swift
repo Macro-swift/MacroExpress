@@ -30,7 +30,7 @@ final class ClearAttachedStateTests: XCTestCase {
       next()
     }
 
-    try autoreleasepool {
+    do {
       let req = IncomingMessage(url: "/hello")
       let res = TestServerResponse()
       weakReq = req
@@ -38,8 +38,6 @@ final class ClearAttachedStateTests: XCTestCase {
 
       try app.handle(request: req, response: res) { _ in }
 
-      // During handling, cross-references must point to
-      // the correct objects.
       XCTAssertTrue(capturedResRequest === req,
                     "res.request should be req")
       XCTAssertTrue(capturedReqResponse === res,
