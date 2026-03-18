@@ -396,6 +396,104 @@ public extension IncomingMessage {
   var stale : Bool { return !fresh }
 }
 
+// MARK: - Content Negotiation
+public extension IncomingMessage {
+  
+  /**
+   * Checks whether the client accepts one of the given languages based on the 
+   * `Accept-Language` header.
+   *
+   * Returns the first matched language, or `nil`.
+   */
+  @inlinable
+  func acceptsLanguages(_ languages: String...) -> String? {
+    return acceptsHeader("Accept-Language", languages)
+  }
+
+  /**
+   * Checks whether the client accepts one of the given charsets based on the 
+   * `Accept-Charset` header.
+   *
+   * Returns the first matched charset, or `nil`.
+   */
+  @inlinable
+  func acceptsCharsets(_ charsets: String...) -> String? {
+    return acceptsHeader("Accept-Charset", charsets)
+  }
+
+  /**
+   * Checks whether the client accepts one of the given encodings based on the
+   * `Accept-Encoding` header.
+   *
+   * Returns the first matched encoding, or `nil`.
+   */
+  @inlinable
+  func acceptsEncodings(_ encodings: String...) -> String? {
+    return acceptsHeader("Accept-Encoding", encodings)
+  }
+
+  /**
+   * Generic Accept- header negotiation.
+   *
+   * Parses the specified header and returns the first candidate that matches,
+   * respecting q-values for preference ordering.
+   */
+  @usableFromInline
+  internal func acceptsHeader(_ headerName: String, _ candidates: [ String ]) 
+                -> String?
+  {
+    let allHeaders = headers[headerName]
+    guard !allHeaders.isEmpty else { return candidates.first }
+
+    var entries = [ ( value: Substring, quality: Double ) ]()
+    for header in allHeaders {
+      for raw in header.split(separator: ",") {
+        let parts = raw.split(separator: ";")
+        let value = parts.first.map(trimSpaces) ?? raw[...]
+        var q     = 1.0
+        for part in parts.dropFirst() {
+          let p = trimSpaces(part)
+          if p.hasPrefix("q=") { q = Double(p.dropFirst(2)) ?? 1.0 }
+        }
+        entries.append((value: value, quality: q))
+      }
+    }
+
+    // Only sort when qualities actually differ.
+    if entries.count > 1 {
+      let firstQ = entries[0].quality
+      if entries.contains(where: { $0.quality != firstQ }) {
+        entries.sort { $0.quality > $1.quality }
+      }
+    }
+
+    for candidate in candidates {
+      for entry in entries {
+        let ev = entry.value
+        if ev == "*" { return candidate }
+        if ev.caseInsensitiveCompare(candidate) == .orderedSame {
+          return candidate
+        }
+        // prefix: "en" matches "en-US" and vice versa
+        if candidate.count < ev.count {
+          let endIdx = ev.index(ev.startIndex, offsetBy: candidate.count)
+          let range  = ev.startIndex..<endIdx
+          if ev[range].caseInsensitiveCompare(candidate) == .orderedSame { 
+            return candidate 
+          }
+        }
+        else if ev.count < candidate.count {
+          let endIdx = candidate.index(candidate.startIndex, offsetBy: ev.count)
+          let range = candidate.startIndex..<endIdx
+          if candidate[range].caseInsensitiveCompare(ev) == .orderedSame { 
+            return candidate 
+          }
+        }
+      }
+    }
+    return nil
+  }
+}
 
 // MARK: - Range
 public extension IncomingMessage {
