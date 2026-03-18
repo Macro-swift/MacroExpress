@@ -10,6 +10,10 @@ import Logging
 import NIOHTTP1   // HTTPResponseStatus/HTTPHeaders
 import MacroCore  // Buffer
 import http       // IncomingMessage/ServerResponse
+import connect    // Cookie
+import Foundation // Date
+import mime
+import fs
 
 public extension ServerResponse {
   
@@ -100,10 +104,11 @@ public extension ServerResponse {
    *
    * If the string is empty or nil, the header will be removed.
    */
-  func location(_ location: String?) {
+  @discardableResult
+  func location(_ location: String?) -> Self {
     guard let location = location, !location.isEmpty else {
       removeHeader("Location")
-      return
+      return self
     }
     
     if location == "back" {
@@ -119,6 +124,7 @@ public extension ServerResponse {
       // Also: make paths absolute (e.g. when given 'admin/new')
       setHeader("Location", location)
     }
+    return self
   }
   
   func redirect(_ statusCode: Int, _ location: String) {
@@ -206,10 +212,13 @@ public extension ServerResponse {
   
   @inlinable
   func get(_ header: String) -> Any? { return getHeader(header) }
+  
+  @discardableResult
   @inlinable
-  func set(_ header: String, _ value: Any?) {
+  func set(_ header: String, _ value: Any?) -> Self {
     if let v = value { setHeader(header, v) }
     else             { removeHeader(header) }
+    return self
   }
 }
 
@@ -269,12 +278,13 @@ public extension ServerResponse {
    *            sameSite: .strict)
    * ```
    */
+  @discardableResult
   @inlinable
   func cookie(_ name: String, _ value: String,
               path: String? = "/", httpOnly: Bool = true,
               domain: String? = nil, maxAge: Int? = nil,
               expires: Date? = nil, secure: Bool = false,
-              sameSite: Cookie.SameSite? = nil)
+              sameSite: Cookie.SameSite? = nil) -> Self
   {
     let c = Cookie(name: name, value: value, path: path,
                    httpOnly: httpOnly, domain: domain,
@@ -284,6 +294,7 @@ public extension ServerResponse {
     for v in headers["Set-Cookie"] { existing.append(v) }
     existing.append(c.httpHeaderValue)
     setHeader("Set-Cookie", existing)
+    return self
   }
 
   /**
@@ -291,8 +302,11 @@ public extension ServerResponse {
    *
    * The `path` and `domain` must match the original cookie.
    */
+  @discardableResult
   @inlinable
-  func clearCookie(_ name: String, path: String? = "/", domain: String? = nil) {
+  func clearCookie(_ name: String, path: String? = "/", domain: String? = nil) 
+       -> Self
+  {
     let c = Cookie(name: name, value: "", path: path,
                    httpOnly: false, domain: domain,
                    maxAge: 0)
@@ -300,6 +314,7 @@ public extension ServerResponse {
     for v in headers["Set-Cookie"] { existing.append(v) }
     existing.append(c.httpHeaderValue)
     setHeader("Set-Cookie", existing)
+    return self
   }
 }
 
@@ -312,16 +327,20 @@ public extension ServerResponse {
    * If a filename is given, sets the filename parameter and the `Content-Type` 
    * based on the file extension.
    */
+  @discardableResult
   @inlinable
-  func attachment(_ filename: String? = nil) {
-    if let filename = filename {
-      let base = path.basename(filename)
-      setHeader("Content-Disposition", "attachment; filename=\"\(base)\"")
-      if canAssignContentType, let ct = mime.lookup(filename) {
-        setHeader("Content-Type", ct)
-      }
+  func attachment(_ filename: String? = nil) -> Self {
+    guard let filename = filename else {
+      setHeader("Content-Disposition", "attachment")
+      return self
     }
-    else { setHeader("Content-Disposition", "attachment") }
+      
+    let base = path.basename(filename)
+    setHeader("Content-Disposition", "attachment; filename=\"\(base)\"")
+    if canAssignContentType, let ct = mime.lookup(filename) {
+      setHeader("Content-Type", ct)
+    }
+    return self
   }
 
   /**
@@ -336,8 +355,9 @@ public extension ServerResponse {
    * res.download("/path/to/data.csv", "export.csv")
    * ```
    */
+  @discardableResult
   func download(_ filePath: String, _ filename: String? = nil,
-                _ callback: (( Swift.Error? ) -> Void)? = nil)
+                _ callback: (( Swift.Error? ) -> Void)? = nil) -> Self
   {
     let name = filename ?? path.basename(filePath)
     attachment(name)
@@ -345,5 +365,66 @@ public extension ServerResponse {
     stream.onError { error in callback?(error) }
     _ = stream.pipe(self)
     if let cb = callback { _ = onceFinish { cb(nil) } }
+    return self
+  }
+}
+
+// MARK: - Vary
+public extension ServerResponse {
+
+  /**
+   * Adds one or more fields to the `Vary` response header. Existing values are
+   * preserved; duplicates are skipped (case-insensitive).
+   *
+   * Example:
+   * ```swift
+   * res.vary("Accept-Encoding", "Accept")
+   * ```
+   */
+  @discardableResult
+  @inlinable
+  func vary(_ fields: String...) -> Self {
+    guard let first = fields.first else { return self }
+    var current = (getHeader("Vary") as? String) ?? ""
+    if fields.count == 1 && current.isEmpty { 
+      setHeader("Vary", first)
+      return self
+    }
+    for field in fields {
+      if current.isEmpty { current = field; continue }
+      let isDuplicate = current.split(separator: ",").contains {
+        trimSpaces($0)
+          .caseInsensitiveCompare(field) == .orderedSame
+      }
+      if !isDuplicate { current += ", " + field }
+    }
+    setHeader("Vary", current)
+    return self
+  }
+}
+
+// MARK: - Links
+public extension ServerResponse {
+  /**
+   * Sets the `Link` header for pagination / related resources.
+   *
+   * Example:
+   * ```swift
+   * res.links([
+   *   "next": "/page/2",
+   *   "last": "/page/5"
+   * ])
+   * // Link: </page/2>; rel="next", </page/5>; rel="last"
+   * ```
+   */
+  @discardableResult
+  @inlinable
+  func links(_ links: [ String : String ]) -> Self {
+    guard !links.isEmpty else { return self }
+    let value = links
+      .map { "<\($0.value)>; rel=\"\($0.key)\"" }
+      .joined(separator: ", ")
+    setHeader("Link", value)
+    return self
   }
 }
