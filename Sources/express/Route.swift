@@ -56,7 +56,7 @@ private let debugWalker  = process.getenvflag("macro.router.walker.debug")
  * and companions.
  */
 open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
-                  CustomStringConvertible
+                  CustomStringConvertible, @unchecked Sendable
 {
   
   public var middleware      : [ Middleware ]
@@ -241,7 +241,7 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
       }
     }
 
-    final class MiddlewareWalker {
+    final class MiddlewareWalker: @unchecked Sendable {
       
       let ids        : String
       var stack      : ArraySlice<Middleware>
