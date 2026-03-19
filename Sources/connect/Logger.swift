@@ -85,7 +85,8 @@ public func logger(_ format: String? = nil, level: Logger.Level = .info,
       switch fmt {
         case formats["short"]!:
           msg += "\(info.remoteAddr) -"
-          msg += " \"\(req.method) \(url) HTTP/\(req.httpVersion)\""
+          msg += " \"\(info.methodWithDepth) \(url)"
+          msg += " HTTP/\(req.httpVersion)\""
           msg += " \(info.status) \(info.clen)"
           msg += " - \(info.responseTime) ms"
         
@@ -95,7 +96,7 @@ public func logger(_ format: String? = nil, level: Logger.Level = .info,
           msg += " - \(info.paddedResponseTime) ms"
         
         case formats["tiny"]!:
-          msg += "\(req.method) \(url)"
+          msg += "\(info.methodWithDepth) \(url)"
           msg += " \(info.status) \(info.clen)"
           msg += " - \(info.responseTime) ms"
         
@@ -103,7 +104,8 @@ public func logger(_ format: String? = nil, level: Logger.Level = .info,
           fallthrough
         default:
           msg += "\(info.remoteAddr) - - [\(info.date)]"
-          msg += " \"\(req.method) \(url) HTTP/\(req.httpVersion)\""
+          msg += " \"\(info.methodWithDepth) \(url)"
+          msg += " HTTP/\(req.httpVersion)\""
           msg += " \(info.status) \(info.clen)"
           msg += " \(info.qReferrer) \(info.qUA)"
       }
@@ -141,6 +143,21 @@ private struct LogInfoProvider {
   let url   : String
   let diff  : Int
   let noval = "-"
+
+  /// Method with depth suffix. Always shown if the Depth header is
+  /// present; for PROPFIND/REPORT a missing header logs ":-".
+  var methodWithDepth : String {
+    let m = req.method
+    if let raw = req.headers["Depth"].first {
+      let d = raw.trimmingCharacters(in: .whitespaces)
+      if d.caseInsensitiveCompare("infinity") == .orderedSame {
+        return "\(m):*"
+      }
+      return "\(m):\(d)"
+    }
+    if m == "PROPFIND" || m == "REPORT" { return "\(m):-" }
+    return m
+  }
   
   var remoteAddr   : String {
     guard let sock = req.socket         else { return noval }
@@ -200,12 +217,14 @@ private struct LogInfoProvider {
   
   static var methodPadLen = 4
   var paddedMethod : String {
-    let m = "\(req.method)"
-    let len = m.count
-    if len > LogInfoProvider.methodPadLen { LogInfoProvider.methodPadLen = len }
+    let m      = methodWithDepth
+    let len    = m.count
+    if len > LogInfoProvider.methodPadLen {
+      LogInfoProvider.methodPadLen = len
+    }
     let padlen = LogInfoProvider.methodPadLen
     let pad    = String(repeating: " ", count: max(padlen - len, 0))
-    return "\(req.method)\(pad)"
+    return "\(m)\(pad)"
   }
 
   static var urlPadLen = 28
