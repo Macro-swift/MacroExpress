@@ -576,7 +576,7 @@ internal func trimSpaces<S>(_ s: S) -> Substring
 /// timestamp. Supports IMF-fixdate, obsolete RFC 850, and
 /// asctime formats.
 @usableFromInline
-internal func parseHTTPDate(_ string: String) -> Int? {
+internal func parseHTTPDate(_ string: String) -> time_t? {
   
   func httpMonthIndex(_ s: Substring) -> Int? {
     switch s {
