@@ -94,7 +94,7 @@ public class Connect {
   // MARK: - run middleware
   
   func doRequest(_ request: IncomingMessage, _ response: ServerResponse) {
-    final class State {
+    final class State: @unchecked Sendable {
       var stack    : ArraySlice<Middleware>
       let request  : IncomingMessage
       let response : ServerResponse

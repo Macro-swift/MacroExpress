@@ -83,7 +83,7 @@ import NIOConcurrencyHelpers
  * just like in Node.js.
  */
 open class Express: SettingsHolder, MountableMiddlewareObject, MiddlewareObject,
-                    RouteKeeper
+                    RouteKeeper, @unchecked Sendable
 {
   public let log : Logger
 

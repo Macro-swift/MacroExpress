@@ -572,38 +572,79 @@ internal func trimSpaces<S>(_ s: S) -> Substring
 
 // MARK: - HTTP Date Parsing
 
-#if canImport(Foundation)
-import Foundation
-
-/// Parses an HTTP-date (RFC 9110 Section 5.6.7).
-/// Supports IMF-fixdate, obsolete RFC 850, and asctime formats.
+/// Parses an HTTP-date (RFC 9110 Section 5.6.7) to a Unix
+/// timestamp. Supports IMF-fixdate, obsolete RFC 850, and
+/// asctime formats.
 @usableFromInline
-internal func parseHTTPDate(_ string: String) -> Date? {
-  for fmt in httpDateFormatters {
-    if let date = fmt.date(from: string) { return date }
+internal func parseHTTPDate(_ string: String) -> time_t? {
+  
+  func httpMonthIndex(_ s: Substring) -> Int? {
+    switch s {
+      case "Jan": return  0; case "Feb": return  1
+      case "Mar": return  2; case "Apr": return  3
+      case "May": return  4; case "Jun": return  5
+      case "Jul": return  6; case "Aug": return  7
+      case "Sep": return  8; case "Oct": return  9
+      case "Nov": return 10; case "Dec": return 11
+      default:    return nil
+    }
   }
-  return nil
+  /// `HH:MM:SS`
+  func parseHMS(_ s: Substring) -> (Int, Int, Int)? {
+    let p = s.split(separator: ":")
+    guard p.count == 3, let h = Int(p[0]),
+          let m = Int(p[1]), let s = Int(p[2])
+    else { return nil }
+    return (h, m, s)
+  }
+
+  // Converts UTC date components => Unix timestamp.
+  func utcTimestamp(year: Int, month m0: Int, day: Int, 
+                    hour: Int, min: Int, sec: Int) -> Int
+  {
+    var y = year
+    var m = m0 + 1 // to 1-based
+    if m <= 2 { y -= 1; m += 12 }
+    let era  = (y >= 0 ? y : y - 399) / 400
+    let yoe  = y - era * 400
+    let doy  = (153 * (m - 3) + 2) / 5 + day - 1
+    let doe  = yoe * 365 + yoe / 4 - yoe / 100 + doy
+    let days = era * 146097 + doe - 719468
+    return days * 86400 + hour * 3600 + min * 60 + sec
+  }
+  
+  if let ci = string.firstIndex(of: ",") {
+    let rest = string[string.index(after: ci)...].drop(while: { $0 == " " })
+    let parts = rest.split(separator: " ")
+    guard parts.count >= 3 else { return nil }
+    
+    let dp = parts[0]
+    if dp.contains("-") {
+      // RFC 850: 06-Nov-94 08:49:37 GMT
+      let dps = dp.split(separator: "-")
+      guard dps.count == 3, let day = Int(dps[0]),
+            let mon = httpMonthIndex(dps[1]), var year = Int(dps[2]),
+            let (h, m, s) = parseHMS(parts[1]) else { return nil }
+      if year < 100 { year += year < 70 ? 2000 : 1900 }
+      return utcTimestamp(year: year, month: mon,
+                          day: day, hour: h, min: m, sec: s)
+    }
+    
+    // IMF-fixdate: 06 Nov 1994 08:49:37 GMT
+    guard parts.count >= 4, let day = Int(dp),
+          let mon  = httpMonthIndex(parts[1]),
+          let year = Int(parts[2]),
+          let (h, m, s) = parseHMS(parts[3]) else { return nil }
+    return utcTimestamp(year: year, month: mon,
+                        day: day, hour: h, min: m, sec: s)
+  }
+  
+  // asctime: Sun Nov  6 08:49:37 1994
+  let parts = string.split(separator: " ", omittingEmptySubsequences: true)
+  guard parts.count >= 5,
+        let mon  = httpMonthIndex(parts[1]), let day  = Int(parts[2]),
+        let (h, m, s) = parseHMS(parts[3]),
+        let year = Int(parts[4]) else { return nil }
+  return utcTimestamp(year: year, month: mon,
+                      day: day, hour: h, min: m, sec: s)
 }
-
-private let httpDateFormatters: [ DateFormatter ] = {
-  let gmt   = TimeZone(identifier: "GMT")
-  let posix = Locale(identifier: "en_US_POSIX")
-
-  func make(_ format: String) -> DateFormatter {
-    let f = DateFormatter()
-    f.locale   = posix
-    f.timeZone = gmt
-    f.dateFormat = format
-    return f
-  }
-
-  return [
-    // IMF-fixdate: Sun, 06 Nov 1994 08:49:37 GMT
-    make("EEE, dd MMM yyyy HH:mm:ss zzz"),
-    // obsolete RFC 850: Sunday, 06-Nov-94 08:49:37 GMT
-    make("EEEE, dd-MMM-yy HH:mm:ss zzz"),
-    // ANSI C asctime(): Sun Nov  6 08:49:37 1994
-    make("EEE MMM d HH:mm:ss yyyy")
-  ]
-}()
-#endif
