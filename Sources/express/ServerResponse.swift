@@ -153,13 +153,13 @@ public extension ServerResponse {
   @inlinable
   func send(_ string: String) {
     if canAssignContentType {
-      var ctype = string.hasPrefix("<html") ? "text/html" : "text/plain"
+      var ctype = string.hasPrefix("<html") 
+        ? "text/html" 
+        : string.hasPrefix("<?xml") ? "text/xml" : "text/plain"
       ctype += "; charset=utf-8"
       setHeader("Content-Type", ctype)
     }
-    
-    write(string)
-    end()
+    send(Buffer(string))
   }
   
   @inlinable
