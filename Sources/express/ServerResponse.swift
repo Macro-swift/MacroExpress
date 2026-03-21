@@ -75,8 +75,7 @@ public extension ServerResponse {
   func sendStatus(_ code: Int, _ headers: HTTPHeaders = [:]) {
     if headersSent {
       if statusCode != code {
-        log.error(
-          "sendStatus(\(code)) called but headers already sent with status \(statusCode)")
+        log.error("sendStatus(\(code)), already sent with: \(statusCode)")
       }
       else {
         log.warning("sendStatus(\(code)) called but headers already sent")
@@ -87,10 +86,22 @@ public extension ServerResponse {
     
     for ( name, value ) in headers { self.setHeader(name, value) }
     statusCode = code
-    let reason = HTTPResponseStatus(statusCode: code).reasonPhrase
-    setHeader("Content-Length", reason.utf8.count)
-    write(reason)
-    end()
+
+    if code == 204 {
+      setHeader("Content-Length", 0)
+      end()
+    }
+    else if code == 304 {
+      // 304 must not have a body, but Content-Length should reflect the
+      // original resource size (RFC 9110).
+      end()
+    }
+    else {
+      let reason = Buffer(HTTPResponseStatus(statusCode: code).reasonPhrase)
+      setHeader("Content-Length", reason.count)
+      write(reason)
+      end()
+    }
   }
   
   
@@ -157,7 +168,14 @@ public extension ServerResponse {
       setHeader("Content-Type", "application/octet-stream")
     }
     
-    write(data)
+    // 304 has no no content, but the original content-length!
+    if status != .noContent && getHeader("Content-Length") == nil {
+      setHeader("Content-Length", data.count)
+    }
+    let isContentLessStatus = status == .noContent || status == .notModified
+    if !isContentLessStatus {
+      write(data)
+    }
     end()
   }
   
@@ -174,7 +192,7 @@ public extension ServerResponse {
   func send<T: Encodable>(_ object: T?) {
     guard let object = object else {
       log.warn("sending empty string for nil Encodable object?!")
-      return send("")
+      return send(Buffer())
     }
     json(object)
   }
