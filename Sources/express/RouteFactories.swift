@@ -24,7 +24,8 @@ public extension RouteKeeper {
   @discardableResult
   @inlinable
   func use(id: String? = nil, _ middleware: Middleware...) -> Self {
-    add(route: Route(id: id, pattern: nil, method: nil, middleware: middleware))
+    add(route: Route(id: id, pattern: nil, method: nil, exact: false,
+                     middleware: middleware))
     return self
   }
   
@@ -33,7 +34,7 @@ public extension RouteKeeper {
   func use(id: String? = nil, _ pathPattern: String,
            _ middleware: Middleware...) -> Self
   {
-    add(route: Route(id: id, pattern: pathPattern, method: nil,
+    add(route: Route(id: id, pattern: pathPattern, method: nil, exact: false,
                      middleware: middleware))
     return self
   }
@@ -55,7 +56,7 @@ public extension RouteKeeper {
   func get(id: String? = nil, _ pathPattern: String,
            _ middleware: Middleware...) -> Self
   {
-    add(route: Route(id: id, pattern: pathPattern, method: .GET,
+    add(route: Route(id: id, pattern: pathPattern, method: .GET, exact: true,
                      middleware: middleware))
     return self
   }
@@ -64,7 +65,7 @@ public extension RouteKeeper {
   func post(id: String? = nil, _ pathPattern: String,
             _ middleware: Middleware...) -> Self
   {
-    add(route: Route(id: id, pattern: pathPattern, method: .POST,
+    add(route: Route(id: id, pattern: pathPattern, method: .POST, exact: true,
                      middleware: middleware))
     return self
   }
@@ -73,7 +74,7 @@ public extension RouteKeeper {
   func head(id: String? = nil, _ pathPattern: String,
             _ middleware: Middleware...) -> Self
   {
-    add(route: Route(id: id, pattern: pathPattern, method: .HEAD,
+    add(route: Route(id: id, pattern: pathPattern, method: .HEAD, exact: true,
                      middleware: middleware))
     return self
   }
@@ -82,7 +83,7 @@ public extension RouteKeeper {
   func put(id: String? = nil, _ pathPattern: String,
            _ middleware: Middleware...) -> Self
   {
-    add(route: Route(id: id, pattern: pathPattern, method: .PUT,
+    add(route: Route(id: id, pattern: pathPattern, method: .PUT, exact: true,
                      middleware: middleware))
     return self
   }
@@ -91,7 +92,7 @@ public extension RouteKeeper {
   func del(id: String? = nil, _ pathPattern: String,
            _ middleware: Middleware...) -> Self
   {
-    add(route: Route(id: id, pattern: pathPattern, method: .DELETE,
+    add(route: Route(id: id, pattern: pathPattern, method: .DELETE, exact: true,
                      middleware: middleware))
     return self
   }
@@ -100,7 +101,7 @@ public extension RouteKeeper {
   func patch(id: String? = nil, _ pathPattern: String,
              _ middleware: Middleware...) -> Self
   {
-    add(route: Route(id: id, pattern: pathPattern, method: .PATCH,
+    add(route: Route(id: id, pattern: pathPattern, method: .PATCH, exact: true,
                      middleware: middleware))
     return self
   }
@@ -108,42 +109,42 @@ public extension RouteKeeper {
   @discardableResult
   @inlinable
   func get(id: String? = nil, _ middleware: Middleware...) -> Self {
-    add(route: Route(id: id, pattern: nil, method: .GET,
+    add(route: Route(id: id, pattern: nil, method: .GET, exact: true,
                      middleware: middleware))
     return self
   }
   @discardableResult
   @inlinable
   func post(id: String? = nil, _ middleware: Middleware...) -> Self {
-    add(route: Route(id: id, pattern: nil, method: .POST,
+    add(route: Route(id: id, pattern: nil, method: .POST, exact: true,
                      middleware: middleware))
     return self
   }
   @discardableResult
   @inlinable
   func head(id: String? = nil, _ middleware: Middleware...) -> Self {
-    add(route: Route(id: id, pattern: nil, method: .HEAD,
+    add(route: Route(id: id, pattern: nil, method: .HEAD, exact: true,
                      middleware: middleware))
     return self
   }
   @discardableResult
   @inlinable
   func put(id: String? = nil, _ middleware: Middleware...) -> Self {
-    add(route: Route(id: id, pattern: nil, method: .PUT,
+    add(route: Route(id: id, pattern: nil, method: .PUT, exact: true,
                      middleware: middleware))
     return self
   }
   @discardableResult
   @inlinable
   func del(id: String? = nil, _ middleware: Middleware...) -> Self {
-    add(route: Route(id: id, pattern: nil, method: .DELETE,
+    add(route: Route(id: id, pattern: nil, method: .DELETE, exact: true,
                      middleware: middleware))
     return self
   }
   @discardableResult
   @inlinable
   func patch(id: String? = nil, _ middleware: Middleware...) -> Self {
-    add(route: Route(id: id, pattern: nil, method: .PATCH,
+    add(route: Route(id: id, pattern: nil, method: .PATCH, exact: true,
                      middleware: middleware))
     return self
   }
