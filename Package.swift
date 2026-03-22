@@ -18,7 +18,7 @@ let package = Package(
   ],
   
   dependencies: [
-    .package(url: "https://github.com/Macro-swift/Macro.git", from: "1.0.36"),
+    .package(url: "https://github.com/Macro-swift/Macro.git", from: "1.0.38"),
     .package(url: "https://github.com/AlwaysRightInstitute/mustache.git",
              from: "1.0.2")
   ],
