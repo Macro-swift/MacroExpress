@@ -91,7 +91,8 @@ open class Express: SettingsHolder, MountableMiddlewareObject, MiddlewareObject,
   let invokingSourceFilePath : StaticString
   let router                 : Router
   var settingsStore          = [ String : Any ]()
-  
+  public var serverOptions   = http.Server.Options()
+
   public init(id  : String? = nil, mount: String? = nil,
               log : Logger = .init(label: "μ.express.app"),
               invokingSourceFilePath: StaticString = #filePath)
@@ -449,23 +450,26 @@ public extension Express {
    *   - host        : The host to bind the socket to,
    *                   defaults to wildcard IPv4 (0.0.0.0).
    *   - backlog     : The amount of socket backlog space (defaults to 512).
+   *   - options     : The server options (e.g. keep-alive, logging).
    *   - onListening : An optional closure to run when the server started
    *                   listening.
    */
   @inlinable
   @discardableResult
   func listen(_ port: Int? = nil, _ host: String = "0.0.0.0",
-              backlog: Int = 512,
+              backlog: Int = 512, options: http.Server.Options? = nil,
               onListening execute: (@Sendable ( http.Server ) -> Void)? = nil)
        -> http.Server
   {
-    let server = http.createServer(handler: requestHandler)
+    let server = http.createServer(
+      options ?? serverOptions, handler: requestHandler
+    )
     _ = server.listen(port, host, backlog: backlog, onListening: execute)
     return server
   }
-  
+
   /**
-   * Create an HTTP server (using `http.createServer`) with the ``Express`` 
+   * Create an HTTP server (using `http.createServer`) with the ``Express``
    * instance as the handler, and then start listening.
    *
    * Returns the `http.Server`, so that additional event handlers
@@ -477,15 +481,19 @@ public extension Express {
    *   - host        : The host to bind the socket to,
    *                   defaults to wildcard IPv4 (0.0.0.0).
    *   - backlog     : The amount of socket backlog space (defaults to 512).
+   *   - options     : The server options (e.g. keep-alive, logging).
    *   - onListening : An optional closure to run when the server started
    *                   listening.
    */
   @inlinable
   @discardableResult
-  func listen(_ port: Int?, _ host: String = "0.0.0.0", backlog: Int = 512,
+  func listen(_ port: Int?, _ host: String = "0.0.0.0",
+              backlog: Int = 512, options: http.Server.Options? = nil,
               onListening execute: @escaping @Sendable () -> Void)
        -> http.Server
   {
-    return listen(port, host, backlog: backlog) { _ in execute() }
+    return listen(port, host, backlog: backlog, options: options) {
+      _ in execute()
+    }
   }
 }
