@@ -79,9 +79,7 @@ public class Connect {
   // MARK: - Closures to pass on
   
   public var handle : ( IncomingMessage, ServerResponse ) -> Void {
-    return { req, res in
-      self.doRequest(req, res)
-    }
+    return { req, res in self.doRequest(req, res) }
   }
   public var middleware : Middleware {
     return { req, res, cb in
@@ -99,10 +97,12 @@ public class Connect {
       let request  : IncomingMessage
       let response : ServerResponse
       var next     : Next?
-      
+
+      var stepping       = false
+      var shouldContinue = false
+
       init(_ stack    : ArraySlice<Middleware>,
-           _ request  : IncomingMessage,
-           _ response : ServerResponse,
+           _ request  : IncomingMessage, _ response : ServerResponse,
            _ next     : @escaping Next)
       {
         self.stack    = stack
@@ -112,16 +112,26 @@ public class Connect {
       }
       
       func step(_ args : Any...) {
-        if let middleware = stack.popFirst() {
+        if stepping {
+          shouldContinue = true
+          return
+        }
+        stepping = true
+        defer { stepping = false }
+
+        while true {
+          guard let middleware = stack.popFirst() else {
+            next?(); next = nil
+            return
+          }
+          shouldContinue = false
           do {
             try middleware(request, response, self.step)
           }
           catch {
-            self.step(error)
+            shouldContinue = true
           }
-        }
-        else {
-          next?(); next = nil
+          guard shouldContinue else { break }
         }
       }
     }
