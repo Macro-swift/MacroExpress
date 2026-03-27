@@ -243,15 +243,12 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
                                   params: IncomingMessage.Params, ids: String)
     throws 
   {
-    // Push route state
-    let oldParams = request.params
-    let oldRoute  = request.route
-    let oldBase   = request.baseURL
-    let oldUrl    = request.url
+    // Save route state before modifying request
+    let saved = RouteState(request)
     request.params = params
     request.route  = self
     if let mp = matchPath {
-      request.baseURL = (oldBase ?? "") + mp
+      request.baseURL = (saved.baseURL ?? "") + mp
       if !exact {
         let newUrl = request.url.dropFirst(mp.count)
         if newUrl.isEmpty { 
@@ -271,28 +268,43 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
 
     let state = MiddlewareWalker(ids, middleware[...], routeObjects[...],
                                  errorMiddleware[...], request, response, error,
-                                 log)
-    { ( args : Any...) in
-      // pop route state
-      request.params  = oldParams
-      request.route   = oldRoute
-      request.baseURL = oldBase
-      request.url     = oldUrl
-      if let arg = args.first { upperNext(arg) }
-      else                    { upperNext() }
-    }
+                                 log, saved, upperNext
+    )
     state.step()
   }
   
   
   // MARK: - Middleware Walker
 
+  private struct RouteState {
+    
+    let params  : IncomingMessage.Params
+    let route   : Route?
+    let baseURL : String?
+    let url     : String
+    
+    init(_ request: IncomingMessage) {
+      params  = request.params
+      route   = request.route
+      baseURL = request.baseURL
+      url     = request.url
+    }
+    func restore(in request: IncomingMessage) {
+      request.params  = params
+      request.route   = route
+      request.baseURL = baseURL
+      request.url     = url
+    }
+  }
+
   /**
    * Walks the middleware stack for a matched route.
    *
    * Calls `Route.handle()` directly for known Route entries.
+   * Stores the saved route state so `dispatchMiddleware` does
+   * not need to allocate a closure for state restoration.
    */
-  final class MiddlewareWalker: @unchecked Sendable {
+  private final class MiddlewareWalker: @unchecked Sendable {
 
     let ids          : String
     var stack        : ArraySlice<Middleware>
@@ -300,9 +312,10 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
     var errorStack   : ArraySlice<ErrorMiddleware>
     let request      : IncomingMessage
     let response     : ServerResponse
-    var endNext      : Next?
+    var upperNext    : Next?
     var error        : Swift.Error?
     let log          : Logger
+    let savedState   : RouteState
 
     init(_ ids          : String,
          _ stack        : ArraySlice<Middleware>,
@@ -312,7 +325,8 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
          _ response     : ServerResponse,
          _ error        : Swift.Error?,
          _ log          : Logger,
-         _ endNext      : @escaping Next)
+         _ savedState   : RouteState,
+         _ upperNext    : @escaping Next)
     {
       self.ids          = ids
       self.stack        = stack
@@ -321,8 +335,18 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
       self.request      = request
       self.response     = response
       self.error        = error
-      self.endNext      = endNext
       self.log          = log
+      self.savedState   = savedState
+      self.upperNext    = upperNext
+    }
+
+    /// Restore saved route state and call the upstream next.
+    private func finish(_ args: Any...) {
+      savedState.restore(in: request)
+      guard let next = upperNext else { return }
+      upperNext = nil
+      if let arg = args.first { next(arg) }
+      else                    { next() }
     }
 
     /// Trampoline state: when a middleware calls
@@ -344,10 +368,10 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
       trampolineLoop: while true {
         if debugWalker {
           if curArgs.isEmpty { log.log("\(ids)   step") }
-          else { log.log("\(ids)   step:", curArgs) }
+          else               { log.log("\(ids)   step:", curArgs) }
         }
         if let s = curArgs.first as? String, s == "route" || s == "router" {
-          endNext?(); endNext = nil
+          finish()
           return
         }
 
@@ -355,7 +379,7 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
           self.error = error
 
           guard let mw = errorStack.popFirst() else {
-            endNext?(error); endNext = nil
+            finish(error)
             return
           }
 
@@ -380,7 +404,7 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
           // Pop next middleware + route pair.
           guard let mw = stack.popFirst() else {
             assert(error == nil)
-            endNext?(); endNext = nil
+            finish()
             return
           }
           let routeObj = routeObjects.popFirst() ?? nil
@@ -433,24 +457,18 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
    */
   func couldMatch(request req: IncomingMessage) -> Bool {
     if let methods = self.methods, !methods.isEmpty {
-      guard case .request(let head) = req.head, 
+      guard case .request(let head) = req.head,
               methods.contains(head.method) else { return false }
     }
 
     if let pattern = urlPattern {
-      let reqPath = req.url.isEmpty ? "/" : {
-        let s = req.url
-        if let idx = s.firstIndex(where: { $0 == "#" || $0 == "?" }) {
-          return String(s[..<idx])
-        }
-        else { return s }
-      }()
+      let reqPath = extractRequestPath(req.url)
       let comps = split(urlPath: reqPath)
-      var dummyParams = req.params
-      guard RoutePattern.match(pattern: pattern, against: comps, exact: exact, 
-                               variables: &dummyParams) != nil else 
+      guard RoutePattern.couldMatch(pattern: pattern,
+                                    against: comps,
+                                    exact: exact) else
       {
-        return false 
+        return false
       }
     }
     return true

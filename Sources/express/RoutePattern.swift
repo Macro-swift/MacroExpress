@@ -219,6 +219,60 @@ public enum RoutePattern: Hashable {
     if debugMatcher { print("  match: '\(matched)'") }
     return matched
   }
+
+  /**
+   * Check-only variant of ``match(pattern:against:exact:variables:)``.
+   *
+   * Skips variable extraction and matched-path construction,
+   * so it avoids dictionary copies and string allocation.
+   * Used by ``Route/couldMatch(request:)`` in the skip loop.
+   */
+  static func couldMatch(pattern p: [ RoutePattern ],
+                         against escapedPathComponents: [ String ],
+                         exact: Bool = false) -> Bool
+  {
+    var pattern = p
+
+    if escapedPathComponents.count + 1 == pattern.count {
+      if case .wildcard = pattern.last! {
+        let endIdx = pattern.count - 1
+        pattern = Array<RoutePattern>(pattern[0..<endIdx])
+      }
+    }
+
+    guard escapedPathComponents.count >= pattern.count
+    else { return false }
+
+    if let lastComponent = pattern.last {
+      if case .eol = lastComponent {
+        guard escapedPathComponents.count < pattern.count
+        else { return false }
+      }
+    }
+
+    var lastWasWildcard = false
+    var lastWasEOL      = false
+    for i in pattern.indices {
+      guard pattern[i].match(string: escapedPathComponents[i])
+      else { return false }
+
+      let isLast = i + 1 == pattern.count
+      if isLast {
+        if case .wildcard = pattern[i] {
+          lastWasWildcard = true
+        }
+        if case .eol = pattern[i] {
+          lastWasEOL = true
+        }
+      }
+    }
+
+    if escapedPathComponents.count > pattern.count {
+      if exact && !lastWasWildcard { return false }
+      if lastWasEOL { return false }
+    }
+    return true
+  }
 }
 
 extension RoutePattern: CustomStringConvertible {
