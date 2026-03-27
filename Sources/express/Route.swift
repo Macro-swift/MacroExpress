@@ -231,13 +231,14 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
   }
 
   /**
-   * Push route state, create the middleware walker, and run the middleware 
+   * Push route state, create the middleware walker, and run the middleware
    * stack.
    */
   @inline(never)
-  private func dispatchMiddleware(request: IncomingMessage, 
+  private func dispatchMiddleware(request: IncomingMessage,
                                   response: ServerResponse,
-                                  error: Swift.Error?, upperNext: @escaping Next,
+                                  error: Swift.Error?, 
+                                  upperNext: @escaping Next,
                                   matchPath: String?,
                                   params: IncomingMessage.Params, ids: String)
     throws 
@@ -252,12 +253,16 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
     if let mp = matchPath {
       request.baseURL = (oldBase ?? "") + mp
       if !exact {
-        var newUrl = String(request.url.dropFirst(mp.count))
-        if newUrl.isEmpty { newUrl = "/" }
-        else if newUrl.first == "?" || newUrl.first == "#" {
-          newUrl = "/" + newUrl
+        let newUrl = request.url.dropFirst(mp.count)
+        if newUrl.isEmpty { 
+          request.url = "/" 
         }
-        request.url = newUrl
+        else if newUrl.first == "?" || newUrl.first == "#" {
+          request.url = "/" + newUrl
+        }
+        else {
+          request.url = String(newUrl)
+        }
       }
       if debug {
         log.log("\(ids)   baseURL:", request.baseURL, "url:", request.url)
