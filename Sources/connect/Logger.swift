@@ -44,6 +44,15 @@ private struct DevLogHandler: LogHandler {
   }                                                                                               
 }
 
+/// Guard to ensure LoggingSystem.bootstrap is only
+/// called once per process.
+#if swift(>=5.10)
+  nonisolated(unsafe)
+  private var _devLoggingBootstrapped = false
+#else
+  private var _devLoggingBootstrapped = false
+#endif
+
 /**
  * Logging middleware.
  *
@@ -65,8 +74,8 @@ public func logger(_ format: String? = nil, level: Logger.Level = .info,
     #endif
     return "default" // TBD: toggle default?
   }()
-  if format == "dev" {
-    // Do not log timestamps in dev handler
+  if format == "dev", !_devLoggingBootstrapped {
+    _devLoggingBootstrapped = true
     LoggingSystem.bootstrap { DevLogHandler(label: $0) }
   }
   

@@ -143,7 +143,7 @@ public struct ExpressSettings: SettingsHolder {
   public init(_ holder: SettingsHolder) { self.holder = holder }
 
   @inlinable
-  subscript(dynamicMember key: String) -> Any? {
+  public subscript(dynamicMember key: String) -> Any? {
     return holder[setting: key]
   }
 

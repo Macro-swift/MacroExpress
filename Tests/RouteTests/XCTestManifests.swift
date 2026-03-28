@@ -9,7 +9,8 @@ public func allTests() -> [ XCTestCaseEntry ] {
     testCase(RouteMountingTests        .allTests),
     testCase(ExactMatchTests           .allTests),
     testCase(ClearAttachedStateTests   .allTests),
-    testCase(FreshStaleTests           .allTests)
+    testCase(FreshStaleTests           .allTests),
+    testCase(RecursionTests            .allTests)
   ]
 }
 #endif

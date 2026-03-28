@@ -204,14 +204,8 @@ public extension Cookie {
 
     if let v = expires {
       s += "; expires="
-      
-      func generateDateHeader(timestamp ts: time_t) -> String {
-        // TBD: %Z emits UTC
-        let HTTPDateFormat = "%a, %d %b %Y %H:%M:%S GMT"
-        return ts.componentsInUTC.format(HTTPDateFormat)
-      }
-      
-      s += generateDateHeader(timestamp: time_t(v.timeIntervalSince1970))
+      let utime = time_t(v.timeIntervalSince1970)
+      s += utime.format("%a, %d %b %Y %H:%M:%S GMT") // HTTP
     }
     
     return s
