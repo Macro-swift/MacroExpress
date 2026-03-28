@@ -46,8 +46,12 @@ private struct DevLogHandler: LogHandler {
 
 /// Guard to ensure LoggingSystem.bootstrap is only
 /// called once per process.
-nonisolated(unsafe)
-private var _devLoggingBootstrapped = false
+#if swift(>=5.10)
+  nonisolated(unsafe)
+  private var _devLoggingBootstrapped = false
+#else
+  private var _devLoggingBootstrapped = false
+#endif
 
 /**
  * Logging middleware.
