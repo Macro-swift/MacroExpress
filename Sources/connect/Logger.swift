@@ -22,14 +22,14 @@ import xsys      // timespec and extensions
 // TODO: do some actual parsing of formats :-)
 
 private struct DevLogHandler: LogHandler {
-  var metadata = Logger.Metadata()                                                                
-  var logLevel : Logger.Level = .info                                                              
-  let label    : String                                                                               
+  var metadata = Logger.Metadata()
+  var logLevel = Logger.Level.info
+  let label    : String
                                                                                                   
-  subscript(metadataKey key: String) -> Logger.Metadata.Value? {                                  
+  subscript(metadataKey key: String) -> Logger.Metadata.Value? {
     get { metadata[key] }
-    set { metadata[key] = newValue }                                                              
-  }                                                                                               
+    set { metadata[key] = newValue }
+  }
   func log(level: Logger.Level, message: Logger.Message,                                          
            metadata: Logger.Metadata?, source: String,
            file: String, function: String, line: UInt)                                            
@@ -41,7 +41,12 @@ private struct DevLogHandler: LogHandler {
     else {
       print("[\(level)] \(label): \(message)")                                                      
     }
-  }                                                                                               
+  }
+  func log(event: LogEvent) {
+    self.log(level: event.level, message: event.message,
+             metadata: event.metadata, source: event.source,
+             file: event.file, function: event.function, line: event.line)
+  }
 }
 
 /// Guard to ensure LoggingSystem.bootstrap is only
