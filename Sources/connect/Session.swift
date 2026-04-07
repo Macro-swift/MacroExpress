@@ -3,7 +3,7 @@
 //  Noze.io / Macro
 //
 //  Created by Helge Heß on 6/16/16.
-//  Copyright © 2016-2025 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2016-2026 ZeeZide GmbH. All rights reserved.
 //
 
 import let      MacroCore.console
@@ -19,8 +19,6 @@ fileprivate let sessionIdCookie = Cookie(
   httpOnly: true,
   maxAge: 3600
 )
-
-fileprivate var sessionIdCounter = 0
 
 public typealias SessionIdGenerator = ( IncomingMessage ) -> String
 
@@ -145,7 +143,7 @@ class SessionContext {
 
 // MARK: - Session Class
 
-public class Session {
+public class Session: @unchecked Sendable {
   // Reference type, so that we can do stuff like:
   //
   //   req.session["a"] = 10

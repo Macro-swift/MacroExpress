@@ -3,7 +3,7 @@
 //  MacroExpress / multer
 //
 //  Created by Helge Heß on 30/05/16.
-//  Copyright © 2021-2025 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2021-2026 ZeeZide GmbH. All rights reserved.
 //
 
 import struct MacroCore.Buffer
@@ -15,7 +15,7 @@ public extension multer {
    * name, the filename, the mime type, and if the ``MemoryStorage`` was used,
    * the file contents.
    */
-  final class File: Equatable {
+  final class File: Equatable, @unchecked Sendable {
     
     /// Name in form field
     public var fieldName    : String

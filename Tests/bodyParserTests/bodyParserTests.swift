@@ -124,3 +124,7 @@ final class bodyParserTests: XCTestCase {
     ( "testArrayFormValueParser" , testArrayFormValueParser )
   ]
 }
+
+#if compiler(>=6.2)
+extension bodyParserTests: SendableMetatype {}
+#endif
