@@ -12,7 +12,7 @@ import NIOHTTP1
 @testable import http
 @testable import express
 
-final class FreshStaleTests: XCTestCase {
+final class FreshStaleTests: XCTestCase, @unchecked Sendable {
 
   private func runFreshCheck(method: HTTPMethod = .GET,
                              reqHeaders: HTTPHeaders = [:],

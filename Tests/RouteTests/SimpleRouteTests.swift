@@ -3,7 +3,7 @@ import MacroTestUtilities
 import class     http.IncomingMessage
 @testable import express
 
-final class SimpleRouteTests: XCTestCase {
+final class SimpleRouteTests: XCTestCase, @unchecked Sendable {
   
   func testSimpleEndingRoute() throws {
     let route = Route(id: "root")

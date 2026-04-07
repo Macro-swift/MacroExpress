@@ -11,7 +11,7 @@ import MacroTestUtilities
 @testable import http
 @testable import express
 
-final class ClearAttachedStateTests: XCTestCase {
+final class ClearAttachedStateTests: XCTestCase, @unchecked Sendable {
 
   func testClearAttachedStateBreaksCycles() throws {
     let app = Express()

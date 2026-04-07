@@ -3,7 +3,7 @@ import MacroTestUtilities
 import class     http.IncomingMessage
 @testable import express
 
-final class ErrorMiddlewareTests: XCTestCase {
+final class ErrorMiddlewareTests: XCTestCase, @unchecked Sendable {
   
   func testSimpleThrowErrorHandler() throws {
     enum SomeError: Swift.Error {

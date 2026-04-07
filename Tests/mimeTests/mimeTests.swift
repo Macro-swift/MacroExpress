@@ -1,7 +1,7 @@
 import XCTest
 @testable import mime
 
-final class mimeTests: XCTestCase {
+final class mimeTests: XCTestCase, @unchecked Sendable {
   
   func testLookup() throws {
     XCTAssert(mime.lookup("json")       == "application/json; charset=UTF-8")

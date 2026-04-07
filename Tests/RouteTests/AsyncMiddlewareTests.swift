@@ -13,7 +13,7 @@ import MacroCore // disableAtExitHandler
 @testable import connect
 @testable import express
 
-final class AsyncMiddlewareTests: XCTestCase {
+final class AsyncMiddlewareTests: XCTestCase, @unchecked Sendable {
 
   override class func setUp() {
     super.setUp()

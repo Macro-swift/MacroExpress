@@ -3,7 +3,7 @@ import Macro
 @testable import http
 @testable import connect
 
-final class bodyParserTests: XCTestCase {
+final class bodyParserTests: XCTestCase, @unchecked Sendable {
 
   override class func setUp() {
     super.setUp()

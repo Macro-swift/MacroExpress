@@ -4,7 +4,7 @@ import class     http.IncomingMessage
 import enum      NIOHTTP1.HTTPMethod
 @testable import express
 
-final class ExactMatchTests: XCTestCase {
+final class ExactMatchTests: XCTestCase, @unchecked Sendable {
 
   // MARK: - Method routes do exact matching
 
