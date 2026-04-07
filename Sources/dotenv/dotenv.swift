@@ -3,7 +3,7 @@
 //  MacroExpress
 //
 //  Created by Helge Heß on 02.07.20.
-//  Copyright © 2020-2024 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2020-2026 ZeeZide GmbH. All rights reserved.
 //
 
 #if os(Linux)
@@ -16,6 +16,7 @@ import let  MacroCore.console
 import func MacroCore.__dirname
 import func fs.accessSync
 import let  fs.R_OK
+import func fs.readFileSync
 
 /**
  * How to use:
@@ -33,7 +34,6 @@ public enum dotenv {}
 
 public extension dotenv {
   
-  #if swift(>=5.3) // oh this mess
   /**
    * Read the .env config file, apply it on the environment, and return the
    * parsed values.
@@ -82,7 +82,13 @@ public extension dotenv {
     catch { return [:] } // not an error
 
     do {
-      let config = parse(try String(contentsOfFile: path))
+      guard let buffer = fs.readFileSync(path, .utf8) else {
+        struct CouldNotReadFile: Swift.Error{
+          let path : String
+        }
+        throw CouldNotReadFile(path: path)
+      }
+      let config = parse(buffer)
       
       for ( key, value ) in config {
         setenv(key, value, override ? 1 : 0)
@@ -96,74 +102,9 @@ public extension dotenv {
                       "  error:", error)
       }
       throw error
-    }
-  }
-  #else // Swift <5.3
-  /**
-   * Read the .env config file, apply it to the environment, and return the
-   * parsed values.
-   *
-   * Important: Remember to call this as early as possible, otherwise Foundation
-   *            might not pick up the changed environment! (which also affects
-   *            `process.env`)
-   *
-   * Values which are already set in the environment are not overridden (unless
-   * the `override` argument is set).
-   *
-   * Syntax:
-   * - empty lines are skipped
-   * - lines starting w/ `#` are skipped (comments)
-   * - key & value are trimmed
-   * - missing values become the empty string ""
-   *
-   * Note: This does none of the quoting stuff of the original yet.
-   *
-   * Original JS module: https://github.com/motdotla/dotenv
-   */
-  @discardableResult
-  static func config(path     : String? = nil,
-                     override : Bool    = false,
-                     caller   : String  = #file) -> [ String : String ]?
-  {
-    do {
-      return try tryConfig(path: path, override: override, logError: true,
-                           caller: caller)
-    }
-    catch {
-      return nil
     }
   }
   
-  /// See `config` for details. This is a throwing variant
-  static func tryConfig(path     : String? = nil,
-                        override : Bool    = false,
-                        logError : Bool    = false,
-                        caller   : String  = #file) throws -> [String : String]
-  {
-    let path = path ?? (__dirname(caller: caller) + "/.env")
-    
-    do    { _ = try fs.accessSync(path, mode: R_OK) }
-    catch { return [:] } // not an error
-
-    do {
-      let config = parse(try String(contentsOfFile: path))
-      
-      for ( key, value ) in config {
-        setenv(key, value, override ? 1 : 0)
-      }
-      
-      return config
-    }
-    catch {
-      if logError {
-        console.error("dotenv failed to load .env file:", path,
-                      "  error:", error)
-      }
-      throw error
-    }
-  }
-  #endif // <= Swift 5.2
-
   /**
    * Parse the string passed as a .env file.
    *
