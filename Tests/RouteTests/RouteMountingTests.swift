@@ -3,7 +3,7 @@ import MacroTestUtilities
 import http // IncomingMessage
 @testable import express
 
-final class RouteMountingTests: XCTestCase {
+final class RouteMountingTests: XCTestCase, @unchecked Sendable {
     
   func testSimpleMountMatch() throws {
     let outerRoute = Route(id: "outer")

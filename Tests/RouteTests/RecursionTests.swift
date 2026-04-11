@@ -12,7 +12,7 @@ import class     http.IncomingMessage
 @testable import connect
 @testable import express
 
-final class RecursionTests: XCTestCase {
+final class RecursionTests: XCTestCase, @unchecked Sendable {
 
   // Many middlewarez in a single Route, each calling `next()` synchronously. 
   func testManySequentialMiddleware() throws {

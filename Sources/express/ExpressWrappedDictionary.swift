@@ -39,6 +39,7 @@ public struct ExpressWrappedDictionary<V>: Collection {
 
 extension ExpressWrappedDictionary: Equatable where V: Equatable {}
 extension ExpressWrappedDictionary: Hashable  where V: Hashable  {}
+extension ExpressWrappedDictionary: Sendable  where V: Sendable  {}
 
 public extension ExpressWrappedDictionary {
   

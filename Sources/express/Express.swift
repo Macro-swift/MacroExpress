@@ -302,7 +302,7 @@ extension Express: CustomStringConvertible {
  * I.e. to report an error: done(myError)
  * To report a result:      done(nil, myValue)
  */
-public typealias ExpressEngine = (
+public typealias ExpressEngine = @Sendable (
                    _ path:    String,
                    _ options: Any?,
                    _ done:    @escaping ( Any?... ) -> Void

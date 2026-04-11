@@ -5,7 +5,7 @@ import http
 import connect
 @testable import multer
 
-final class multerTests: XCTestCase {
+final class multerTests: XCTestCase, @unchecked Sendable {
   
   override class func setUp() {
     super.setUp()

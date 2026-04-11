@@ -3,7 +3,7 @@ import Macro
 @testable import http
 @testable import connect
 
-final class bodyParserTests: XCTestCase {
+final class bodyParserTests: XCTestCase, @unchecked Sendable {
 
   override class func setUp() {
     super.setUp()
@@ -124,3 +124,7 @@ final class bodyParserTests: XCTestCase {
     ( "testArrayFormValueParser" , testArrayFormValueParser )
   ]
 }
+
+#if compiler(>=6.2)
+extension bodyParserTests: SendableMetatype {}
+#endif

@@ -1,7 +1,7 @@
 import XCTest
 @testable import dotenv
 
-final class dotenvTests: XCTestCase {
+final class dotenvTests: XCTestCase, @unchecked Sendable {
   
   func testConfig() {
     let expected = [String: String]()

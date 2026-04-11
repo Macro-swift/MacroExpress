@@ -2,7 +2,7 @@ import XCTest
 import struct MacroCore.Buffer
 @testable import multer
 
-final class MultiPartParserTests: XCTestCase {
+final class MultiPartParserTests: XCTestCase, @unchecked Sendable {
   
   func testSimpleFormData() throws {
     typealias fixture = Fixtures.SimpleFormData

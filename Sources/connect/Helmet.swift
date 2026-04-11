@@ -24,9 +24,9 @@ import class http.ServerResponse
  *
  * Node: https://www.npmjs.com/package/helmet
  */
-public struct Helmet {
+public struct Helmet: Sendable {
 
-  public struct Options {
+  public struct Options: Sendable {
 
     /**
      * Controls which resources the browser is allowed to load (scripts, styles, 
