@@ -83,8 +83,11 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
   {
     self.log = logger ?? Logger(label: "μ.router")
     self.id  = id
-    
-    if let m = method { self.methods = [ m ] } else { self.methods = nil }
+
+    if let m = method {
+      self.methods = m == .GET ? [ .GET, .HEAD ] : [ m ]
+    }
+    else { self.methods = nil }
 
     // Unless the user explicitly set `exact`, we are exact if a method is
     // specified, otherwise not.
