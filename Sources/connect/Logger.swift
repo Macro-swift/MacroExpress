@@ -21,25 +21,33 @@ import xsys      // timespec and extensions
 
 // TODO: do some actual parsing of formats :-)
 
+fileprivate let _devLogDefaultLevel: Logger.Level = {
+  guard let raw = xsys.getenv("LOG_LEVEL") else {
+    return .info
+  }
+  let s = String(cString: raw)
+  return Logger.Level(rawValue: s.lowercased()) ?? .info
+}()
+
 private struct DevLogHandler: LogHandler {
   var metadata = Logger.Metadata()
-  var logLevel = Logger.Level.info
+  var logLevel = _devLogDefaultLevel
   let label    : String
-                                                                                                  
+
   subscript(metadataKey key: String) -> Logger.Metadata.Value? {
     get { metadata[key] }
     set { metadata[key] = newValue }
   }
-  func log(level: Logger.Level, message: Logger.Message,                                          
+  func log(level: Logger.Level, message: Logger.Message,
            metadata: Logger.Metadata?, source: String,
-           file: String, function: String, line: UInt)                                            
+           file: String, function: String, line: UInt)
   {
     if level == .info {
       if label == "μ.http" { print(message) }
       else                 { print("\(label): \(message)") }
     }
     else {
-      print("[\(level)] \(label): \(message)")                                                      
+      print("[\(level)] \(label): \(message)")
     }
   }
   func log(event: LogEvent) {
@@ -69,8 +77,8 @@ private struct DevLogHandler: LogHandler {
  */
 public func logger(_ format: String? = nil, level: Logger.Level = .info,
                    file: String = #fileID, function: String = #function,
-                   line: UInt = #line) 
-            -> Middleware 
+                   line: UInt = #line)
+            -> Middleware
 {
   let format = format ?? {
     // Do sth w/ app.get("env") == "production"? We don't have the app here.
@@ -84,10 +92,17 @@ public func logger(_ format: String? = nil, level: Logger.Level = .info,
     LoggingSystem.bootstrap { DevLogHandler(label: $0) }
   }
   
+  let envFloor = _devLogDefaultLevel
+  let willEmit = envFloor <= level
+
   return { req, res, next in
+    if !willEmit || res.log.logLevel > level {
+      next()
+      return
+    }
+    let logger  = res.log
     let startTS = timespec.monotonic()
     let fmt     = formats[format] ?? format
-    let logger  = res.log
     
     func printLog() {
       let url   = req.originalURL
@@ -126,7 +141,7 @@ public func logger(_ format: String? = nil, level: Logger.Level = .info,
       
       // let msg = res.statusMessage
       //        ?? HTTPStatus.text(forStatus: res.statusCode!)
-      logger.log(level: level, 
+      logger.log(level: level,
                  Logger.Message(stringLiteral: msg), metadata: nil,
                  source: nil, file: file, function: function, line: line)
     }
