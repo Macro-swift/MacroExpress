@@ -49,8 +49,14 @@ public extension MIMEModule {
 
   static let types : [ String : String ] = [
     "html"     : "text/html",
+    "css"      : "text/css",
     "js"       : "application/javascript",
     "ico"      : "image/x-icon",
+    "png"      : "image/png",
+    "jpg"      : "image/jpeg",
+    "jpeg"     : "image/jpeg",
+    "gif"      : "image/gif",
+    "webp"     : "image/webp",
     "svg"      : "image/svg+xml",
     "eot"      : "application/vnd.ms-fontobject",
     "woff"     : "application/x-font-woff",
@@ -59,6 +65,7 @@ public extension MIMEModule {
     "markdown" : "text/x-markdown",
     "md"       : "text/x-markdown",
     "json"     : "application/json",
+    "map"      : "application/json",
     "vcf"      : "text/vcard",
     "ics"      : "text/calendar",
     "xml"      : "text/xml"
@@ -66,14 +73,19 @@ public extension MIMEModule {
   
   static let extensions : [ String : [ String ] ] = [
     "text/html"                     : [ "html"           ],
+    "text/css"                      : [ "css"            ],
     "application/javascript"        : [ "js"             ],
     "image/x-icon"                  : [ "ico"            ],
+    "image/png"                     : [ "png"            ],
+    "image/jpeg"                    : [ "jpg", "jpeg"    ],
+    "image/gif"                     : [ "gif"            ],
+    "image/webp"                    : [ "webp"           ],
     "image/svg+xml"                 : [ "svg"            ],
     "application/vnd.ms-fontobject" : [ "eot"            ],
     "application/x-font-woff"       : [ "woff", "woff2"  ],
     "application/x-font-ttf"        : [ "ttf"            ],
     "text/x-markdown"               : [ "markdown", "md" ],
-    "application/json"              : [ "json"           ],
+    "application/json"              : [ "json", "map"    ],
     "text/vcard"                    : [ "vcf"            ],
     "text/calendar"                 : [ "ics"            ],
     "text/xml"                      : [ "xml"            ]
@@ -81,6 +93,7 @@ public extension MIMEModule {
 
   static let defaultCharsets : [ String : String ] = [
     "text/html"              : "UTF-8",
+    "text/css"               : "UTF-8",
     "application/javascript" : "UTF-8",
     "image/svg+xml"          : "UTF-8",
     "text/x-markdown"        : "UTF-8",

@@ -128,12 +128,11 @@ public enum RoutePattern: Hashable {
     // Note: Express does a prefix match, which is important for mounting.
     // TODO: Would be good to support a "$" pattern which guarantees an exact
     //       match.
-    var pattern = p
     var matched = ""
     
     if debugMatcher {
       print("match: components: \(escapedPathComponents)\n" +
-            "       against:    \(pattern)")
+            "       against:    \(p)")
     }
     
     // this is to support matching "/" against the "/*" ("", "*") pattern
@@ -141,30 +140,35 @@ public enum RoutePattern: Hashable {
     //   /hello/abc  [pc = 2]
     // will match
     //   /hello*     [pc = 1]
-    if escapedPathComponents.count + 1 == pattern.count {
-      if case .wildcard = pattern.last! {
-        let endIdx = pattern.count - 1
-        pattern = Array<RoutePattern>(pattern[0..<endIdx])
-      }
+    // Use a slice end-index instead of allocating a
+    // shortened `Array<RoutePattern>` per request --
+    // the realloc was hot in the per-request profile.
+    var patternEnd = p.count
+    if escapedPathComponents.count + 1 == patternEnd,
+       case .wildcard = p.last!
+    {
+      patternEnd -= 1
     }
     
     // there have to be more or the same number of components in the path like
     // things to match in the pattern ...
-    guard escapedPathComponents.count >= pattern.count else { return nil }
-    
-    // If the pattern ends in $
-    if let lastComponent = pattern.last {
-      if case .eol = lastComponent {
-        // is this correct?
-        guard escapedPathComponents.count < pattern.count else { return nil }
-      }
+    guard escapedPathComponents.count >= patternEnd else { return nil }
+
+    // If the pattern ends in $ (eol marker is on the
+    // *original* last entry; only check when we didn't
+    // strip a trailing wildcard above).
+    if patternEnd == p.count, let lastComponent = p.last,
+       case .eol = lastComponent
+    {
+      guard escapedPathComponents.count < patternEnd
+      else { return nil }
     }
     
     
     var lastWasWildcard = false
     var lastWasEOL      = false
-    for i in pattern.indices {
-      let patternComponent = pattern[i]
+    for i in 0..<patternEnd {
+      let patternComponent = p[i]
       let matchComponent   = escapedPathComponents[i] // TODO: unescape?
       
       guard patternComponent.match(string: matchComponent) else {
@@ -194,7 +198,7 @@ public enum RoutePattern: Hashable {
       
       // Special case, last component is a wildcard. Like /* or /todos/*. In
       // this case we ignore extra URL path stuff.
-      let isLast = i + 1 == pattern.count
+      let isLast = i + 1 == patternEnd
       if isLast {
         if case .wildcard = patternComponent {
           lastWasWildcard = true
@@ -210,8 +214,8 @@ public enum RoutePattern: Hashable {
         print("MATCH: last was WC \(lastWasWildcard) EOL \(lastWasEOL)")
       }
     }
-    
-    if escapedPathComponents.count > pattern.count {
+
+    if escapedPathComponents.count > patternEnd {
       if exact && !lastWasWildcard { return nil }
       if lastWasEOL { return nil } // all should have been consumed
     }
@@ -231,43 +235,43 @@ public enum RoutePattern: Hashable {
                          against escapedPathComponents: [ String ],
                          exact: Bool = false) -> Bool
   {
-    var pattern = p
-
-    if escapedPathComponents.count + 1 == pattern.count {
-      if case .wildcard = pattern.last! {
-        let endIdx = pattern.count - 1
-        pattern = Array<RoutePattern>(pattern[0..<endIdx])
-      }
+    // Slice end-index instead of allocating a
+    // shortened `Array<RoutePattern>`.
+    var patternEnd = p.count
+    if escapedPathComponents.count + 1 == patternEnd,
+       case .wildcard = p.last!
+    {
+      patternEnd -= 1
     }
 
-    guard escapedPathComponents.count >= pattern.count
+    guard escapedPathComponents.count >= patternEnd
     else { return false }
 
-    if let lastComponent = pattern.last {
-      if case .eol = lastComponent {
-        guard escapedPathComponents.count < pattern.count
-        else { return false }
-      }
+    if patternEnd == p.count, let lastComponent = p.last,
+       case .eol = lastComponent
+    {
+      guard escapedPathComponents.count < patternEnd
+      else { return false }
     }
 
     var lastWasWildcard = false
     var lastWasEOL      = false
-    for i in pattern.indices {
-      guard pattern[i].match(string: escapedPathComponents[i])
+    for i in 0..<patternEnd {
+      guard p[i].match(string: escapedPathComponents[i])
       else { return false }
 
-      let isLast = i + 1 == pattern.count
+      let isLast = i + 1 == patternEnd
       if isLast {
-        if case .wildcard = pattern[i] {
+        if case .wildcard = p[i] {
           lastWasWildcard = true
         }
-        if case .eol = pattern[i] {
+        if case .eol = p[i] {
           lastWasEOL = true
         }
       }
     }
 
-    if escapedPathComponents.count > pattern.count {
+    if escapedPathComponents.count > patternEnd {
       if exact && !lastWasWildcard { return false }
       if lastWasEOL { return false }
     }

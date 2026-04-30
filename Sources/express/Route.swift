@@ -83,8 +83,11 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
   {
     self.log = logger ?? Logger(label: "μ.router")
     self.id  = id
-    
-    if let m = method { self.methods = [ m ] } else { self.methods = nil }
+
+    if let m = method {
+      self.methods = m == .GET ? [ .GET, .HEAD ] : [ m ]
+    }
+    else { self.methods = nil }
 
     // Unless the user explicitly set `exact`, we are exact if a method is
     // specified, otherwise not.
@@ -156,7 +159,7 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
   // MARK: - Mounted Routing
 
   /**
-   * Match the request against this route's method and URL pattern. If it 
+   * Match the request against this route's method and URL pattern. If it
    * matches, dispatch to the middleware stack. If not, call `upperNext`.
    */
   @usableFromInline
@@ -218,7 +221,7 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
     // Matched -- hand off to dispatch (separate
     // frame, keeps this function's frame small).
     try dispatchMiddleware(request: request, response: response, error: error,
-                           upperNext: upperNext, matchPath: matchPath, 
+                           upperNext: upperNext, matchPath: matchPath,
                            params: params, ids: ids)
   }
 
@@ -237,11 +240,11 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
   @inline(never)
   private func dispatchMiddleware(request: IncomingMessage,
                                   response: ServerResponse,
-                                  error: Swift.Error?, 
+                                  error: Swift.Error?,
                                   upperNext: @escaping Next,
                                   matchPath: String?,
                                   params: IncomingMessage.Params, ids: String)
-    throws 
+    throws
   {
     // Save route state before modifying request
     let saved = RouteState(request)
@@ -251,8 +254,8 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
       request.baseURL = (saved.baseURL ?? "") + mp
       if !exact {
         let newUrl = request.url.dropFirst(mp.count)
-        if newUrl.isEmpty { 
-          request.url = "/" 
+        if newUrl.isEmpty {
+          request.url = "/"
         }
         else if newUrl.first == "?" || newUrl.first == "#" {
           request.url = "/" + newUrl
