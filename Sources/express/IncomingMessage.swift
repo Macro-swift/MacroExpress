@@ -111,7 +111,7 @@ public extension IncomingMessage {
    * ```swift
    * app.use("/users/:id/view") { req, res, next in
    *   guard let id = req.params[int: "id"] else {
-   *     return try res.sendStatus(400) 
+   *     return try res.sendStatus(400)
    *   }
    * }
    * ```
@@ -400,7 +400,7 @@ public extension IncomingMessage {
 public extension IncomingMessage {
   
   /**
-   * Checks whether the client accepts one of the given languages based on the 
+   * Checks whether the client accepts one of the given languages based on the
    * `Accept-Language` header.
    *
    * Returns the first matched language, or `nil`.
@@ -411,7 +411,7 @@ public extension IncomingMessage {
   }
 
   /**
-   * Checks whether the client accepts one of the given charsets based on the 
+   * Checks whether the client accepts one of the given charsets based on the
    * `Accept-Charset` header.
    *
    * Returns the first matched charset, or `nil`.
@@ -439,7 +439,7 @@ public extension IncomingMessage {
    * respecting q-values for preference ordering.
    */
   @usableFromInline
-  internal func acceptsHeader(_ headerName: String, _ candidates: [ String ]) 
+  internal func acceptsHeader(_ headerName: String, _ candidates: [ String ])
                 -> String?
   {
     let allHeaders = headers[headerName]
@@ -478,15 +478,15 @@ public extension IncomingMessage {
         if candidate.count < ev.count {
           let endIdx = ev.index(ev.startIndex, offsetBy: candidate.count)
           let range  = ev.startIndex..<endIdx
-          if ev[range].caseInsensitiveCompare(candidate) == .orderedSame { 
-            return candidate 
+          if ev[range].caseInsensitiveCompare(candidate) == .orderedSame {
+            return candidate
           }
         }
         else if ev.count < candidate.count {
           let endIdx = candidate.index(candidate.startIndex, offsetBy: ev.count)
           let range = candidate.startIndex..<endIdx
-          if candidate[range].caseInsensitiveCompare(ev) == .orderedSame { 
-            return candidate 
+          if candidate[range].caseInsensitiveCompare(ev) == .orderedSame {
+            return candidate
           }
         }
       }
@@ -501,7 +501,7 @@ public extension IncomingMessage {
   /**
    * Parses the `Range` request header against the given resource size.
    *
-   * Returns an array of byte ranges, or `nil` if the header is missing or 
+   * Returns an array of byte ranges, or `nil` if the header is missing or
    * malformed.
    *
    * Example:
@@ -599,7 +599,7 @@ internal func parseHTTPDate(_ string: String) -> time_t? {
   }
 
   // Converts UTC date components => Unix timestamp.
-  func utcTimestamp(year: Int, month m0: Int, day: Int, 
+  func utcTimestamp(year: Int, month m0: Int, day: Int,
                     hour: Int, min: Int, sec: Int) -> Int
   {
     var y = year
