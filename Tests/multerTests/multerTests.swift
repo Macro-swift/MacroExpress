@@ -181,6 +181,42 @@ final class multerTests: XCTestCase, @unchecked Sendable {
     waitForExpectations(timeout: 3)
   }
 
+  func testFieldNameMismatchYieldsLimitUnexpectedFile() throws {
+    typealias fixture = Fixtures.SimpleFormData
+
+    let loop = MacroCore.shared.fallbackEventLoop()
+    let sem  = expectation(description: "parsing body ...")
+    let req  = fixture.request
+
+    loop.execute {
+      let res = ServerResponse(unsafeChannel: nil, log: req.log)
+
+      // Fixture's file part is named "file", use a name that doesn't match.
+      let mw = multer().array("uploads", 10)
+      do {
+        try mw(req, res) { ( args : Any...) in
+          defer { sem.fulfill() }
+          
+          XCTAssert(args.first is multer.MulterError, 
+                    "expected a multer error, got: \(args)")
+          guard let error = args.first as? multer.MulterError else { return }
+          switch error {
+            case .limitUnexpectedFile(let fieldName):
+              XCTAssertEqual(fieldName, "file", 
+                             "error should carry the offending field name")
+            default:
+              XCTFail("expected limitUnexpectedFile, got: \(error)")
+          }
+        }
+      }
+      catch {
+        sem.fulfill()
+      }
+    }
+
+    waitForExpectations(timeout: 3)
+  }
+
   func testEmpty() throws {
     typealias fixture = Fixtures.EmptyFile
     
@@ -314,6 +350,8 @@ final class multerTests: XCTestCase, @unchecked Sendable {
     ( "testSimpleNoneFail" , testSimpleNoneFail ),
     ( "testSimpleSingleOK" , testSimpleSingleOK ),
     ( "testSingleFail"     , testSingleFail     ),
+    ( "testFieldNameMismatchYieldsLimitUnexpectedFile",
+      testFieldNameMismatchYieldsLimitUnexpectedFile ),
     ( "testMultiOK"        , testMultiOK        ),
     ( "testSizeLimit"      , testSizeLimit      ),
     ( "testBufferRemainingMatchPerformance",
