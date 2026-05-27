@@ -73,7 +73,7 @@ public struct multer {
    * 
    * - Parameters:
    *   - storage:    Where to put uploaded files, defaults to ``MemoryStorage``
-   *   - limits:     What ``Limits-swift.struct`` to apply, checks the 
+   *   - limits:     What ``Limits-swift.struct`` to apply, checks the
    *                 documentation for the defaults.
    *   - fileFilter: A function that can filter what files should be uploaded,
    *                 defaults to "no filter", i.e. accept all files.
@@ -93,7 +93,7 @@ public struct multer {
 public extension multer { // MARK: - Storage Factory
   
   /**
-   * Returns a multer storage that writes the file contents to the 
+   * Returns a multer storage that writes the file contents to the
    * ``File/buffer`` property of the ``File`` object, i.e. stores it in-memory.
    * 
    * - Returns: A new ``MemoryStorage`` object.

@@ -1,5 +1,5 @@
 //
-//  MemoryStorage.swift
+//  DiskStorage.swift
 //  MacroExpress / multer
 //
 //  Created by Helge Heß on 30/05/16.
