@@ -330,6 +330,351 @@ final class multerTests: XCTestCase, @unchecked Sendable {
     waitForExpectations(timeout: 3)
   }
   
+  // MARK: - Disk Storage
+
+  /// Drives a multer instance configured with
+  /// DiskStorage against the ImageSubmitData
+  /// fixture (one PNG attachment), then asserts
+  /// the file landed on disk with the expected
+  /// bytes and that the in-memory buffer is nil
+  /// (i.e. the storage really streamed past RAM).
+  func testDiskStorageWritesToTempDir() throws {
+    typealias fixture = Fixtures.ImageSubmitData
+
+    let dest = NSTemporaryDirectory()
+      + "multer-disk-test-\(UUID().uuidString)"
+    addTeardownBlock {
+      try? FileManager.default.removeItem(
+        atPath: dest)
+    }
+    let storage = multer.diskStorage(dest: dest)
+    let m = multer(storage: storage)
+
+    let loop = MacroCore.shared.fallbackEventLoop()
+    let sem  = expectation(description: "disk")
+    let req  = fixture.request
+
+    loop.execute {
+      let res = ServerResponse(
+        unsafeChannel: nil, log: req.log)
+      let mw = m.single("file")
+      do {
+        try mw(req, res) { _ in sem.fulfill() }
+      }
+      catch { sem.fulfill() }
+    }
+    waitForExpectations(timeout: 3)
+
+    let files = req.files["file"] ?? []
+    XCTAssertEqual(files.count, 1)
+    guard let file = files.first
+    else { return XCTFail("no file") }
+    XCTAssertNotNil(file.path,
+      "DiskStorage must set file.path")
+    XCTAssertNil(file.buffer,
+      "DiskStorage must not buffer in memory")
+
+    guard let path = file.path
+    else { return XCTFail("path missing") }
+    XCTAssertTrue(FileManager.default
+      .fileExists(atPath: path))
+    let onDisk = try Data(
+      contentsOf: URL(fileURLWithPath: path))
+    let expected = Data(fixture.icon.data)
+    XCTAssertEqual(onDisk.count, expected.count)
+    XCTAssertEqual(onDisk, expected)
+  }
+
+  /// Custom filename selector + nested
+  /// destination dir creation.
+  func testDiskStorageHonoursFilenameSelector()
+       throws
+  {
+    typealias fixture = Fixtures.ImageSubmitData
+
+    let parent = NSTemporaryDirectory()
+      + "multer-disk-sel-\(UUID().uuidString)"
+    let dest = parent + "/sub/dir"
+    addTeardownBlock {
+      try? FileManager.default.removeItem(
+        atPath: parent)
+    }
+    let storage = multer.diskStorage(
+      destination: { _, _, yield in
+        yield(nil, dest)
+      },
+      filename: { _, _, yield in
+        yield(nil, "fixed-name.png")
+      })
+    let m = multer(storage: storage)
+
+    let loop = MacroCore.shared.fallbackEventLoop()
+    let sem  = expectation(description: "disk-sel")
+    let req  = fixture.request
+
+    loop.execute {
+      let res = ServerResponse(
+        unsafeChannel: nil, log: req.log)
+      let mw = m.single("file")
+      do {
+        try mw(req, res) { _ in sem.fulfill() }
+      }
+      catch { sem.fulfill() }
+    }
+    waitForExpectations(timeout: 3)
+
+    let file = req.files["file"]?.first
+    XCTAssertEqual(file?.path,
+                   "\(dest)/fixed-name.png")
+    XCTAssertTrue(FileManager.default
+      .fileExists(atPath:
+        "\(dest)/fixed-name.png"))
+  }
+
+  /// Build a multipart/form-data body for one file
+  /// part with the given content. Returns the
+  /// boundary string + payload so a test can wire
+  /// up an IncomingMessage.
+  private func buildMultipart(
+    fieldName: String, filename: String,
+    contentType: String, body: Buffer)
+    -> (boundary: String, payload: Buffer)
+  {
+    let boundary = "----macroexpressTestBoundary"
+      + UUID().uuidString
+        .replacingOccurrences(of: "-", with: "")
+    var out = Buffer()
+    out.append(
+      "--\(boundary)\r\n"
+      + "Content-Disposition: form-data; "
+      + "name=\"\(fieldName)\"; "
+      + "filename=\"\(filename)\"\r\n"
+      + "Content-Type: \(contentType)\r\n\r\n")
+    out.append(body)
+    out.append("\r\n--\(boundary)--\r\n")
+    return (boundary, out)
+  }
+
+  /// Push raw multipart bytes through an
+  /// IncomingMessage, mirroring how production
+  /// requests deliver bodies in chunks.
+  private func multipartRequest(
+    boundary: String, payload: Buffer)
+    -> IncomingMessage
+  {
+    let req = IncomingMessage(.init(
+      version: .init(major: 1, minor: 1),
+      method: .POST, uri: "/u",
+      headers: [
+        "Content-Type":
+          "multipart/form-data; "
+          + "boundary=\(boundary)"
+      ]))
+    req.push(payload)
+    req.push(nil)
+    return req
+  }
+
+  /// Stream a 4 MB synthetic file through
+  /// DiskStorage and verify it lands on disk with
+  /// the right bytes -- and that `file.buffer`
+  /// stays nil (proving the bytes never went
+  /// through the multer.File memory buffer).
+  func testDiskStorageStreamsLargeFile() throws {
+    let size = 4 * 1024 * 1024
+    var raw = [ UInt8 ](repeating: 0, count: size)
+    for i in 0..<size {
+      raw[i] = UInt8((i &* 31) & 0xFF)
+    }
+    let bytes = Buffer(raw)
+    let (boundary, payload) = buildMultipart(
+      fieldName: "file", filename: "big.bin",
+      contentType: "application/octet-stream",
+      body: bytes)
+
+    let dest = NSTemporaryDirectory()
+      + "multer-large-\(UUID().uuidString)"
+    addTeardownBlock {
+      try? FileManager.default.removeItem(
+        atPath: dest)
+    }
+    let m = multer(
+      storage: multer.diskStorage(dest: dest))
+
+    let loop = MacroCore.shared.fallbackEventLoop()
+    let sem  = expectation(description: "stream")
+    let req  = multipartRequest(
+      boundary: boundary, payload: payload)
+    loop.execute {
+      let res = ServerResponse(
+        unsafeChannel: nil, log: req.log)
+      let mw = m.single("file")
+      do {
+        try mw(req, res) { _ in sem.fulfill() }
+      }
+      catch { sem.fulfill() }
+    }
+    waitForExpectations(timeout: 10)
+
+    let file = req.files["file"]?.first
+    XCTAssertNotNil(file)
+    XCTAssertNotNil(file?.path)
+    XCTAssertNil(file?.buffer,
+      "DiskStorage must NOT buffer large files")
+    guard let p = file?.path else { return }
+    let onDisk = Buffer(try Data(
+      contentsOf: URL(fileURLWithPath: p)))
+    XCTAssertEqual(onDisk.count, size)
+    XCTAssertEqual(onDisk, bytes)
+  }
+
+  /// A file larger than `multer.Limits.fileSize`
+  /// must surface a `fileTooLarge` error and not
+  /// leak unbounded bytes to disk.
+  func testDiskStorageEnforcesFileSizeLimit()
+       throws
+  {
+    let size = 200_000
+    let bytes = Buffer(
+      [ UInt8 ](repeating: 0x42, count: size))
+    let (boundary, payload) = buildMultipart(
+      fieldName: "file", filename: "over.bin",
+      contentType: "application/octet-stream",
+      body: bytes)
+
+    let dest = NSTemporaryDirectory()
+      + "multer-limit-\(UUID().uuidString)"
+    addTeardownBlock {
+      try? FileManager.default.removeItem(
+        atPath: dest)
+    }
+    var limits = multer.Limits()
+    limits.fileSize = 100_000 // half the body
+    let m = multer(
+      storage: multer.diskStorage(dest: dest),
+      limits: limits)
+
+    let loop = MacroCore.shared.fallbackEventLoop()
+    let sem  = expectation(description: "limit")
+    let errBox = NIOLockedValueBox<Any?>(nil)
+    let req  = multipartRequest(
+      boundary: boundary, payload: payload)
+    loop.execute {
+      let res = ServerResponse(
+        unsafeChannel: nil, log: req.log)
+      let mw = m.single("file")
+      do {
+        try mw(req, res) { args in
+          errBox.withLockedValue { $0 = args }
+          sem.fulfill()
+        }
+      }
+      catch {
+        errBox.withLockedValue { $0 = error }
+        sem.fulfill()
+      }
+    }
+    waitForExpectations(timeout: 5)
+
+    // Either `next(error)` carried fileTooLarge,
+    // OR `req.body` was set to .error(...). Both
+    // are valid surfacings of the limit.
+    let nextArgs = errBox.withLockedValue { $0 }
+    var sawLimit = false
+    if let arr = nextArgs as? [ Any ],
+       let err = arr.first as? multer.MulterError,
+       case .fileTooLarge = err
+    { sawLimit = true }
+    if case .error(let e) = req.body,
+       let merr = e as? multer.MulterError,
+       case .fileTooLarge = merr
+    { sawLimit = true }
+    XCTAssertTrue(sawLimit,
+      "expected MulterError.fileTooLarge"
+      + ", got next=\(String(describing: nextArgs))"
+      + " body=\(req.body)")
+  }
+
+  /// Two files in one upload, distinct
+  /// `att_<n>_*` filenames via a custom filename
+  /// selector -- mirrors the SwiftSOGo mail draft
+  /// route's selector shape.
+  func testDiskStorageMultipleFilesGetDistinctNames()
+       throws
+  {
+    typealias fixture = Fixtures.TwoFilesSubmit
+    let dest = NSTemporaryDirectory()
+      + "multer-multi-\(UUID().uuidString)"
+    addTeardownBlock {
+      try? FileManager.default.removeItem(
+        atPath: dest)
+    }
+    let storage = multer.diskStorage(
+      destination: { _, _, yield in
+        yield(nil, dest)
+      },
+      filename: { _, file, yield in
+        // Scan dest for next index. By the time
+        // the second part's selector runs, the
+        // first part's empty file is already on
+        // disk so the count is correct.
+        var maxIdx = -1
+        if let existing = try? FileManager
+             .default
+             .contentsOfDirectory(atPath: dest)
+        {
+          for f in existing
+          where f.hasPrefix("att_")
+          {
+            let parts = f.split(
+              separator: "_", maxSplits: 2)
+            if parts.count >= 2,
+               let n = Int(parts[1]),
+               n > maxIdx
+            { maxIdx = n }
+          }
+        }
+        yield(nil,
+              "att_\(maxIdx + 1)_"
+                + file.originalName)
+      })
+    let m = multer(storage: storage)
+
+    let loop = MacroCore.shared.fallbackEventLoop()
+    let sem  = expectation(description: "multi")
+    let req  = fixture.request
+    loop.execute {
+      let res = ServerResponse(
+        unsafeChannel: nil, log: req.log)
+      let mw = m.fields([
+        (fieldName: "file", maxCount: nil)
+      ])
+      do {
+        try mw(req, res) { _ in sem.fulfill() }
+      }
+      catch { sem.fulfill() }
+    }
+    waitForExpectations(timeout: 5)
+
+    let files = req.files["file"] ?? []
+    XCTAssertEqual(files.count, 2)
+    let names = files.compactMap { f -> String? in
+      (f.path as NSString?)?.lastPathComponent
+    }.sorted()
+    XCTAssertEqual(names,
+      [ "att_0_hello.c", "att_1_bugicon.png" ])
+    // Bytes match for both.
+    let cContent = Buffer(try Data(
+      contentsOf: URL(fileURLWithPath:
+        "\(dest)/att_0_hello.c")))
+    XCTAssertEqual(cContent,
+                   Buffer(fixture.cFile))
+    let pngContent = Buffer(try Data(
+      contentsOf: URL(fileURLWithPath:
+        "\(dest)/att_1_bugicon.png")))
+    XCTAssertEqual(pngContent, fixture.icon)
+  }
+
   func testBufferRemainingMatchPerformance() {
     // Just make sure we don't hit cross-module surprises.
     let bb = Buffer(ByteBuffer(repeating: 0, count: 64 * 1024))

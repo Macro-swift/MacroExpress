@@ -3,7 +3,7 @@
 //  MacroExpress / multer
 //
 //  Created by Helge Heß on 30/05/16.
-//  Copyright © 2021-2025 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2021-2026 ZeeZide GmbH. All rights reserved.
 //
 
 import MacroCore
@@ -49,21 +49,6 @@ public struct multer {
   
   // MARK: - Init
   
-  #if false // Swift 5.0 is not clever enough to consider the nested unavail
-  @available(*, unavailable, message: "DiskStorage is not working yet.")
-  @inlinable
-  public init(storage    : MulterStorage? = nil,
-              dest       : String,
-              limits     : Limits         = Limits(),
-              fileFilter : FileFilter?    = nil)
-  {
-    self.dest       = dest
-    self.fileFilter = fileFilter
-    self.limits     = limits
-    self.storage    = storage ?? DiskStorage(dest: dest)
-  }
-  #endif
-
   /**
    * Create a new multer configuration.
    * 
@@ -102,9 +87,11 @@ public extension multer { // MARK: - Storage Factory
   static func memoryStorage() -> MemoryStorage {
     return MemoryStorage()
   }
-  
-  #if false // Swift 5.0 is not clever enough to consider the nested unavail
-  @available(*, unavailable, message: "DiskStorage is not working yet.")
+
+  /**
+   * Returns a multer storage that streams file contents to disk as the 
+   * multipart body is parsed.
+   */
   @inlinable
   static
   func diskStorage(destination : @escaping DiskStorage.DestinationSelector,
@@ -113,7 +100,15 @@ public extension multer { // MARK: - Storage Factory
   {
     return DiskStorage(destination: destination, filename: filename)
   }
-  #endif
+
+  /**
+   * A ``DiskStorage`` that writes every file under a fixed directory using a 
+   * UUID + the original extension as the filename.
+   */
+  @inlinable
+  static func diskStorage(_ destination: String) -> DiskStorage {
+    return DiskStorage(destination)
+  }
 }
 
 
