@@ -170,7 +170,7 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
     let ids = debug ? logPrefix : ""
     if debug { log.log("\(ids) > enter route:", self) }
 
-    if request.environment[IncomingMessage.OriginalURLKey.self] == nil {
+    if request.urlState.originalURL.isEmpty {
       request.originalURL = request.url
     }
 
@@ -189,8 +189,8 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
     let matchPath : String?
     if let pattern = urlPattern {
       var newParams = request.params
-      let comps = split(urlPath: reqPath)
-      
+      let comps = cachedSplit(request: request, urlPath: reqPath)
+
       guard let mp = RoutePattern
         .match(pattern: pattern, against: comps,
                exact: exact, variables: &newParams) else 
@@ -269,14 +269,63 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
       }
     }
 
+    // Fast path: single middleware, no error
+    if error == nil && errorMiddleware.isEmpty && middleware.count == 1 {
+      return try runSingleMiddleware(mw: middleware[0],
+                                     route: routeObjects.first ?? nil,
+                                     request: request, response: response,
+                                     savedState: saved, upperNext: upperNext)
+    }
+
     let state = MiddlewareWalker(ids, middleware[...], routeObjects[...],
                                  errorMiddleware[...], request, response, error,
-                                 log, saved, upperNext
-    )
+                                 log, saved, upperNext)
     state.step()
   }
   
   
+  @inline(never)
+  private func runSingleMiddleware(mw: Middleware, route: Route?,
+                                   request    : IncomingMessage,
+                                   response   : ServerResponse,
+                                   savedState : RouteState,
+                                   upperNext  : @escaping Next) throws 
+  {
+    var done = false
+
+    let next: Next = { args in
+      if done { return }
+      done = true
+      savedState.restore(in: request)
+      // "route"/"router" tokens: walker behavior is to
+      // consume them and call upperNext with no args.
+      if let s = args.first as? String, s == "route" || s == "router" {
+        upperNext()
+        return
+      }
+      if let arg = args.first { upperNext(arg) }
+      else                    { upperNext() }
+    }
+
+    do {
+      if let route = route {
+        try route.handle(request: request, response: response,
+                         error: nil, next: next)
+      }
+      else {
+        try mw(request, response, next)
+      }
+    }
+    catch {
+      if !done {
+        done = true
+        savedState.restore(in: request)
+        upperNext(error)
+      }
+    }
+  }
+
+
   // MARK: - Middleware Walker
 
   private struct RouteState {
@@ -466,10 +515,9 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
 
     if let pattern = urlPattern {
       let reqPath = extractRequestPath(req.url)
-      let comps = split(urlPath: reqPath)
-      guard RoutePattern.couldMatch(pattern: pattern,
-                                    against: comps,
-                                    exact: exact) else
+      let comps = cachedSplit(request: req, urlPath: reqPath)
+      guard RoutePattern.couldMatch(pattern: pattern, against: comps,
+                                    exact: exact) else 
       {
         return false
       }
@@ -479,6 +527,20 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
 
   private func split(urlPath: String) -> [ String ] {
     return extractEscapedURLPathComponents(for: urlPath)
+  }
+
+  @inline(__always)
+  private func cachedSplit(request: IncomingMessage, urlPath: String) 
+               -> [ String ]
+  {
+    let st = request.urlState
+    if st.routingURLCacheKey == urlPath {
+      return st.routingURLComponents
+    }
+    let comps = extractEscapedURLPathComponents(for: urlPath)
+    st.routingURLCacheKey   = urlPath
+    st.routingURLComponents = comps
+    return comps
   }
 
   // MARK: - CustomStringConvertible

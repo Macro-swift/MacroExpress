@@ -204,8 +204,7 @@ public extension Cookie {
 
     if let v = expires {
       s += "; expires="
-      let utime = time_t(v.timeIntervalSince1970)
-      s += utime.format("%a, %d %b %Y %H:%M:%S GMT") // HTTP
+      s += time_t(v.timeIntervalSince1970).httpDateString
     }
     
     return s
