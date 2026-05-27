@@ -269,14 +269,63 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
       }
     }
 
+    // Fast path: single middleware, no error
+    if error == nil && errorMiddleware.isEmpty && middleware.count == 1 {
+      return try runSingleMiddleware(mw: middleware[0],
+                                     route: routeObjects.first ?? nil,
+                                     request: request, response: response,
+                                     savedState: saved, upperNext: upperNext)
+    }
+
     let state = MiddlewareWalker(ids, middleware[...], routeObjects[...],
                                  errorMiddleware[...], request, response, error,
-                                 log, saved, upperNext
-    )
+                                 log, saved, upperNext)
     state.step()
   }
   
   
+  @inline(never)
+  private func runSingleMiddleware(mw: Middleware, route: Route?,
+                                   request    : IncomingMessage,
+                                   response   : ServerResponse,
+                                   savedState : RouteState,
+                                   upperNext  : @escaping Next) throws 
+  {
+    var done = false
+
+    let next: Next = { args in
+      if done { return }
+      done = true
+      savedState.restore(in: request)
+      // "route"/"router" tokens: walker behavior is to
+      // consume them and call upperNext with no args.
+      if let s = args.first as? String, s == "route" || s == "router" {
+        upperNext()
+        return
+      }
+      if let arg = args.first { upperNext(arg) }
+      else                    { upperNext() }
+    }
+
+    do {
+      if let route = route {
+        try route.handle(request: request, response: response,
+                         error: nil, next: next)
+      }
+      else {
+        try mw(request, response, next)
+      }
+    }
+    catch {
+      if !done {
+        done = true
+        savedState.restore(in: request)
+        upperNext(error)
+      }
+    }
+  }
+
+
   // MARK: - Middleware Walker
 
   private struct RouteState {
