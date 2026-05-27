@@ -212,13 +212,13 @@ public extension IncomingMessage {
    * Example:
    * ```swift
    * app.post("/users/:id") { req, res, next in
-   *   let id   = req.param("id")
-   *   let name = req.param("name") // body or query
+   *   let id   = req.param("id", "-")
+   *   let name = req.param("name", "No name!") // body or query
    * }
    * ```
    */
   @inlinable
-  func param(string name: String, default: String = "") -> String {
+  func param(_ name: String, default: String) -> String {
     guard let v = param(name) else { return `default` }
     return String(describing: v)
   }
