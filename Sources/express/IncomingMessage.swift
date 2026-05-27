@@ -117,9 +117,10 @@ public extension IncomingMessage {
    * }
    * ```
    */
+  @inlinable
   var params : Params {
-    set { environment[ExpressExtKey.Params.self] = newValue }
-    get { return environment[ExpressExtKey.Params.self] }
+    set { urlState.params = newValue.dictionary }
+    get { return Params(urlState.params) }
   }
 
   /**
@@ -150,18 +151,22 @@ public extension IncomingMessage {
   }
   
   /**
-   * Contains the part of the URL which matched the current
-   * route. Example:
+   * Contains the part of the URL which matched the current route.
+   * 
+   * Example:
    * ```
    * app.get("/admin/index") { ... }
    * ```
-   *
-   * when this is invoked with "/admin/index/hello/world",
-   * the baseURL will be "/admin/index".
+   * when this is invoked with "/admin/index/hello/world", the baseURL will be
+   * "/admin/index".
    */
+  @inlinable
   var baseURL : String? {
-    set { environment[ExpressExtKey.BaseURL.self] = newValue }
-    get { return environment[ExpressExtKey.BaseURL.self] }
+    set { urlState.baseURL = newValue ?? "" }
+    get {
+      let s = urlState.baseURL
+      return s.isEmpty ? nil : s
+    }
   }
   
   /// The active route.
@@ -171,11 +176,10 @@ public extension IncomingMessage {
   }
 
   /**
-   * Looks up a parameter by checking route params, the request body,
-   * then the query string.
+   * Looks up a parameter by checking route params, the request body, then the 
+   * query string.
    *
-   * Returns `nil` when not found or when the value is
-   * an empty string.
+   * Returns `nil` when not found or when the value is an empty string.
    *
    * Example:
    * ```swift
@@ -200,8 +204,8 @@ public extension IncomingMessage {
   }
 
   /**
-   * Looks up a parameter by checking route params, the request body,
-   * then the query string.
+   * Looks up a parameter by checking route params, the request body, then the
+   * query string.
    *
    * Returns a default string when not found.
    *

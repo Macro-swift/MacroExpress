@@ -170,7 +170,7 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
     let ids = debug ? logPrefix : ""
     if debug { log.log("\(ids) > enter route:", self) }
 
-    if request.environment[IncomingMessage.OriginalURLKey.self] == nil {
+    if request.urlState.originalURL.isEmpty {
       request.originalURL = request.url
     }
 
