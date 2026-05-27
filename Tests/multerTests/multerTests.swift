@@ -5,6 +5,7 @@ import struct NIO.ByteBuffer
 import NIOConcurrencyHelpers
 import http
 import connect
+import fs
 @testable import multer
 
 final class multerTests: XCTestCase, @unchecked Sendable {
@@ -341,13 +342,11 @@ final class multerTests: XCTestCase, @unchecked Sendable {
   func testDiskStorageWritesToTempDir() throws {
     typealias fixture = Fixtures.ImageSubmitData
 
-    let dest = NSTemporaryDirectory()
-      + "multer-disk-test-\(UUID().uuidString)"
+    let dest = NSTemporaryDirectory() + "multer-disk-test-\(UUID().uuidString)"
     addTeardownBlock {
-      try? FileManager.default.removeItem(
-        atPath: dest)
+      try? fs.rmdirSync(dest)
     }
-    let storage = multer.diskStorage(dest: dest)
+    let storage = multer.diskStorage(dest)
     let m = multer(storage: storage)
 
     let loop = MacroCore.shared.fallbackEventLoop()
@@ -356,7 +355,8 @@ final class multerTests: XCTestCase, @unchecked Sendable {
 
     loop.execute {
       let res = ServerResponse(
-        unsafeChannel: nil, log: req.log)
+        unsafeChannel: nil, log: req.log
+      )
       let mw = m.single("file")
       do {
         try mw(req, res) { _ in sem.fulfill() }
@@ -367,37 +367,28 @@ final class multerTests: XCTestCase, @unchecked Sendable {
 
     let files = req.files["file"] ?? []
     XCTAssertEqual(files.count, 1)
-    guard let file = files.first
-    else { return XCTFail("no file") }
-    XCTAssertNotNil(file.path,
-      "DiskStorage must set file.path")
-    XCTAssertNil(file.buffer,
-      "DiskStorage must not buffer in memory")
+    guard let file = files.first else { return XCTFail("no file") }
+    XCTAssertNotNil(file.path, "DiskStorage must set file.path")
+    XCTAssertNil(file.buffer, "DiskStorage must not buffer in memory")
 
-    guard let path = file.path
-    else { return XCTFail("path missing") }
-    XCTAssertTrue(FileManager.default
-      .fileExists(atPath: path))
-    let onDisk = try Data(
-      contentsOf: URL(fileURLWithPath: path))
-    let expected = Data(fixture.icon.data)
-    XCTAssertEqual(onDisk.count, expected.count)
-    XCTAssertEqual(onDisk, expected)
+    guard let path = file.path else { return XCTFail("path missing") }
+    XCTAssertTrue(FileSystemModule.existsSync(path))
+    let onDisk = try XCTUnwrap(fs.readFileSync(path))
+    XCTAssertEqual(onDisk.count, fixture.icon.count)
+    XCTAssertEqual(onDisk, fixture.icon)
   }
 
   /// Custom filename selector + nested
   /// destination dir creation.
   func testDiskStorageHonoursFilenameSelector()
-       throws
+    throws
   {
     typealias fixture = Fixtures.ImageSubmitData
 
-    let parent = NSTemporaryDirectory()
-      + "multer-disk-sel-\(UUID().uuidString)"
+    let parent = NSTemporaryDirectory() + "multer-disk-sel-\(UUID().uuidString)"
     let dest = parent + "/sub/dir"
     addTeardownBlock {
-      try? FileManager.default.removeItem(
-        atPath: parent)
+      try? fs.rmdirSync(parent)
     }
     let storage = multer.diskStorage(
       destination: { _, _, yield in
@@ -405,7 +396,8 @@ final class multerTests: XCTestCase, @unchecked Sendable {
       },
       filename: { _, _, yield in
         yield(nil, "fixed-name.png")
-      })
+      }
+    )
     let m = multer(storage: storage)
 
     let loop = MacroCore.shared.fallbackEventLoop()
@@ -414,7 +406,8 @@ final class multerTests: XCTestCase, @unchecked Sendable {
 
     loop.execute {
       let res = ServerResponse(
-        unsafeChannel: nil, log: req.log)
+        unsafeChannel: nil, log: req.log
+      )
       let mw = m.single("file")
       do {
         try mw(req, res) { _ in sem.fulfill() }
@@ -424,11 +417,8 @@ final class multerTests: XCTestCase, @unchecked Sendable {
     waitForExpectations(timeout: 3)
 
     let file = req.files["file"]?.first
-    XCTAssertEqual(file?.path,
-                   "\(dest)/fixed-name.png")
-    XCTAssertTrue(FileManager.default
-      .fileExists(atPath:
-        "\(dest)/fixed-name.png"))
+    XCTAssertEqual(file?.path, "\(dest)/fixed-name.png")
+    XCTAssertTrue(FileSystemModule.existsSync("\(dest)/fixed-name.png"))
   }
 
   /// Build a multipart/form-data body for one file
@@ -437,19 +427,16 @@ final class multerTests: XCTestCase, @unchecked Sendable {
   /// up an IncomingMessage.
   private func buildMultipart(
     fieldName: String, filename: String,
-    contentType: String, body: Buffer)
+    contentType: String, body: Buffer
+  )
     -> (boundary: String, payload: Buffer)
   {
-    let boundary = "----macroexpressTestBoundary"
-      + UUID().uuidString
-        .replacingOccurrences(of: "-", with: "")
+    let boundary = "----macroexpressTestBoundary" + UUID().uuidString
+      .replacingOccurrences(of: "-", with: "")
     var out = Buffer()
-    out.append(
-      "--\(boundary)\r\n"
-      + "Content-Disposition: form-data; "
-      + "name=\"\(fieldName)\"; "
-      + "filename=\"\(filename)\"\r\n"
-      + "Content-Type: \(contentType)\r\n\r\n")
+    out.append("--\(boundary)\r\n" + "Content-Disposition: form-data; "
+               + "name=\"\(fieldName)\"; " + "filename=\"\(filename)\"\r\n"
+               + "Content-Type: \(contentType)\r\n\r\n")
     out.append(body)
     out.append("\r\n--\(boundary)--\r\n")
     return (boundary, out)
@@ -459,17 +446,16 @@ final class multerTests: XCTestCase, @unchecked Sendable {
   /// IncomingMessage, mirroring how production
   /// requests deliver bodies in chunks.
   private func multipartRequest(
-    boundary: String, payload: Buffer)
+    boundary: String, payload: Buffer
+  )
     -> IncomingMessage
   {
     let req = IncomingMessage(.init(
       version: .init(major: 1, minor: 1),
       method: .POST, uri: "/u",
-      headers: [
-        "Content-Type":
-          "multipart/form-data; "
-          + "boundary=\(boundary)"
-      ]))
+      headers: ["Content-Type": "multipart/form-data; " +
+        "boundary=\(boundary)"]
+    ))
     req.push(payload)
     req.push(nil)
     return req
@@ -482,7 +468,7 @@ final class multerTests: XCTestCase, @unchecked Sendable {
   /// through the multer.File memory buffer).
   func testDiskStorageStreamsLargeFile() throws {
     let size = 4 * 1024 * 1024
-    var raw = [ UInt8 ](repeating: 0, count: size)
+    var raw = [ UInt8 ]( repeating: 0, count: size )
     for i in 0..<size {
       raw[i] = UInt8((i &* 31) & 0xFF)
     }
@@ -490,24 +476,24 @@ final class multerTests: XCTestCase, @unchecked Sendable {
     let (boundary, payload) = buildMultipart(
       fieldName: "file", filename: "big.bin",
       contentType: "application/octet-stream",
-      body: bytes)
+      body: bytes
+    )
 
-    let dest = NSTemporaryDirectory()
-      + "multer-large-\(UUID().uuidString)"
+    let dest = NSTemporaryDirectory() + "multer-large-\(UUID().uuidString)"
     addTeardownBlock {
-      try? FileManager.default.removeItem(
-        atPath: dest)
+      try? fs.rmdirSync(dest)
     }
-    let m = multer(
-      storage: multer.diskStorage(dest: dest))
+    let m = multer(storage: multer.diskStorage(dest))
 
     let loop = MacroCore.shared.fallbackEventLoop()
     let sem  = expectation(description: "stream")
     let req  = multipartRequest(
-      boundary: boundary, payload: payload)
+      boundary: boundary, payload: payload
+    )
     loop.execute {
       let res = ServerResponse(
-        unsafeChannel: nil, log: req.log)
+        unsafeChannel: nil, log: req.log
+      )
       let mw = m.single("file")
       do {
         try mw(req, res) { _ in sem.fulfill() }
@@ -519,11 +505,9 @@ final class multerTests: XCTestCase, @unchecked Sendable {
     let file = req.files["file"]?.first
     XCTAssertNotNil(file)
     XCTAssertNotNil(file?.path)
-    XCTAssertNil(file?.buffer,
-      "DiskStorage must NOT buffer large files")
+    XCTAssertNil(file?.buffer, "DiskStorage must NOT buffer large files")
     guard let p = file?.path else { return }
-    let onDisk = Buffer(try Data(
-      contentsOf: URL(fileURLWithPath: p)))
+    let onDisk = try XCTUnwrap(fs.readFileSync(p))
     XCTAssertEqual(onDisk.count, size)
     XCTAssertEqual(onDisk, bytes)
   }
@@ -532,36 +516,39 @@ final class multerTests: XCTestCase, @unchecked Sendable {
   /// must surface a `fileTooLarge` error and not
   /// leak unbounded bytes to disk.
   func testDiskStorageEnforcesFileSizeLimit()
-       throws
+    throws
   {
     let size = 200_000
     let bytes = Buffer(
-      [ UInt8 ](repeating: 0x42, count: size))
+      [ UInt8 ]( repeating: 0x42, count: size )
+    )
     let (boundary, payload) = buildMultipart(
       fieldName: "file", filename: "over.bin",
       contentType: "application/octet-stream",
-      body: bytes)
+      body: bytes
+    )
 
-    let dest = NSTemporaryDirectory()
-      + "multer-limit-\(UUID().uuidString)"
+    let dest = NSTemporaryDirectory() + "multer-limit-\(UUID().uuidString)"
     addTeardownBlock {
-      try? FileManager.default.removeItem(
-        atPath: dest)
+      try? fs.rmdirSync(dest)
     }
     var limits = multer.Limits()
     limits.fileSize = 100_000 // half the body
     let m = multer(
-      storage: multer.diskStorage(dest: dest),
-      limits: limits)
+      storage: multer.diskStorage(dest),
+      limits: limits
+    )
 
     let loop = MacroCore.shared.fallbackEventLoop()
     let sem  = expectation(description: "limit")
     let errBox = NIOLockedValueBox<Any?>(nil)
     let req  = multipartRequest(
-      boundary: boundary, payload: payload)
+      boundary: boundary, payload: payload
+    )
     loop.execute {
       let res = ServerResponse(
-        unsafeChannel: nil, log: req.log)
+        unsafeChannel: nil, log: req.log
+      )
       let mw = m.single("file")
       do {
         try mw(req, res) { args in
@@ -583,16 +570,13 @@ final class multerTests: XCTestCase, @unchecked Sendable {
     var sawLimit = false
     if let arr = nextArgs as? [ Any ],
        let err = arr.first as? multer.MulterError,
-       case .fileTooLarge = err
-    { sawLimit = true }
+       case .fileTooLarge = err { sawLimit = true }
     if case .error(let e) = req.body,
        let merr = e as? multer.MulterError,
-       case .fileTooLarge = merr
-    { sawLimit = true }
-    XCTAssertTrue(sawLimit,
-      "expected MulterError.fileTooLarge"
-      + ", got next=\(String(describing: nextArgs))"
-      + " body=\(req.body)")
+       case .fileTooLarge = merr { sawLimit = true }
+    XCTAssertTrue(sawLimit, "expected MulterError.fileTooLarge"
+                  + ", got next=\(String(describing: nextArgs))" +
+                  " body=\(req.body)")
   }
 
   /// Two files in one upload, distinct
@@ -600,44 +584,25 @@ final class multerTests: XCTestCase, @unchecked Sendable {
   /// selector -- mirrors the SwiftSOGo mail draft
   /// route's selector shape.
   func testDiskStorageMultipleFilesGetDistinctNames()
-       throws
+    throws
   {
     typealias fixture = Fixtures.TwoFilesSubmit
-    let dest = NSTemporaryDirectory()
-      + "multer-multi-\(UUID().uuidString)"
+    let dest = NSTemporaryDirectory() + "multer-multi-\(UUID().uuidString)"
     addTeardownBlock {
-      try? FileManager.default.removeItem(
-        atPath: dest)
+      try? fs.rmdirSync(dest)
     }
+    // The selector is invoked once per file, sequentially on the multer
+    // processing context's thread, so a captured counter is enough.
+    let nextIdx = NIOLockedValueBox(0)
     let storage = multer.diskStorage(
-      destination: { _, _, yield in
-        yield(nil, dest)
-      },
-      filename: { _, file, yield in
-        // Scan dest for next index. By the time
-        // the second part's selector runs, the
-        // first part's empty file is already on
-        // disk so the count is correct.
-        var maxIdx = -1
-        if let existing = try? FileManager
-             .default
-             .contentsOfDirectory(atPath: dest)
-        {
-          for f in existing
-          where f.hasPrefix("att_")
-          {
-            let parts = f.split(
-              separator: "_", maxSplits: 2)
-            if parts.count >= 2,
-               let n = Int(parts[1]),
-               n > maxIdx
-            { maxIdx = n }
-          }
+      destination: { _, _, yield in yield(nil, dest) },
+      filename:    { _, file, yield in
+        let idx = nextIdx.withLockedValue { v -> Int in
+          defer { v += 1 }; return v
         }
-        yield(nil,
-              "att_\(maxIdx + 1)_"
-                + file.originalName)
-      })
+        yield(nil, "att_\(idx)_" + file.originalName)
+      }
+    )
     let m = multer(storage: storage)
 
     let loop = MacroCore.shared.fallbackEventLoop()
@@ -645,10 +610,11 @@ final class multerTests: XCTestCase, @unchecked Sendable {
     let req  = fixture.request
     loop.execute {
       let res = ServerResponse(
-        unsafeChannel: nil, log: req.log)
+        unsafeChannel: nil, log: req.log
+      )
       let mw = m.fields([
-        (fieldName: "file", maxCount: nil)
-      ])
+                        ( fieldName: "file", maxCount: nil )
+                        ])
       do {
         try mw(req, res) { _ in sem.fulfill() }
       }
@@ -658,20 +624,16 @@ final class multerTests: XCTestCase, @unchecked Sendable {
 
     let files = req.files["file"] ?? []
     XCTAssertEqual(files.count, 2)
-    let names = files.compactMap { f -> String? in
-      (f.path as NSString?)?.lastPathComponent
-    }.sorted()
-    XCTAssertEqual(names,
-      [ "att_0_hello.c", "att_1_bugicon.png" ])
+    let names = files.compactMap { $0.path.map(path.basename) }.sorted()
+    XCTAssertEqual(names, [ "att_0_hello.c", "att_1_bugicon.png" ])
     // Bytes match for both.
-    let cContent = Buffer(try Data(
-      contentsOf: URL(fileURLWithPath:
-        "\(dest)/att_0_hello.c")))
-    XCTAssertEqual(cContent,
-                   Buffer(fixture.cFile))
-    let pngContent = Buffer(try Data(
-      contentsOf: URL(fileURLWithPath:
-        "\(dest)/att_1_bugicon.png")))
+    let cContent = try XCTUnwrap(
+      fs.readFileSync(path.join(dest, "att_0_hello.c"))
+    )
+    XCTAssertEqual(cContent, Buffer(fixture.cFile))
+    let pngContent = try XCTUnwrap(
+      fs.readFileSync(path.join(dest, "att_1_bugicon.png"))
+    )
     XCTAssertEqual(pngContent, fixture.icon)
   }
 
@@ -684,7 +646,7 @@ final class multerTests: XCTestCase, @unchecked Sendable {
     measure {
       for _ in 0..<100 {
         let idxMaybe = bb
-              .indexOf(needle, options: .partialSuffixMatch)
+                         .indexOf(needle, options: .partialSuffixMatch)
         XCTAssertNotNil(idxMaybe)
       }
     }
@@ -697,11 +659,11 @@ final class multerTests: XCTestCase, @unchecked Sendable {
     ( "testSimpleNoneFail" , testSimpleNoneFail ),
     ( "testSimpleSingleOK" , testSimpleSingleOK ),
     ( "testSingleFail"     , testSingleFail     ),
-    ( "testFieldNameMismatchYieldsLimitUnexpectedFile",
-      testFieldNameMismatchYieldsLimitUnexpectedFile ),
+    ("testFieldNameMismatchYieldsLimitUnexpectedFile",
+     testFieldNameMismatchYieldsLimitUnexpectedFile ),
     ( "testMultiOK"        , testMultiOK        ),
     ( "testSizeLimit"      , testSizeLimit      ),
-    ( "testBufferRemainingMatchPerformance",
-      testBufferRemainingMatchPerformance )
+    ("testBufferRemainingMatchPerformance",
+     testBufferRemainingMatchPerformance )
   ]
 }
