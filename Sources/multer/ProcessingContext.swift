@@ -85,8 +85,28 @@ internal extension multer {
     
     func finish() {
       parser.end(handler: handleEvent)
-      guard let next = next else { return } // nothing will handle the result?
-      
+      didFinishParsing = true
+      tryCompleteIfReady()
+    }
+    func write(_ bytes: Buffer) { parser.write(bytes, handler: handleEvent) }
+
+    /// Storage operations (startFile/endFile) in flight.
+    private var pendingStorageOps = 0
+    /// `true` once the request body stream has ended and the parser was
+    /// flushed -- only then can we forward to `next`.
+    private var didFinishParsing  = false
+
+    private func beginStorageOp() { pendingStorageOps += 1 }
+    private func endStorageOp(_ error: Swift.Error?) {
+      pendingStorageOps -= 1
+      if let error = error { return handleError(error) }
+      tryCompleteIfReady()
+    }
+
+    private func tryCompleteIfReady() {
+      guard didFinishParsing, pendingStorageOps == 0,
+            let next = next else { return }
+
       switch request.body {
       
         case .notParsed:
@@ -106,7 +126,8 @@ internal extension multer {
         default:
           if !values.isEmpty {
             request.log.warn(
-              "Not storing multipart/form-data values, body already set!")
+              "Not storing multipart/form-data values, body already set!"
+            )
           }
       }
       
@@ -123,7 +144,6 @@ internal extension multer {
       next()
       self.next = nil
     }
-    func write(_ bytes: Buffer) { parser.write(bytes, handler: handleEvent) }
     
     func handleError(_ error: Swift.Error) {
       if case .notParsed = request.body { request.body = .error(error) }
@@ -249,23 +269,26 @@ internal extension multer {
           
           if case .file(let file) = partType {
             files[file.fieldName, default: []].append(file)
-            multer.storage.startFile(file, in: self)
+            beginStorageOp()
+            multer.storage.startFile(file, in: self, completion: endStorageOp)
           }
           
         case .endPart:
           switch activePart {
-            case .invalid         : break
-            case .file (let file) : multer.storage.endFile(file, in: self)
-            case .field(let name) : endField(name)
+            case .invalid:
+              break
+            case .file(let file):
+              beginStorageOp()
+              multer.storage.endFile(file, in: self, completion: endStorageOp)
+            case .field(let name):
+              endField(name)
           }
           finishPart()
           
         case .bodyData(let data):
           switch activePart {
             case .invalid       : break
-            case .file(let file):
-              do    { try multer.storage.write(data, to: file, in: self) }
-              catch { handleError(error) }
+            case .file(let file): multer.storage.write(data, to: file, in: self)
             case .field         : addFieldData(data)
           }
       }
@@ -281,7 +304,7 @@ internal extension multer {
           return handleError(MulterError.fieldValueTooLong)
         }
       }
-      if nil == bodyData?.append(data) { bodyData = data }
+      if bodyData?.append(data) == nil { bodyData = data }
     }
     
     private func endField(_ name: String) {

@@ -3,7 +3,7 @@
 //  MacroExpress / multer
 //
 //  Created by Helge Heß on 30/05/16.
-//  Copyright © 2021-2025 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2021-2026 ZeeZide GmbH. All rights reserved.
 //
 
 import struct MacroCore.Buffer
@@ -22,13 +22,21 @@ extension multer {
     // MARK: - Storage API
 
     @inlinable
-    public func startFile(_ file: multer.File, in ctx: MulterStorageContext) {}
+    public func startFile(_ file: multer.File, in ctx: MulterStorageContext,
+                          completion: @escaping ( Swift.Error? ) -> Void)
+    {
+      completion(nil)
+    }
     @inlinable
-    public func endFile  (_ file: multer.File, in ctx: MulterStorageContext) {}
+    public func endFile(_ file: multer.File, in ctx: MulterStorageContext,
+                        completion: @escaping ( Swift.Error? ) -> Void)
+    {
+      completion(nil)
+    }
 
     @inlinable
     public func write(_ data: Buffer, to file: multer.File,
-                      in ctx: MulterStorageContext) throws
+                      in ctx: MulterStorageContext)
     {
       if let v = ctx.config.limits.fileSize {
         let newSize = (file.buffer?.count ?? 0) + data.count

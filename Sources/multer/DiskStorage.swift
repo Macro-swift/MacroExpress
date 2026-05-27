@@ -3,11 +3,25 @@
 //  MacroExpress / multer
 //
 //  Created by Helge Heß on 30/05/16.
-//  Copyright © 2021 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2021-2026 ZeeZide GmbH. All rights reserved.
 //
 
-import struct MacroCore.Buffer
-import class  http.IncomingMessage
+import struct   Foundation.UUID
+import struct   MacroCore.Buffer
+import class    http.IncomingMessage
+import fs
+import NIOConcurrencyHelpers
+
+public extension multer {
+
+  enum DiskStorageError: Swift.Error, Sendable {
+    case cannotCreateDirectory  (path: String, underlying: Swift.Error)
+    case cannotCreateFile       (path: String)
+    case writeFailed            (path: String, underlying: Swift.Error)
+    case destinationLookupFailed(Swift.Error)
+    case filenameLookupFailed   (Swift.Error)
+  }
+}
 
 extension multer {
   
