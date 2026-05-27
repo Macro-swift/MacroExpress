@@ -189,8 +189,8 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
     let matchPath : String?
     if let pattern = urlPattern {
       var newParams = request.params
-      let comps = split(urlPath: reqPath)
-      
+      let comps = cachedSplit(request: request, urlPath: reqPath)
+
       guard let mp = RoutePattern
         .match(pattern: pattern, against: comps,
                exact: exact, variables: &newParams) else 
@@ -466,10 +466,9 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
 
     if let pattern = urlPattern {
       let reqPath = extractRequestPath(req.url)
-      let comps = split(urlPath: reqPath)
-      guard RoutePattern.couldMatch(pattern: pattern,
-                                    against: comps,
-                                    exact: exact) else
+      let comps = cachedSplit(request: req, urlPath: reqPath)
+      guard RoutePattern.couldMatch(pattern: pattern, against: comps,
+                                    exact: exact) else 
       {
         return false
       }
@@ -479,6 +478,20 @@ open class Route: MiddlewareObject, ErrorMiddlewareObject, RouteKeeper,
 
   private func split(urlPath: String) -> [ String ] {
     return extractEscapedURLPathComponents(for: urlPath)
+  }
+
+  @inline(__always)
+  private func cachedSplit(request: IncomingMessage, urlPath: String) 
+               -> [ String ]
+  {
+    let st = request.urlState
+    if st.routingURLCacheKey == urlPath {
+      return st.routingURLComponents
+    }
+    let comps = extractEscapedURLPathComponents(for: urlPath)
+    st.routingURLCacheKey   = urlPath
+    st.routingURLComponents = comps
+    return comps
   }
 
   // MARK: - CustomStringConvertible
