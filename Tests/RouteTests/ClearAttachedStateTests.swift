@@ -65,8 +65,87 @@ final class ClearAttachedStateTests: XCTestCase, @unchecked Sendable {
                  "ServerResponse should be deallocated")
   }
 
+  func testRequestHandlerClearsAttachedStateOnFinish() {
+    let app = Express()
+    app.use { _, res, _ in res.end() }
+
+    weak var weakReq : IncomingMessage?
+    weak var weakRes : TestServerResponse?
+
+    do {
+      let req = IncomingMessage(url: "/hello")
+      let res = TestServerResponse()
+      weakReq = req
+      weakRes = res
+
+      app.requestHandler(req, res)
+
+      XCTAssertTrue(res.writableEnded,
+                    "request handler should finish the response")
+      XCTAssertNil(req.app,
+                   "request app should be cleared on finish")
+      XCTAssertNil(res.app,
+                   "response app should be cleared on finish")
+      XCTAssertNil(res.request,
+                   "response request should be cleared on finish")
+      XCTAssertNil(req.response,
+                   "request response should be cleared on finish")
+    }
+
+    XCTAssertNil(weakReq,
+                 "IncomingMessage should be deallocated")
+    XCTAssertNil(weakRes,
+                 "ServerResponse should be deallocated")
+  }
+
+  func testRequestHandlerClearsAttachedStateOnLaterFinish() {
+    let app = Express()
+    app.use { _, _, _ in }
+
+    weak var weakReq : IncomingMessage?
+    weak var weakRes : TestServerResponse?
+
+    do {
+      let req = IncomingMessage(url: "/hello")
+      let res = TestServerResponse()
+      weakReq = req
+      weakRes = res
+
+      app.requestHandler(req, res)
+
+      XCTAssertFalse(res.writableEnded,
+                     "middleware should leave the response open")
+      XCTAssertTrue(req.app === app,
+                    "request app should remain attached before finish")
+      XCTAssertTrue(res.request === req,
+                    "response request should remain attached before finish")
+      XCTAssertTrue(req.response === res,
+                    "request response should remain attached before finish")
+
+      res.end()
+
+      XCTAssertNil(req.app,
+                   "request app should be cleared on finish")
+      XCTAssertNil(res.app,
+                   "response app should be cleared on finish")
+      XCTAssertNil(res.request,
+                   "response request should be cleared on finish")
+      XCTAssertNil(req.response,
+                   "request response should be cleared on finish")
+    }
+
+    XCTAssertNil(weakReq,
+                 "IncomingMessage should be deallocated")
+    XCTAssertNil(weakRes,
+                 "ServerResponse should be deallocated")
+  }
+
   static let allTests = [
     ( "testClearAttachedStateBreaksCycles",
-      testClearAttachedStateBreaksCycles )
+      testClearAttachedStateBreaksCycles ),
+    ( "testRequestHandlerClearsAttachedStateOnFinish",
+      testRequestHandlerClearsAttachedStateOnFinish ),
+    ( "testRequestHandlerClearsAttachedStateOnLaterFinish",
+      testRequestHandlerClearsAttachedStateOnLaterFinish )
   ]
 }

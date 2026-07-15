@@ -125,6 +125,20 @@ open class Express: SettingsHolder, MountableMiddlewareObject, MiddlewareObject,
   {
     let oldApp = req.app
     let oldReq = res.request
+    defer {
+      if oldApp == nil { // only on the outermost app.
+        if res.writableFinished {
+          self.clearAttachedState(request: req, response: res)
+        }
+        else {
+          res.finishListeners.once { [weak req, weak res] in
+            guard let req, let res else { return }
+            self.clearAttachedState(request: req, response: res)
+          }
+        }
+      }
+    }
+
     req.environment[ExpressExtKey.App.self]         = self
     res.environment[ExpressExtKey.App.self]         = self
     res.environment[ExpressExtKey.RequestKey.self]  = req
