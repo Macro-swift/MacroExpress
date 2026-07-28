@@ -98,9 +98,23 @@ public func `async`(_ middleware: @escaping AsyncMiddleware) -> Middleware {
   return { req, res, next in
     let module = MacroCore.shared.retain()
 
+    // Resume the chain on the CONNECTION's event loop.
+    //
+    // Resolved HERE, while still on the channel's loop, and from
+    // `req.socket` rather than from whatever thread happens to be
+    // current. A bare `fallbackEventLoop()` inside the `Task` below
+    // asks for `currentEventLoop` from a cooperative-pool thread,
+    // which is not an event loop at all -- so it fell through to
+    // `eventLoopGroup.next()` and resumed the request on an ARBITRARY
+    // loop. Everything downstream (the listener sets, the response
+    // state machine, the middleware walker) assumes it runs on the
+    // channel's loop and is explicitly not thread safe, so that
+    // silently broke confinement for every async middleware.
+    let loop = module.fallbackEventLoop(req.socket?.eventLoop)
+
     // Make a sendable-ish wrapper around `next`.
     let sendableNext: @Sendable (Any...) -> Void = { (args: Any...) in
-      module.fallbackEventLoop().execute {
+      loop.execute {
         switch args.count {
           case 0  : next()                 // no  arguments
           case 1  : next(args[0])          // one argument
@@ -159,13 +173,18 @@ public func `async`(_ middleware: @escaping AsyncFinalMiddleware) -> Middleware
   return { req, res, next in
     let module = MacroCore.shared.retain()
 
+    // Same loop confinement as the non-final overload above: forward
+    // the error on the connection's loop, not on whichever loop the
+    // Task's thread resolves to.
+    let loop = module.fallbackEventLoop(req.socket?.eventLoop)
+
     Task {
       do {
         try await middleware(req, res)
         module.release()
       }
       catch {
-        module.fallbackEventLoop().execute {
+        loop.execute {
           next(error)
           module.release()
         }
