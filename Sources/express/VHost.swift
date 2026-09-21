@@ -95,6 +95,7 @@ public extension EnvironmentValues {
  *                      captures `["diary.zeezide.de"]`.
  */
 @usableFromInline
+@available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
 internal func vhostCompileGlob(_ pattern: String) throws 
               -> Regex<AnyRegexOutput>
 {
@@ -141,6 +142,7 @@ fileprivate let regexSpecials = Set(#".+?^$()[]{}|\"#)
  * The matched info is stored on the request and accessible via 
  * ``IncomingMessage/vhost``.
  */
+@available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
 public func vhost(_ pattern: String, _ handler: @escaping Middleware) 
             -> Middleware
 {
@@ -179,6 +181,7 @@ public func vhost(_ pattern: String, _ handler: @escaping Middleware)
  * ``IncomingMessage/vhost``.
  */
 @inlinable
+@available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
 public func vhost(_ pattern: String, _ subApp: MiddlewareObject) -> Middleware {
   return vhost(pattern, subApp.middleware)
 }
@@ -200,6 +203,7 @@ public func vhost(_ pattern: String, _ subApp: MiddlewareObject) -> Middleware {
  * The matched info is stored on the request and accessible via 
  * ``IncomingMessage/vhost``.
  */
+@available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
 public func vhost<Output>(_   regex : Regex<Output>,
                           _ handler : @escaping Middleware) -> Middleware
 {
@@ -226,6 +230,7 @@ public func vhost<Output>(_   regex : Regex<Output>,
  * ``IncomingMessage/vhost``.
  */
 @inlinable
+@available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
 public func vhost<Output>(_ regex: Regex<Output>,
                           _ subApp: MiddlewareObject) -> Middleware
 {
@@ -236,6 +241,7 @@ public func vhost<Output>(_ regex: Regex<Output>,
 // MARK: - Internal handler
 
 @usableFromInline
+@available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
 internal func vhostHandler(pattern : String,
                            regex   : Regex<AnyRegexOutput>,
                            header  : String = "Host",
