@@ -128,6 +128,28 @@ public extension BodyParserBody {
       case .urlEncoded(let dict) : return querystring.stringify(dict)
     }
   }
+
+  /**
+   * Returns the raw bytes of a body parsed by `bodyParser.raw()`.
+   *
+   * Empty `Buffer` if there was no body, nil for the other cases. It does not
+   * convert `text` etc back to a `Buffer`!.
+   *
+   * ```swift
+   * app.post("/webhook", bodyParser.raw()) { req, res, next in
+   *   guard let payload = req.body.raw else { return res.sendStatus(501) }
+   *   ...
+   * }
+   * ```
+   */
+  @inlinable
+  var raw: Buffer? {
+    switch self {
+      case .raw(let buffer) : buffer
+      case .noBody          : Buffer()
+      case .notParsed, .error, .urlEncoded, .json, .text : nil
+    }
+  }
 }
 
 public extension BodyParserBody {
