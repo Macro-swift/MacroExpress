@@ -13,7 +13,8 @@ public func allTests() -> [ XCTestCaseEntry ] {
     testCase(FreshStaleTests           .allTests),
     testCase(RecursionTests            .allTests),
     testCase(VHostTests                .allTests),
-    testCase(CookiesTests              .allTests)
+    testCase(CookiesTests              .allTests),
+    testCase(VaryTests                 .allTests)
   ]
 }
 #endif
