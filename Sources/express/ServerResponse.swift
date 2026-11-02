@@ -408,11 +408,20 @@ public extension ServerResponse {
       setHeader("Vary", first)
       return self
     }
+    
+    func ciEqual(_ a: Substring.UTF8View, _ b: String.UTF8View) -> Bool {
+      guard a.count == b.count else { return false }
+      return zip(a, b).allSatisfy { a, b in
+        if a == b { return true }
+        let lower = a | 0x20
+        return lower == b | 0x20 && lower >= 97 && lower <= 122 // a-z
+      }
+    }
+
     for field in fields {
       if current.isEmpty { current = field; continue }
       let isDuplicate = current.split(separator: ",").contains {
-        trimSpaces($0)
-          .caseInsensitiveCompare(field) == .orderedSame
+        ciEqual(trimSpaces($0).utf8, field.utf8)
       }
       if !isDuplicate { current += ", " + field }
     }
