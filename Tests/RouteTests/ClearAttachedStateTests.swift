@@ -139,13 +139,4 @@ final class ClearAttachedStateTests: XCTestCase, @unchecked Sendable {
     XCTAssertNil(weakRes,
                  "ServerResponse should be deallocated")
   }
-
-  static let allTests = [
-    ( "testClearAttachedStateBreaksCycles",
-      testClearAttachedStateBreaksCycles ),
-    ( "testRequestHandlerClearsAttachedStateOnFinish",
-      testRequestHandlerClearsAttachedStateOnFinish ),
-    ( "testRequestHandlerClearsAttachedStateOnLaterFinish",
-      testRequestHandlerClearsAttachedStateOnLaterFinish )
-  ]
 }

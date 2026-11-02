@@ -411,10 +411,11 @@ public extension ServerResponse {
     
     func ciEqual(_ a: Substring.UTF8View, _ b: String.UTF8View) -> Bool {
       guard a.count == b.count else { return false }
-      return zip(a, b).allSatisfy { a, b in
+      return zip(a, b).allSatisfy { ( a: UInt8, b: UInt8 ) -> Bool in
         if a == b { return true }
-        let lower = a | 0x20
-        return lower == b | 0x20 && lower >= 97 && lower <= 122 // a-z
+        let lower : UInt8 = a | 0x20
+        guard lower >= 97 && lower <= 122 else { return false } // a-z
+        return lower == b | 0x20
       }
     }
 

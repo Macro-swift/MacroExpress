@@ -220,26 +220,4 @@ final class FreshStaleTests: XCTestCase, @unchecked Sendable {
     XCTAssertFalse(staleVal)
     XCTAssertEqual(freshVal, !staleVal)
   }
-
-  static let allTests = [
-    ( "testMatchingETag",               testMatchingETag               ),
-    ( "testMismatchedETag",             testMismatchedETag             ),
-    ( "testWildcardETag",               testWildcardETag               ),
-    ( "testWeakETagMatch",              testWeakETagMatch              ),
-    ( "testWeakVsStrongETagMatch",      testWeakVsStrongETagMatch      ),
-    ( "testMultipleETags",              testMultipleETags              ),
-    ( "testMultipleETagsNoMatch",       testMultipleETagsNoMatch       ),
-    ( "testMatchingLastModified",       testMatchingLastModified       ),
-    ( "testMismatchedLastModified",     testMismatchedLastModified     ),
-    ( "testNotFreshForPOST",            testNotFreshForPOST            ),
-    ( "testNotFreshWithout304Or2xx",    testNotFreshWithout304Or2xx    ),
-    ( "testNoResponseMeansStale",       testNoResponseMeansStale       ),
-    ( "testMultipleIfNoneMatchHeaders", testMultipleIfNoneMatchHeaders ),
-    ( "testIfNoneMatchTakesPrecedence", testIfNoneMatchTakesPrecedence ),
-    ( "testLastModifiedBeforeIfModifiedSince",
-      testLastModifiedBeforeIfModifiedSince ),
-    ( "testStaleIsInverseOfFresh",      testStaleIsInverseOfFresh      ),
-    ( "testNotFreshWithoutConditionalHeaders",
-      testNotFreshWithoutConditionalHeaders )
-  ]
 }

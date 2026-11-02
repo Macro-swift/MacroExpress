@@ -653,17 +653,4 @@ final class multerTests: XCTestCase, @unchecked Sendable {
     let duration = -start.timeIntervalSinceNow
     print("TOOK:", duration)
   }
-
-  static let allTests = [
-    ( "testSimpleAny"      , testSimpleAny      ),
-    ( "testSimpleNoneFail" , testSimpleNoneFail ),
-    ( "testSimpleSingleOK" , testSimpleSingleOK ),
-    ( "testSingleFail"     , testSingleFail     ),
-    ("testFieldNameMismatchYieldsLimitUnexpectedFile",
-     testFieldNameMismatchYieldsLimitUnexpectedFile ),
-    ( "testMultiOK"        , testMultiOK        ),
-    ( "testSizeLimit"      , testSizeLimit      ),
-    ("testBufferRemainingMatchPerformance",
-     testBufferRemainingMatchPerformance )
-  ]
 }

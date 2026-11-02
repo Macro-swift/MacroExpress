@@ -118,11 +118,6 @@ final class bodyParserTests: XCTestCase, @unchecked Sendable {
       }
     }
   }
-
-  static let allTests = [
-    ( "testStringParser"         , testStringParser         ),
-    ( "testArrayFormValueParser" , testArrayFormValueParser )
-  ]
 }
 
 #if compiler(>=6.2)

@@ -416,15 +416,15 @@ fileprivate extension IncomingMessage {
   
   /// Checks Host/X-Forwarded-Proto
   var isLikelySecureConnection : Bool {
-    guard let host = headers["Host"].first?.utf8 else { return false }
-    
     func equalsIgnoringASCIICase<C>(_ bytes: C, _ token: StaticString)
          -> Bool where C: Collection, C.Element == UInt8
     {
       guard bytes.count == token.utf8CodeUnitCount else { return false }
       return token.withUTF8Buffer { t in
-        zip(bytes, t).allSatisfy { b, t in
-          b == t || ( b >= 65 && b <= 90 && b + 32 == t ) // A-Z
+        zip(bytes, t).allSatisfy { ( b: UInt8, t: UInt8 ) -> Bool in
+          if b == t { return true }
+          let isUpper = b >= 65 && b <= 90 // A-Z
+          return isUpper && b + 32 == t
         }
       }
     }
@@ -447,6 +447,7 @@ fileprivate extension IncomingMessage {
       return true
     }
     
+    guard let host = headers["Host"].first?.utf8 else { return false }
     // Strip the port: `localhost:1339`, `[::1]:1339`
     let name = host.first == 91 /* [ */
         ? host.prefix(through: host.firstIndex(of: 93 /* ] */) ?? host.endIndex)

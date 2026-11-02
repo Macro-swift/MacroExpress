@@ -241,29 +241,4 @@ final class ExactMatchTests: XCTestCase, @unchecked Sendable {
     XCTAssertFalse(didCallRoute, "/api(*) should not match /web")
     XCTAssertTrue(didCallNext, "should call next")
   }
-
-  static let allTests = [
-    ( "testGetRootDoesNotMatchSubpath",      testGetRootDoesNotMatchSubpath   ),
-    ( "testGetRootMatchesExactRoot",         testGetRootMatchesExactRoot      ),
-    ( "testUseRootMatchesSubpath",           testUseRootMatchesSubpath        ),
-    ( "testAllRootDoesNotMatchSubpath",      testAllRootDoesNotMatchSubpath   ),
-    ( "testAllRootMatchesExactRoot",         testAllRootMatchesExactRoot      ),
-    ( "testAllMatchesAnyMethod",             testAllMatchesAnyMethod          ),
-    ( "testAllWithWildcardMatchesSubpath",   testAllWithWildcardMatchesSubpath),
-    ( "testGetWildcardMatchesDeepPath",      testGetWildcardMatchesDeepPath   ),
-    ( "testGetWithVariableMatchesExact",     testGetWithVariableMatchesExact  ),
-    ( "testMountedGetExactMatch",            testMountedGetExactMatch         ),
-    ( "testGetWithVariableDoesNotMatchExtra", 
-      testGetWithVariableDoesNotMatchExtra ),
-    ( "testParenWildcardMatchesExactPrefix",
-      testParenWildcardMatchesExactPrefix ),
-    ( "testParenWildcardMatchesPrefixExtension",
-      testParenWildcardMatchesPrefixExtension ),
-    ( "testParenWildcardMatchesSubpath",
-      testParenWildcardMatchesSubpath ),
-    ( "testParenWildcardMatchesDeepSubpath",
-      testParenWildcardMatchesDeepSubpath ),
-    ( "testParenWildcardDoesNotMatchDifferentPrefix",
-      testParenWildcardDoesNotMatchDifferentPrefix )
-  ]
 }

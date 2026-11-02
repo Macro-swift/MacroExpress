@@ -221,12 +221,4 @@ final class MultiPartParserTests: XCTestCase, @unchecked Sendable {
 
     print("DONE:")
   }
-
-  static let allTests = [
-    ( "testSimpleFormData"           , testSimpleFormData           ),
-    ( "testSimpleFormDataFragmented" , testSimpleFormDataFragmented ),
-    ( "testImageSubmitData"          , testImageSubmitData          ),
-    ( "testTwoFileSubmit"            , testTwoFileSubmit            ),
-    ( "testBiggerPayload"            , testBiggerPayload            )
-  ]
 }

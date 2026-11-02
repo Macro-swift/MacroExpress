@@ -108,19 +108,4 @@ final class HeadGetTests: XCTestCase, @unchecked Sendable {
     XCTAssertEqual(cl, "42",
                    "explicit Content-Length must not be overwritten")
   }
-
-  static let allTests = [
-    ( "testHeadRequestMatchesGetRoute",
-      testHeadRequestMatchesGetRoute ),
-    ( "testGetRequestStillMatchesGetRoute",
-      testGetRequestStillMatchesGetRoute ),
-    ( "testPostRouteDoesNotMatchHead",
-      testPostRouteDoesNotMatchHead ),
-    ( "testExplicitHeadRouteStillMatches",
-      testExplicitHeadRouteStillMatches ),
-    ( "testHeadResponseDropsBodyButSetsContentLength",
-      testHeadResponseDropsBodyButSetsContentLength ),
-    ( "testHeadResponseRespectsExplicitContentLength",
-      testHeadResponseRespectsExplicitContentLength )
-  ]
 }

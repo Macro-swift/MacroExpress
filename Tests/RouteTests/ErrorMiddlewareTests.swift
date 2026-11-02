@@ -86,9 +86,4 @@ final class ErrorMiddlewareTests: XCTestCase, @unchecked Sendable {
                      "different error captured")
     }
   }
-
-  static let allTests = [
-    ( "testSimpleThrowErrorHandler" , testSimpleThrowErrorHandler ),
-    ( "testSimpleNextErrorHandler"  , testSimpleNextErrorHandler  ),
-  ]
 }

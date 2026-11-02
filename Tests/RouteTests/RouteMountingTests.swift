@@ -71,9 +71,4 @@ final class RouteMountingTests: XCTestCase, @unchecked Sendable {
     XCTAssertTrue (didCallErrorMiddleware, "not handled by error middleware")
     XCTAssertFalse(didCallNext,  "not handled by middleware (did call next)")
   }
-
-  static let allTests = [
-    ( "testSimpleMountMatch"      , testSimpleMountMatch      ),
-    ( "testSimpleErrorMountMatch" , testSimpleErrorMountMatch )
-  ]
 }

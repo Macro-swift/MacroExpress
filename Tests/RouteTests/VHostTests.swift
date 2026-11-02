@@ -211,20 +211,4 @@ final class VHostTests: XCTestCase, @unchecked Sendable {
     try dispatch(host: "tasks.qa.zeezide.de") // none match
     XCTAssertEqual(hits, [ "diary", "dashboard" ])
   }
-
-  static let allTests = [
-    ( "testGlobMatchesSubdomain"          , testGlobMatchesSubdomain          ),
-    ( "testGlobIsCaseInsensitive"         , testGlobIsCaseInsensitive         ),
-    ( "testGlobMissesFallsThrough"        , testGlobMissesFallsThrough        ),
-    ( "testStarMatchesAcrossLabels"       , testStarMatchesAcrossLabels       ),
-    ( "testExactStringMatchesExactly"     , testExactStringMatchesExactly     ),
-    ( "testMultipleStarsCaptureInOrder"   , testMultipleStarsCaptureInOrder   ),
-    ( "testHostWithPortStripped"          , testHostWithPortStripped          ),
-    ( "testIPv6BracketHostStripsPort"     , testIPv6BracketHostStripsPort     ),
-    ( "testMissingHostHeaderFallsThrough" , testMissingHostHeaderFallsThrough ),
-    ( "testRegexLiteralMatch"             , testRegexLiteralMatch             ),
-    ( "testRegexLiteralMissesFallsThrough", testRegexLiteralMissesFallsThrough),
-    ( "testMiddlewareObjectOverload"      , testMiddlewareObjectOverload      ),
-    ( "testChainedVHostsRouteByHost"      , testChainedVHostsRouteByHost      )
-  ]
 }

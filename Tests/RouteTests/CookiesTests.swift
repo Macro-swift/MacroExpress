@@ -122,18 +122,4 @@ final class CookiesTests: XCTestCase {
     Cookies(req, res).set(cookie: Cookie(name: "s", value: "1", secure: true))
     XCTAssertEqual(res.headers["Set-Cookie"].count, 1)
   }
-
-  static let allTests = [
-    ( "testSettingTwoCookiesKeepsBoth",  testSettingTwoCookiesKeepsBoth  ),
-    ( "testSettingAgainAddsAHeader",     testSettingAgainAddsAHeader     ),
-    ( "testTokenValuesStayAsIs",         testTokenValuesStayAsIs         ),
-    ( "testInvalidCharactersAreEncoded", testInvalidCharactersAreEncoded ),
-    ( "testDecoding",                    testDecoding                    ),
-    ( "testValuesRoundTrip",             testValuesRoundTrip             ),
-    ( "testRequestCookiesAreDecoded",    testRequestCookiesAreDecoded    ),
-    ( "testInvalidCookiesAreNotSet",     testInvalidCookiesAreNotSet     ),
-    ( "testSecureConnectionDetection",   testSecureConnectionDetection   ),
-    ( "testSecureCookieIsStillSetOnPlainHTTP",
-      testSecureCookieIsStillSetOnPlainHTTP )
-  ]
 }

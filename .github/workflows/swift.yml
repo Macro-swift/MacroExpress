@@ -13,7 +13,6 @@ jobs:
       fail-fast: false
       matrix:
         image:
-          - swift:6.0-focal
           - swift:6.2-jammy
           - swift:6.3-noble
     container: ${{ matrix.image }}
@@ -25,7 +24,7 @@ jobs:
       - name: Build Swift Release Package
         run: swift build -c release
       - name: Run Tests
-        run: swift test --enable-test-discovery
+        run: swift test
   nextstep:
     runs-on: macos-latest
     steps:
