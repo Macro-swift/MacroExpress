@@ -50,12 +50,21 @@ public struct Cookies: Sendable {
     return cookies[name]
   }
   
+  /// Adds a `Set-Cookie` header for the cookie to the response.
   @inlinable
   public func set(cookie c: Cookie) {
     guard let res = res else {
       return console.warn("attempt to set cookie, but got no response object!")
     }
-    res.setHeader("Set-Cookie", c.httpHeaderValue)
+    var values : [ String ]
+    switch res.getHeader("Set-Cookie") {
+      case .some(let v as String)     : values = [ v ]
+      case .some(let v as [ String ]) : values = v
+      case .some(let v)               : values = [ "\(v)" ]
+      case .none                      : values = []
+    }
+    values.append(c.httpHeaderValue)
+    res.setHeader("Set-Cookie", values)
   }
   
   @inlinable
