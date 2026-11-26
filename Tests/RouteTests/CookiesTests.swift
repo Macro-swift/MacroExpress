@@ -110,6 +110,10 @@ final class CookiesTests: XCTestCase {
     XCTAssertFalse(secure([ ( "Host",              "xlocalhost"         ) ]))
     XCTAssertFalse(secure([ ( "Host",              "[::2]:80"           ) ]))
 
+    for host in [ "[", "[::1", "[::1:1339" ] {
+      XCTAssertFalse(secure([ ( "Host", host ) ]), host)
+    }
+
     let forced = Cookies(IncomingMessage(url: "/"), secure: true)
     XCTAssertTrue(forced.isSecureConnection)
   }
