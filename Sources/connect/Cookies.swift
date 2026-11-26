@@ -449,9 +449,12 @@ fileprivate extension IncomingMessage {
     
     guard let host = headers["Host"].first?.utf8 else { return false }
     // Strip the port: `localhost:1339`, `[::1]:1339`
-    let name = host.first == 91 /* [ */
-        ? host.prefix(through: host.firstIndex(of: 93 /* ] */) ?? host.endIndex)
-        : host.prefix(while: { $0 != 58 /* : */ })
+    let name: String.UTF8View.SubSequence
+    if host.first == 91 /* [ */ {
+      guard let end = host.firstIndex(of: 93 /* ] */) else { return false }
+      name = host.prefix(through: end)
+    }
+    else { name = host.prefix(while: { $0 != 58 /* : */ }) }
     return equalsIgnoringASCIICase(name, "localhost")
         || equalsIgnoringASCIICase(name, "127.0.0.1")
         || equalsIgnoringASCIICase(name, "[::1]")
