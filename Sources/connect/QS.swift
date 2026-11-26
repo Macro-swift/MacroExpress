@@ -3,7 +3,7 @@
 //  Noze.io / ExExpress / Macro
 //
 //  Created by Helge Heß on 02.05.17.
-//  Copyright © 2017-2021 ZeeZide GmbH. All rights reserved.
+//  Copyright © 2017-2026 ZeeZide GmbH. All rights reserved.
 //
 
 public enum qs {
@@ -48,200 +48,75 @@ public extension qs {
       guard count < parameterLimit else { break }
       count += 1
       
-      let pairParts = pair.split(separator: pairSeparator,
-                                 maxSplits: 1,
+      let pairParts = pair.split(separator: pairSeparator, maxSplits: 1,
                                  omittingEmptySubsequences: true)
       guard !pairParts.isEmpty else { continue }
     
       let key   = decodeURIComponent(String(pairParts[0]))
       let value = pairParts.count > 1
-                  ? decodeURIComponent(String(pairParts[1])) : ""
+                ? decodeURIComponent(String(pairParts[1])) : ""
           
-      let kp = parseKeyPath(key, depth: depth, allowsDot: allowsDot)
-      guard kp.count > 1 else {
-        parsedQV[key] = value
-        continue
-      }
-      
-      // TODO: validate kp, e.g. must begin with name
-      
-      // Oh my. All this code :-0 This needs a rewrite, ugly.
-      // FIXME: I don't like this :-)
-      
-      enum CursorType {
-        case Dict(RefStringAnyDictionary)
-        case Array(RefAnyArray)
-        case Other(Any)
-      }
-      
-      var cursor = CursorType.Dict(parsedQV)
-      
-      for idx in 0..<(kp.count - 1) {
-        let part = kp[idx]
-        let next = kp[idx + 1]
-        
-        switch part {
-          case .Key(let name):
-            guard case .Dict(let cursorDict) = cursor else {
-              assertionFailure("expected dictionary for key")
-              break
-            }
-            
-            if let currentValue = cursorDict[name] { // has a value already
-              if case .Key(_) = next {
-                // if the next is a key, we must have a dictionary
-                if currentValue is RefStringAnyDictionary {
-                  // all good
-                }
-                else if let array = currentValue as? RefAnyArray {
-                  let newValue = RefStringAnyDictionary()
-                  for i in 0..<array.count {
-                    newValue["\(i)"] = array[i]
-                  }
-                  cursorDict[name] = newValue
-                }
-                else {
-                  assertionFailure("unexpected object: \(currentValue)")
-                  break
-                }
-              }
-            }
-            else { // no value
-              switch next {
-                case .Key(_):
-                  cursorDict[name] = RefStringAnyDictionary()
-                case .Array, .Index(_):
-                  cursorDict[name] = RefAnyArray()
-                case .Error(let msg):
-                  assertionFailure("error: \(msg)")
-                  break
-              }
-            }
-          
-            if let nextCursor = cursorDict[name] {
-              if let rd = nextCursor as? RefStringAnyDictionary {
-                cursor = .Dict(rd)
-              }
-              else if let ra = nextCursor as? RefAnyArray {
-                cursor = .Array(ra)
-              }
-              else {
-                assertionFailure("unexpected object: \(nextCursor)")
-                cursor = .Other(nextCursor)
-              }
-            }
-          
-          case .Array:
-            // e.g.: "a[][b]=10&a[][c]=20"
-            guard case .Array(let cursorArray) = cursor else {
-              assertionFailure("expected array for key")
-              break
-            }
-            // w/ [] we always append aka create a new value
-            switch next {
-              case .Key(_):
-                let nextValue = RefStringAnyDictionary()
-                cursorArray.append(nextValue)
-                cursor = .Dict(nextValue)
-              case .Array, .Index(_):
-                let nextValue = RefAnyArray()
-                cursorArray.append(nextValue)
-                cursor = .Array(nextValue)
-              case .Error(let msg):
-                assertionFailure("error: \(msg)")
-                break
-            }
-          
-          case .Index(let idx):
-            switch cursor {
-              case .Dict(let cursorDict): // mixed
-                let name = "\(idx)"
-                if let _ /*currentValue*/ = cursorDict[name] {
-                  // TODO
-                }
-                else {
-                  // TODO
-                }
-                assert(false, "mixed values, unsupported")
-                break
-              
-              case .Array(let cursorArray):
-                cursorArray.ensureSize(idx + 1,
-                                       defaultValue: sparseArrayDefaultValue)
-                let currentValue = cursorArray[idx]
-                if !(currentValue is EmptyArraySlot) {
-                  if let rd = currentValue as? RefStringAnyDictionary {
-                    cursor = .Dict(rd)
-                  }
-                  else if let ra = currentValue as? RefAnyArray {
-                    cursor = .Array(ra)
-                  }
-                  else {
-                    assertionFailure("unexpected object: \(currentValue)")
-                    cursor = .Other(currentValue)
-                  }
-                }
-                else {
-                  switch next {
-                    case .Key(_):
-                      let nextValue = RefStringAnyDictionary()
-                      cursorArray[idx] = nextValue
-                      cursor = .Dict(nextValue)
-                    case .Array, .Index(_):
-                      let nextValue = RefAnyArray()
-                      cursorArray[idx] = nextValue
-                      cursor = .Array(nextValue)
-                    case .Error(let msg):
-                      assertionFailure("error: \(msg)")
-                      break
-                  }
-                }
-              
-              default:
-                assertionFailure("unexpected object: \(cursor)")
-            }
-          
-          default:
-            assertionFailure("not implemented: non-dict part: \(part)")
-            break
+      let path = parseKeyPath(key, depth: depth, allowsDot: allowsDot)
+      guard !path.isEmpty, path.allSatisfy({
+        switch $0 {
+          case .index(let index): return index <= arrayLimit && index < Int.max
+          case .error: return false
+          default: return true
         }
-      }
-      
-      let lastPart = kp[kp.count - 1]
-      switch lastPart {
-        case .Key(let name):
-          guard case .Dict(let cursorDict) = cursor else {
-            assertionFailure("expected dictionary for key")
-            break
-          }
-          cursorDict[name] = value
-        
-        case .Array:
-          guard case .Array(let cursorArray) = cursor else {
-            assertionFailure("expected array")
-            break
-          }
-          cursorArray.append(value)
-        
-        case .Index(let idx):
-          switch cursor {
-            case .Dict(let cursorDict):
-              cursorDict["\(idx)"] = value
-            case .Array(let cursorArray):
-              cursorArray.ensureSize(idx + 1,
-                                     defaultValue: sparseArrayDefaultValue)
-              cursorArray[idx] = value
-            default:
-              assertionFailure("unexpected object: \(cursor)")
-          }
-        
-        default:
-          assertionFailure("not implemented: non-dict part: \(lastPart)")
-          break
-      }      
+      }) else { continue }
+
+      _ = insert(value, along: path[...], into: parsedQV)
+    }
+
+    return parsedQV.flatten() as? [ String : Any ] ?? [:]
+  }
+
+  /// Slots keep the type of its first value.
+  private static func insert(_      value : String,
+                             along   path : ArraySlice<QueryParameterKeyPart>,
+                             into current : Any?) -> Any?
+  {
+    let existing = current is EmptyArraySlot ? nil : current
+    guard let part = path.first else {
+      return existing == nil || existing is String ? value : nil
     }
     
-    return parsedQV.flatten() as? Dictionary<String, Any> ?? [:]
+    let tail = path.dropFirst()
+    switch part {
+      case .key(let key):
+        let child = existing == nil ? RefStringAnyDictionary()
+                                    : (existing as? RefStringAnyDictionary)
+        guard let child, 
+              let next = insert(value, along: tail, into: child[key]) else 
+        {
+          return nil
+        }
+      
+        child[key] = next
+        return child
+
+      case .array, .index:
+        let child = existing == nil ? RefAnyArray() : existing as? RefAnyArray
+        guard let child else { return nil }
+      
+        if case .index(let index) = part {
+          let slot = index < child.count ? child[index] : nil
+          guard let next = insert(value, along: tail, into: slot) else {
+            return nil
+          }
+          
+          child.ensureSize(index + 1, defaultValue: sparseArrayDefaultValue)
+          child[index] = next
+        }
+        else if let next = insert(value, along: tail, into: nil) {
+          child.append(next)
+        }
+        else { return nil }
+      
+        return child
+
+      case .error: return nil
+    }
   }
 }
 
@@ -257,7 +132,7 @@ protocol RefTypeFlatten: AnyObject {
 private typealias RefAnyArray            = RefArray<Any>
 private typealias RefStringAnyDictionary = RefDictionary<String, Any>
 
-class RefArray<Element>: RefTypeFlatten {
+private class RefArray<Element>: RefTypeFlatten {
   
   var storage = Array<Element>()
   
@@ -327,13 +202,13 @@ private class RefDictionary<Key : Hashable, Value>: RefTypeFlatten {
 // 'foo[bar][baz]=foobarbaz' -> [ "foo": [ "bar": [ "baz": "foobarbaz" ] ] ]
 // 'a[]=b&a[]=c')            -> [ "a": [ "b", "c" ] ]
 // 'a[1]=b&a[3]=c'           -> [ "a": [ nil, "b", nil, "c" ] ]  (max: 20)
-// 'a.b=c' (allowsDot)       -> [ "a": [ "b": "c" ] ]
+// 'a.b=c' (allowsDot)       -> [ "a": [ "b": "c" ] ]     // NOT SUPPORTED YET
 // 'a[][b]=c'                -> [ "a": [ [ "b": "c" ] ] ]
 enum QueryParameterKeyPart {
-  case Key(String) // hello or [hello]
-  case Index(Int)  // [1]
-  case Array       // []
-  case Error(String)
+  case key(String) // hello or [hello]
+  case index(Int)  // [1]
+  case array       // []
+  case error(String)
 }
 
 extension qs {
@@ -341,7 +216,7 @@ extension qs {
   static func parseKeyPath(_ s: String, depth: Int = 5, allowsDot: Bool)
               -> [ QueryParameterKeyPart ]
   {
-    guard !s.isEmpty else { return [] }
+    guard let first = s.first, first != "[" else { return [] }
     
     var idx      = s.startIndex
     let endIndex = s.endIndex
@@ -404,21 +279,21 @@ extension qs {
       guard s[idx] == "["  else { return nil }
       
       consume() // "["
-      guard idx < endIndex else { return .Error("lbrack not closed") }
+      guard idx < endIndex else { return .error("lbrack not closed") }
       
       if s[idx] == "]" {
         consume() // ]
-        return .Array
+        return .array
       }
       
       if isDigit(s[idx]) {
         guard let v = parseNumber()
-         else { return .Error("could not parse number") }
+         else { return .error("could not parse number") }
         guard idx < endIndex, s[idx] == "]"
-         else { return .Error("lbrack not closed") }
+         else { return .error("lbrack not closed") }
         
         consume() // ]
-        return .Index(v)
+        return .index(v)
       }
       
       var lidx = idx
@@ -427,12 +302,12 @@ extension qs {
         lidx = s.index(after: lidx)
       }
       guard lidx < endIndex, s[lidx] == "]"
-       else { return .Error("lbrack not closed") }
+       else { return .error("lbrack not closed") }
       
       let r = s[idx..<lidx]
       idx = s.index(after: lidx)
       
-      return .Key(String(r))
+      return .key(String(r))
     }
     
     func parseKeyPart() -> QueryParameterKeyPart? {
@@ -443,17 +318,20 @@ extension qs {
       }
       
       guard let kid = parseIdentifier() else { return nil }
-      return .Key(kid)
+      return .key(kid)
     }
     
     var parts = [ QueryParameterKeyPart ]()
-    while let part = parseKeyPart() {
+    while idx < endIndex {
+      if !parts.isEmpty, !allowsDot, s[idx] != "[" { return [] }
+      guard let part = parseKeyPart() else { return [] }
+      if case .error = part { return [] }
       parts.append(part)
       
       // check depth limit.
       if parts.count > depth {
         if idx < endIndex {
-          parts.append(.Key(String(s[idx..<endIndex])))
+          parts.append(.key(String(s[idx..<endIndex])))
         }
         break
       }
