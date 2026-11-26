@@ -37,9 +37,4 @@ final class dotenvTests: XCTestCase, @unchecked Sendable {
                    "vuehello again!",
                    "When the same key appears more than once its value is appended")
   }
-
-  static let allTests = [
-    ( "testConfig" , testConfig ),
-    ( "testParse"  , testParse  )
-  ]
 }

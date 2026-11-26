@@ -51,9 +51,4 @@ final class SimpleRouteTests: XCTestCase, @unchecked Sendable {
     XCTAssertTrue(didCallRoute, "middleware not called")
     XCTAssertTrue(didCallNext,  "next not called as expected")
   }
-
-  static let allTests = [
-    ( "testSimpleEndingRoute"    , testSimpleEndingRoute    ),
-    ( "testSimpleNonEndingRoute" , testSimpleNonEndingRoute )
-  ]
 }

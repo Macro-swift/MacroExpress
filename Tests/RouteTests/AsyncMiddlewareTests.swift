@@ -220,23 +220,4 @@ final class AsyncMiddlewareTests: XCTestCase, @unchecked Sendable {
       XCTAssertTrue(didAwait)
     }
   }
-
-  static let allTests = [
-    ( "testAsyncMiddlewareCallsNext"          ,
-      testAsyncMiddlewareCallsNext            ),
-    ( "testAsyncMiddlewareDoesNotCallNext"    ,
-      testAsyncMiddlewareDoesNotCallNext      ),
-    ( "testAsyncMiddlewareForwardsThrowToNext",
-      testAsyncMiddlewareForwardsThrowToNext  ),
-    ( "testAsyncMiddlewareCanAwait"           ,
-      testAsyncMiddlewareCanAwait             ),
-    ( "testAsyncMiddlewareChaining"           ,
-      testAsyncMiddlewareChaining             ),
-    ( "testAsyncFinalMiddleware"              ,
-      testAsyncFinalMiddleware                ),
-    ( "testAsyncFinalMiddlewareForwardsThrow" ,
-      testAsyncFinalMiddlewareForwardsThrow   ),
-    ( "testAsyncFinalMiddlewareCanAwait"      ,
-      testAsyncFinalMiddlewareCanAwait        ),
-  ]
 }

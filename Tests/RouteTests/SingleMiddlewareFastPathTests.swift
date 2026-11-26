@@ -282,20 +282,4 @@ final class SingleMiddlewareFastPathTests: XCTestCase, @unchecked Sendable {
   }
 
   // MARK: - Allocations
-
-  static let allTests = [
-    ( "testNextNoArgs",                  testNextNoArgs                  ),
-    ( "testNextRouteSkip",               testNextRouteSkip               ),
-    ( "testNextRouterSkip",              testNextRouterSkip              ),
-    ( "testNextWithError",               testNextWithError               ),
-    ( "testMiddlewareThrows",            testMiddlewareThrows            ),
-    ( "testMiddlewareTerminates",        testMiddlewareTerminates        ),
-    ( "testNextCalledTwice",             testNextCalledTwice             ),
-    ( "testURLRestoredAfterDispatch",    testURLRestoredAfterDispatch    ),
-    ( "testParamsPopulated",             testParamsPopulated             ),
-    ( "testMethodMismatchFallsThrough",  testMethodMismatchFallsThrough  ),
-    ( "testPatternMismatchFallsThrough", testPatternMismatchFallsThrough ),
-    ( "testSingleSubrouterEntry",        testSingleSubrouterEntry        ),
-    ( "testAsyncNext",                   testAsyncNext                   )
-  ]
 }

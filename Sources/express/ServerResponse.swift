@@ -11,9 +11,9 @@ import NIOHTTP1   // HTTPResponseStatus/HTTPHeaders
 import MacroCore  // Buffer
 import http       // IncomingMessage/ServerResponse
 import connect    // Cookie
-import Foundation // Date
 import mime
 import fs
+import xsys
 
 public extension ServerResponse {
   
@@ -259,9 +259,9 @@ public extension ServerResponse {
   @discardableResult
   @inlinable
   func type(_ type: String) -> Self {
-    if      type.contains("/")         { setHeader("Content-Type", type) }
-    else if let ct = mime.lookup(type) { setHeader("Content-Type", ct)   }
-    else                               { setHeader("Content-Type", type) }
+    if type.utf8.contains(UInt8(ascii: "/")) { setHeader("Content-Type", type) }
+    else if let ct = mime.lookup(type)       { setHeader("Content-Type", ct)   }
+    else                                     { setHeader("Content-Type", type) }
     return self
   }
 
@@ -298,11 +298,11 @@ public extension ServerResponse {
    */
   @discardableResult
   @inlinable
-  func cookie(_ name: String, _ value: String,
-              path: String? = "/", httpOnly: Bool = true,
-              domain: String? = nil, maxAge: Int? = nil,
-              expires: Date? = nil, secure: Bool = false,
-              sameSite: Cookie.SameSite? = nil) -> Self
+  func cookie(_   name : String, _              value: String,
+              path     : String?      = "/", httpOnly: Bool = true,
+              domain   : String?      = nil, maxAge: Int? = nil,
+              expires  : xsys.time_t? = nil, secure: Bool = false,
+              sameSite : Cookie.SameSite? = nil) -> Self
   {
     let c = Cookie(name: name, value: value, path: path,
                    httpOnly: httpOnly, domain: domain,
@@ -408,11 +408,21 @@ public extension ServerResponse {
       setHeader("Vary", first)
       return self
     }
+    
+    func ciEqual(_ a: Substring.UTF8View, _ b: String.UTF8View) -> Bool {
+      guard a.count == b.count else { return false }
+      return zip(a, b).allSatisfy { ( a: UInt8, b: UInt8 ) -> Bool in
+        if a == b { return true }
+        let lower : UInt8 = a | 0x20
+        guard lower >= 97 && lower <= 122 else { return false } // a-z
+        return lower == b | 0x20
+      }
+    }
+
     for field in fields {
       if current.isEmpty { current = field; continue }
       let isDuplicate = current.split(separator: ",").contains {
-        trimSpaces($0)
-          .caseInsensitiveCompare(field) == .orderedSame
+        ciEqual(trimSpaces($0).utf8, field.utf8)
       }
       if !isDuplicate { current += ", " + field }
     }

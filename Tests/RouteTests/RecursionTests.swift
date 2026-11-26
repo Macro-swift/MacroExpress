@@ -361,22 +361,4 @@ final class RecursionTests: XCTestCase, @unchecked Sendable {
     try route.handle(request: req, response: res) { _ in }
     XCTAssertEqual(order, Array(0..<count),"middleware should execute in order")
   }
-
-  static let allTests = [
-    ( "testManySequentialMiddleware"      , testManySequentialMiddleware      ),
-    ( "testManyPassthroughMiddleware"     , testManyPassthroughMiddleware     ),
-    ( "testDeepRouteNesting"              , testDeepRouteNesting              ),
-    ( "testManyNonMatchingRoutes"         , testManyNonMatchingRoutes         ),
-    ( "testManyMethodMismatchRoutes"      , testManyMethodMismatchRoutes      ),
-    ( "testErrorPropagationThroughChain"  , testErrorPropagationThroughChain  ),
-    ( "testErrorBubblesUpFromNestedRoute" , testErrorBubblesUpFromNestedRoute ),
-    ( "testConnectManyMiddleware"         , testConnectManyMiddleware         ),
-    ( "testConnectErrorSkipsMiddleware"   , testConnectErrorSkipsMiddleware   ),
-    ( "testRouteSignalSkipsRemaining"     , testRouteSignalSkipsRemaining     ),
-    ( "testMiddlewareOrderPreserved"      , testMiddlewareOrderPreserved      ),
-    ( "testDeepNestingWithStateRestoration", 
-      testDeepNestingWithStateRestoration ),
-    ( "testMixedNestedAndSequentialMiddleware",
-      testMixedNestedAndSequentialMiddleware ),
-  ]
 }

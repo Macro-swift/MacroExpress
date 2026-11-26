@@ -60,7 +60,7 @@ docker-test: $(DOCKER_BUILD_PRODUCT)
           -v "$(PWD):/src" \
           -v "$(PWD)/$(DOCKER_BUILD_DIR):/src/.build" \
           "$(SWIFT_BUILD_IMAGE)" \
-          bash -c 'cd /src && swift test --enable-test-discovery -c $(CONFIGURATION)'
+          bash -c 'cd /src && swift test -c $(CONFIGURATION)'
 
 docker-clean:
 	rm $(DOCKER_BUILD_PRODUCT)	
